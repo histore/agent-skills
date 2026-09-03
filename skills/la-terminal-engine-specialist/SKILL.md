@@ -1,5 +1,5 @@
 ---
-name: subagent-terminal-engine-specialist
+name: la-terminal-engine-specialist
 description: Deep specialist in Win32 PseudoConsole (ConPTY), ANSI/VT100 escape sequences, OSC shell integration, TrueColor palettes, zero-allocation stream buffering, and terminal character encoding.
 ---
 

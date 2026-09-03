@@ -1,5 +1,5 @@
 ---
-name: subagent-code-explainer
+name: la-code-explainer
 description: Analyzes and explains source code, architectural patterns, control flows, and design decisions, inserting didactic explanations directly as comments into the codebase.
 ---
 

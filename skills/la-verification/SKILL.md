@@ -1,5 +1,5 @@
 ---
-name: subagent-verification
+name: la-verification
 description: Performs rigorous code review, quality gate checks, acceptance criteria validation, Clean Architecture / Clean Code compliance audits, and full requirements coverage verification.
 ---
 

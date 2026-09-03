@@ -1,5 +1,5 @@
 ---
-name: subagent-architect
+name: la-architect
 description: Designs system components, interfaces, and data flows following Clean Architecture principles and modern C# / .NET best practices.
 ---
 

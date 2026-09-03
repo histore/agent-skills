@@ -1,5 +1,5 @@
 ---
-name: subagent-performance-optimizer
+name: la-performance-optimizer
 description: Profiles and optimizes startup time, memory allocation, ConPTY stream throughput, UI virtualization, and resource leak prevention.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: subagent-localization-specialist
+name: la-localization-specialist
 description: Audits code for internationalization (i18n), extracts hardcoded UI strings, and maintains bilingual localization resources in German and English.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: subagent-tester
+name: la-tester
 description: Designs, implements, and executes automated unit and integration tests using xUnit, AAA pattern, and modern mocking tools to ensure high test coverage and reliability.
 ---
 

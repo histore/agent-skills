@@ -1,5 +1,5 @@
 ---
-name: subagent-ui-designer
+name: la-ui-designer
 description: Designs intuitive, aesthetically outstanding, and highly ergonomic user interfaces following modern UX best practices, Avalonia UI conventions, and accessibility standards.
 ---
 

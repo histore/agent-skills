@@ -1,5 +1,5 @@
 ---
-name: subagent-requirement-engineer
+name: la-requirement-engineer
 description: Analyzes and specifies functional and non-functional requirements with precise acceptance criteria, enforcing consistency, user-guided conflict resolution, and immutability of existing requirements.
 ---
 
