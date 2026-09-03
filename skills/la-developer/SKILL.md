@@ -1,5 +1,5 @@
 ---
-name: subagent-developer
+name: la-developer
 description: Implements features and bug fixes adhering to Clean Code standards, C# 13 / .NET 10 idioms, Avalonia UI best practices, and provided architectural designs.
 ---
 

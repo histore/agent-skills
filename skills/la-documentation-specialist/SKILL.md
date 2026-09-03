@@ -1,5 +1,5 @@
 ---
-name: subagent-documentation-specialist
+name: la-documentation-specialist
 description: Authors and maintains XML documentation comments, architecture blueprints, user manuals, and in-app help synchronization in English.
 ---
 

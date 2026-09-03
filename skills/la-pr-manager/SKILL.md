@@ -1,5 +1,5 @@
 ---
-name: subagent-pr-manager
+name: la-pr-manager
 description: Manages the complete Pull Request lifecycle including PR drafting from template, gh pr creation, CI check monitoring, status audits, and merge operations strictly on-demand after developer approval.
 ---
 

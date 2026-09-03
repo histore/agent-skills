@@ -1,5 +1,5 @@
 ---
-name: subagent-tiebreaker
+name: la-tiebreaker
 description: Monitors active execution workflows for loops, deadlocks, and thrashing, taking decisive remediation actions including model profile adjustments, strategy pivots, context purges, and structured user escalations.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: subagent-security-auditor
+name: la-security-auditor
 description: Audits code for security vulnerabilities, accidental secret leaks, dependency CVEs, command injection risks in PowerShell/ConPTY, safe path traversal, and secure serialization.
 ---
 

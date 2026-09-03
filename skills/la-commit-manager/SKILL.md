@@ -1,5 +1,5 @@
 ---
-name: subagent-commit-manager
+name: la-commit-manager
 description: Generates structured conventional commit messages from workspace diffs, stages changes, commits, and pushes to remote Git repositories strictly on-demand after mandatory user confirmation.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: subagent-refactoring-specialist
+name: la-refactoring-specialist
 description: Identifies code smells, technical debt, and architectural drift, prescribing safe, test-backed refactorings adhering to Clean Code and SOLID principles.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: subagent-control
+name: la-control
 description: Orchestrates task decomposition, model/reasoning level allocation, isolated subagent dispatching, and minimal context propagation.
 ---
 

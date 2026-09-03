@@ -1,5 +1,5 @@
 ---
-name: subagent-troubleshooter
+name: la-troubleshooter
 description: Analyzes bugs, exceptions, unexpected UI behaviors, and race conditions to determine root causes and propose test-driven remediation strategies.
 ---
 
