@@ -51,7 +51,7 @@ agent-skills/
 16. **PRManager**: Manages the Pull Request lifecycle (`gh pr create`, CI checks audit, squash-merge) strictly on-demand after approval.
 17. **Tiebreaker**: Monitors active operations, detects loops/deadlocks/thrashing, and enforces remediation.
 18. **TerminalEngineSpecialist**: Deeply analyzes and optimizes Win32 ConPTY handles, ANSI/VT100 streams, and zero-allocation UTF-8 decoding.
-19. **CodeExplainer**: Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language.
+19. **CodeExplainer**: Analyzes and explains source code, control/data flows, and architectural decisions, adding didactic comments directly into the code in the user's OS language.
 
 ## Integration in Projects
 
