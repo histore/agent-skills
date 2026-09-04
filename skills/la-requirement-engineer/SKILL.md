@@ -27,7 +27,7 @@ Transform high-level feature requests, user needs, or issue reports into structu
 
 ## Input
 - Raw user goal, bug report, or feature concept.
-- [REQUIREMENTS.md](file:///c:/projekte/csharp/multishell/REQUIREMENTS.md) (single source of truth for all existing requirements).
+- Project `REQUIREMENTS.md` (single source of truth for all existing requirements).
 
 ## Output Format
 - **Requirement ID & Title**: e.g., `REQ-XXX: Title`

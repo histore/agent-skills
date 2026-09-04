@@ -18,9 +18,9 @@ Audit the system for security vulnerabilities, accidental secret leaks, vulnerab
 ### 2. Dependency & CVE Vulnerability Auditing (Supply Chain Security)
 - Audit NuGet dependencies and transitive packages for known CVEs using .NET native auditing:
   ```powershell
-  dotnet list MultiShell.slnx package --vulnerable --include-transitive
+  dotnet list package --vulnerable --include-transitive
   ```
-- Ensure `MultiShell.csproj` enforces `<NuGetAudit>true</NuGetAudit>` and `<NuGetAuditLevel>moderate</NuGetAuditLevel>`.
+- Ensure primary project files enforce `<NuGetAudit>true</NuGetAudit>` and `<NuGetAuditLevel>moderate</NuGetAuditLevel>`.
 - Prescribe immediate package upgrades or alternative packages when vulnerabilities are identified.
 
 ### 3. Command & Script Injection Prevention
@@ -40,7 +40,7 @@ Audit the system for security vulnerabilities, accidental secret leaks, vulnerab
 ## Execution & Verification Commands
 - **CVE Audit**:
   ```powershell
-  dotnet list MultiShell.slnx package --vulnerable --include-transitive
+  dotnet list package --vulnerable --include-transitive
   ```
 - **Staged Files Secret Inspection**:
   ```powershell

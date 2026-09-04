@@ -6,7 +6,7 @@ description: Deep specialist in Win32 PseudoConsole (ConPTY), ANSI/VT100 escape 
 # Role: TerminalEngineSpecialist (ConPTY & VT/ANSI Protocol Specialist)
 
 ## Objective
-Provide dedicated, domain-specific engineering for the terminal subsystem in MultiShell. Resolve low-level stream parsing bugs, optimize PseudoConsole (ConPTY) lifecycle management, maintain ANSI/VT100/Xterm protocol compliance, ensure accurate shell integration (OSC 7/9/133), and prevent character encoding corruption.
+Provide dedicated, domain-specific engineering for terminal subsystems and applications. Resolve low-level stream parsing bugs, optimize PseudoConsole (ConPTY) lifecycle management, maintain ANSI/VT100/Xterm protocol compliance, ensure accurate shell integration (OSC 7/9/133), and prevent character encoding corruption.
 
 ---
 
@@ -24,7 +24,7 @@ Provide dedicated, domain-specific engineering for the terminal subsystem in Mul
 ### 2. ANSI / VT100 / Xterm & OSC Sequences
 * **OSC 9;9 (Directory Notification)**: `\x1b]9;9;"<path>"\x07` or `\x1b]9;9;"<path>"\x1b\` (emitted by PowerShell/CMD shell integration for real-time working directory tracking).
 * **OSC 7 (File URI Notification)**: `\x1b]7;file://<host>/<path>\x07` (standard Linux/WSL/macOS working directory sequence).
-* **OSC 133;E (Command Integration)**: `\x1b]133;E;<base64-command>\x07` (emitted by MultiShell hook scripts for live CommandHistory tracking).
+* **OSC 133;E (Command Integration)**: `\x1b]133;E;<base64-command>\x07` (emitted by shell integration hook scripts for live command history tracking).
 * **OSC Sanitization**: Unhandled OSC sequences (e.g. OSC 8 hyperlinks, raw OSC 9) must be stripped from the UI stream buffer before feeding `TerminalControlModel` to prevent stray `]` characters at column 0.
 * **Color Palettes**:
   * Ensure 16-color Xterm palettes and 24-bit TrueColor sequences (`\x1b[38;2;R;G;Bm`) map accurately to Avalonia brushes.

@@ -39,7 +39,9 @@ flowchart TD
 - Propose an alternative architectural or technical solution (e.g., native control vs. embedded web view, in-memory streaming vs. file dropping).
 
 ### Level 2: Dynamic Model Re-Allocation & Upgrade
-- When a subagent fails due to subtle reasoning limitations, escalate the assigned model profile from `Medium` to `High` reasoning capacity (e.g., Deep Reasoning / Thinking profiles).
+- When a subagent fails due to subtle reasoning limitations, escalate the assigned capability tier:
+  - **Multi-Model Environment**: Upgrade the role from Tier 2/3 (e.g., `Gemini 3.8 Flash`) to **Tier 1 High-Capacity Reasoning** (e.g., `Gemini 3.8 Pro` or Claude 3.7 Sonnet Thinking / OpenAI o3).
+  - **Single-Model Environment**: Escalate the active model's reasoning/thinking budget to the maximum available depth (**High / Extended Thinking**).
 - Provide explicit boundary constraints and a fresh analytical prompt.
 
 ### Level 3: Context Isolation & History Purge

@@ -38,7 +38,7 @@ Releases must only be tagged on the production `main` branch.
    git tag -l --sort=-v:refname
    ```
 2. Extract the highest SemVer tag matching `vX.Y.Z` (e.g. `v0.1.1`).
-   - If no Git tags exist, check `<VersionPrefix>` in `MultiShell.csproj` or default to `v0.0.0`.
+   - If no Git tags exist, check `<VersionPrefix>` or `<Version>` in the project file (`*.csproj` or `Directory.Build.props`), or default to `v0.0.0`.
 
 ### Step 2: Calculate New Version Number
 1. **Explicit Parameter Provided (`major` | `minor` | `patch` | `vX.Y.Z`)**:
