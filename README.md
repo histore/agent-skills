@@ -9,8 +9,9 @@ agent-skills/
 ├── AGENTS.md               # Master guidelines and subagent governance rules
 ├── rules/
 │   └── subagents.md        # Architectural rules and context-isolation protocol
-└── skills/                 # 19 specialized subagent skills
+└── skills/                 # 20 specialized subagent skills
     ├── la-architect/
+    ├── la-architecture-sync/
     ├── la-code-explainer/
     ├── la-commit-manager/
     ├── la-control/
@@ -52,6 +53,7 @@ agent-skills/
 17. **Tiebreaker** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Monitors active operations, detects loops/deadlocks/thrashing, and enforces remediation.
 18. **TerminalEngineSpecialist** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Deeply analyzes and optimizes Win32 ConPTY handles, ANSI/VT100 streams, and zero-allocation UTF-8 decoding.
 19. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting English didactic comments directly into code files.
+20. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes modular architecture documentation (`docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to eliminate context bloat.
 
 ## Integration in Projects
 
