@@ -47,16 +47,16 @@ if [[ $INIT_STRUCTURE -eq 1 ]]; then
   [[ -z "$ARCH_DIR" || "$ARCH_DIR" == "." ]] && ARCH_DIR="docs/architecture"
   mkdir -p "$ARCH_DIR/modules" "$ARCH_DIR/adr"
 
-  OVERVIEW_FILE="$ARCH_DIR/overview.md"
-  if [[ ! -f "$OVERVIEW_FILE" ]]; then
-    cat <<EOF > "$OVERVIEW_FILE"
-# Architecture Overview
+  ROOT_ARCH_FILE="ARCHITECTURE.md"
+  if [[ ! -f "$ROOT_ARCH_FILE" ]]; then
+    cat <<EOF > "$ROOT_ARCH_FILE"
+# Architecture
 
 ## System Purpose & Scope
 High-level description of system capabilities, primary user workflows, and boundaries.
 
 ## Architecture & Layers
-- **Domain / Models**: Core entities and domain logic.
+- **Domain / Models**: Core entities, value objects, and domain logic.
 - **Services / Contracts**: Application interfaces and business operations.
 - **Presentation / UI**: ViewModels and Views.
 
@@ -65,7 +65,8 @@ High-level description of system capabilities, primary user workflows, and bound
 - Performance, concurrency, and security.
 
 ## Modules Index
-See modules/ for detailed specifications.
+Detailed component specifications are maintained incrementally under [docs/architecture/modules/](file:///docs/architecture/modules/):
+- *List modules here*
 EOF
   fi
 

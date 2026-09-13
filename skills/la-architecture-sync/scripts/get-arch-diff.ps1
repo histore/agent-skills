@@ -79,16 +79,16 @@ if ($Init) {
         New-Item -ItemType Directory -Path $adrDir -Force | Out-Null
     }
 
-    $overviewPath = Join-Path $archDir "overview.md"
-    if (-not (Test-Path -Path $overviewPath)) {
-        $overviewTemplate = @"
-# Architecture Overview
+    $rootArchPath = "ARCHITECTURE.md"
+    if (-not (Test-Path -Path $rootArchPath)) {
+        $rootArchTemplate = @"
+# Architecture
 
 ## System Purpose & Scope
 High-level description of system capabilities, primary user workflows, and boundaries.
 
 ## Architecture & Layers
-- **Domain / Models**: Core entities and domain logic.
+- **Domain / Models**: Core entities, value objects, and domain logic.
 - **Services / Contracts**: Application interfaces and business operations.
 - **Presentation / UI**: ViewModels and Views.
 
@@ -97,9 +97,10 @@ High-level description of system capabilities, primary user workflows, and bound
 - Performance, concurrency, and security.
 
 ## Modules Index
-See [modules/](file:///modules/) for detailed specifications.
+Detailed component specifications are maintained incrementally under [docs/architecture/modules/](file:///docs/architecture/modules/):
+- *List modules here*
 "@
-        [System.IO.File]::WriteAllText((Join-Path (Get-Location) $overviewPath), ($overviewTemplate.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
+        [System.IO.File]::WriteAllText((Join-Path (Get-Location) $rootArchPath), ($rootArchTemplate.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
     }
 
     $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")

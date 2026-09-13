@@ -45,8 +45,8 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 | **RefactoringSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Code smell analysis, technical debt reduction, Boy Scout rule |
 | **Tester** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Test case generation (AAA), boundary & error coverage |
 | **LocalizationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | i18n audits, hardcoded string extraction, bilingual dictionaries (de/en) |
-| **DocumentationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | XML doc comments (`///`), `ARCHITECTURE.md`, help manual sync |
-| **ArchitectureSync** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Git delta sync, zero-token pre-filtering, modular arch docs |
+| **DocumentationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | XML doc comments (`///`), user manuals, help modal (`F1`) sync |
+| **ArchitectureSync** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Git delta sync, zero-token pre-filtering, `ARCHITECTURE.md` & modular docs |
 | **CommitManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | Conventional commit authoring, staging, push upon user approval |
 | **PRManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | PR drafting, template compliance, `gh pr` operations, CI monitoring |
 | **ReleaseManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | SemVer calculation, git tag creation & push upon user approval |

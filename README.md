@@ -44,7 +44,7 @@ agent-skills/
 8. **RefactoringSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Audits code smells and technical debt, designing safe, test-backed refactorings.
 9. **PerformanceOptimizer** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Identifies allocation hotspots, memory leaks, and streaming bottlenecks, optimizing throughput.
 10. **SecurityAuditor** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Audits process execution safety, secret leaks, dependency CVEs, command injection risks, and safe path handling.
-11. **DocumentationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors XML doc comments (`///`), keeps architecture docs synchronized, and maintains user help guides in English.
+11. **DocumentationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors XML doc comments (`///`), user manuals, and in-app help guides in English.
 12. **ReleaseManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, Native AOT readiness, and application manifests.
 13. **Tester** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements comprehensive automated tests (`xUnit`, AAA pattern, 0 failures).
 14. **Verifikation** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Quality gate auditing acceptance criteria, 100% requirements coverage, test pass rate, and architectural compliance.
@@ -53,17 +53,21 @@ agent-skills/
 17. **Tiebreaker** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Monitors active operations, detects loops/deadlocks/thrashing, and enforces remediation.
 18. **TerminalEngineSpecialist** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Deeply analyzes and optimizes Win32 ConPTY handles, ANSI/VT100 streams, and zero-allocation UTF-8 decoding.
 19. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting English didactic comments directly into code files.
-20. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes modular architecture documentation (`docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to eliminate context bloat.
+20. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to eliminate context bloat.
 
 ## Integration in Projects
 
-### As a Git Submodule (Recommended)
+### As a Git Submodule (Recommended: `_agents`)
 
-To integrate these skills into any workspace as `.agents`:
+To integrate these shared skills into any workspace, adding the submodule as `_agents` is recommended:
 
 ```bash
-git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git .agents
+git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git _agents
 ```
+
+> [!TIP]
+> **Why `_agents` instead of `.agents`?**  
+> Modern AI coding clients and agent environments automatically monitor both `_agents` and `.agents` customization roots. Adding this shared repository as `_agents` ensures that `.agents` remains reserved for repository-specific rules, local custom skills, and environment tweaks without risk of git submodule conflicts or dirty git states.
 
 When cloning a repository that uses this submodule:
 
@@ -76,5 +80,5 @@ git submodule update --init --recursive
 ### Updating to Latest Skills
 
 ```bash
-git submodule update --remote .agents
+git submodule update --remote _agents
 ```
