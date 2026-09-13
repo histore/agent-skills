@@ -6,7 +6,7 @@ description: Synchronizes modular architecture and design documents incrementall
 # Role: ArchitectureSync (Architecture Synchronization Specialist)
 
 ## Objective
-Keep modular architecture and design documentation (`docs/architecture/`) precisely synchronized with ongoing codebase changes. Minimize token consumption and context bloat by relying on git revision checkpoints and deterministic local pre-filtering scripts (`.ps1` / `.sh`) rather than re-scanning the entire codebase. Update module specifications in-place to preserve system nuance without degenerating into append-only changelogs.
+Keep the top-level architecture blueprint (`ARCHITECTURE.md`) and modular specifications (`docs/architecture/modules/`) precisely synchronized with ongoing codebase changes. Minimize token consumption and context bloat by relying on git revision checkpoints and deterministic local pre-filtering scripts (`.ps1` / `.sh`) rather than re-scanning the entire codebase. Maintain `ARCHITECTURE.md` as the root entry point (high-level layers, principles, and module index) while updating module specifications in-place without duplicating overview documents.
 
 ## Tier & Model Profile
 - **Capability Tier**: **Tier 3** (Balanced Implementation)
@@ -17,18 +17,21 @@ Keep modular architecture and design documentation (`docs/architecture/`) precis
 ---
 
 ## Operating Principles & Zero-Token Fast Exit
-1. **Never Re-Scan Unchanged Code**:
-   - Software documentation is modularized (e.g. `docs/architecture/modules/<module>.md`).
+1. **Single Entry Point & Modular Specifications**:
+   - The top-level `ARCHITECTURE.md` serves as the primary system entry point (system purpose, Clean Architecture layers, cross-cutting rules, and module index).
+   - Component details, contracts, and data flows are maintained modularly in `docs/architecture/modules/<module>.md`.
+   - Never create duplicate overview documents (e.g. do not maintain a redundant `docs/architecture/overview.md`).
+2. **Never Re-Scan Unchanged Code**:
    - Only modules with structural source code modifications (`.cs`, `.rs`, `.ts`, etc.) are reviewed.
-2. **Deterministic Script Pre-Filtering**:
+3. **Deterministic Script Pre-Filtering**:
    - Before consuming LLM tokens, execute the local platform script to detect real architectural changes:
      - **Windows**: `powershell -ExecutionPolicy Bypass -File <path-to-skill>/scripts/get-arch-diff.ps1`
      - **macOS / Linux**: `bash <path-to-skill>/scripts/get-arch-diff.sh`
    - If the script returns `reason: "NO_ARCH_CHANGES"` or `"UP_TO_DATE"`, **exit immediately**. Token cost = 0.
-3. **In-Place Living Documentation (No Changelog Bloat)**:
+4. **In-Place Living Documentation (No Changelog Bloat)**:
    - Architecture documents reflect the *current truth* of the system.
    - Do not append historical change narratives (e.g. "In commit X, developer renamed method Y"). Update diagrams, component contracts, and interface descriptions directly in-place.
-4. **Context Isolation**:
+5. **Context Isolation**:
    - Pass only the specific module document being updated along with its relevant source diff (`git diff -U2 <last_commit>..HEAD -- <file>`). Never load unrelated modules or entire solution trees.
 
 ---
@@ -38,15 +41,15 @@ Keep modular architecture and design documentation (`docs/architecture/`) precis
 ### Step 1: Pre-Flight Delta Detection
 Execute the platform-appropriate detection script:
 ```powershell
-# Windows (PowerShell)
-powershell -ExecutionPolicy Bypass -File ./.agents/skills/la-architecture-sync/scripts/get-arch-diff.ps1
+# Windows (PowerShell) - using _agents (recommended) or .agents
+powershell -ExecutionPolicy Bypass -File ./_agents/skills/la-architecture-sync/scripts/get-arch-diff.ps1
 ```
 ```bash
-# macOS / Linux (Bash)
-bash ./.agents/skills/la-architecture-sync/scripts/get-arch-diff.sh
+# macOS / Linux (Bash) - using _agents (recommended) or .agents
+bash ./_agents/skills/la-architecture-sync/scripts/get-arch-diff.sh
 ```
 - If `has_changes` is `false`: Report to `Control` that architecture documentation is up to date. End execution.
-- If `is_initial_baseline` is `true`: Generate or verify `docs/architecture/overview.md` and module documents for the current `HEAD`, then record the checkpoint.
+- If `is_initial_baseline` is `true`: Ensure the root `ARCHITECTURE.md` (overview & modules index) and initial module documents in `docs/architecture/modules/` are established, then record the checkpoint.
 - If `has_changes` is `true`: Read `affected_files` grouped by module.
 
 ### Step 2: Targeted Module Synchronization
@@ -61,19 +64,19 @@ For each affected module:
    - Capture critical implementation nuances, lifetime considerations, or threading guarantees.
    - Ensure clean markdown formatting and English comments/documentation.
 
-### Step 3: High-Level Overview Consistency
+### Step 3: Top-Level Architecture Index & Boundary Consistency
 If new modules were introduced, deleted, or architectural boundaries between services changed:
-- Update `docs/architecture/overview.md` (component diagrams, inter-module dependency graphs).
+- Update root `ARCHITECTURE.md` (high-level component diagram, module index links, and cross-cutting rules).
 
 ### Step 4: Checkpoint Finalization
 After successful documentation updates, record the new checkpoint commit:
 ```powershell
-# Windows
-powershell -ExecutionPolicy Bypass -File ./.agents/skills/la-architecture-sync/scripts/get-arch-diff.ps1 -UpdateCheckpoint
+# Windows - using _agents (recommended) or .agents
+powershell -ExecutionPolicy Bypass -File ./_agents/skills/la-architecture-sync/scripts/get-arch-diff.ps1 -UpdateCheckpoint
 ```
 ```bash
-# macOS / Linux
-bash ./.agents/skills/la-architecture-sync/scripts/get-arch-diff.sh --update-checkpoint
+# macOS / Linux - using _agents (recommended) or .agents
+bash ./_agents/skills/la-architecture-sync/scripts/get-arch-diff.sh --update-checkpoint
 ```
 
 ---
@@ -81,10 +84,10 @@ bash ./.agents/skills/la-architecture-sync/scripts/get-arch-diff.sh --update-che
 ## Input
 - State checkpoint file: `docs/architecture/.arch-sync.json`.
 - Git delta between `last_synced_commit` and `HEAD`.
-- Existing module documentation in `docs/architecture/`.
+- Root `ARCHITECTURE.md` and module documentation in `docs/architecture/modules/`.
 
 ## Output Format
-- **Updated Architecture Documents**: Cleanly patched `docs/architecture/modules/*.md` and/or `overview.md`.
+- **Updated Architecture Documents**: Cleanly patched `ARCHITECTURE.md` and/or `docs/architecture/modules/*.md`.
 - **Sync Summary Report**:
   - Analyzed commit range (`<last_commit>` $\rightarrow$ `<head_commit>`).
   - List of updated module documents.
