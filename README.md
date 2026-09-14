@@ -55,30 +55,81 @@ agent-skills/
 19. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting English didactic comments directly into code files.
 20. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to eliminate context bloat.
 
+## Four-Step Codebase Analysis Protocol
+
+Whenever an agent explores, analyzes, or debugs a codebase, it must strictly proceed in four steps:
+
+1. **Check Current Modular Architecture Baseline**: Check `ARCHITECTURE.md`, module specifications (`docs/architecture/modules/*.md`), and `.arch-sync.json`.
+2. **Synchronize Architecture if Needed**: If documentation is missing or outdated compared to recent commits, run `ArchitectureSync` (`get-arch-diff.ps1` / `get-arch-diff.sh`) to synchronize affected module documents.
+3. **Deduce State from Modular Documentation**: Derive system structure, contracts, dependencies, and state flows directly from the relevant modular architecture specification (`docs/architecture/modules/<module>.md`).
+4. **Targeted Code Inspection Only for Critical Details**: Read concrete source code files strictly when specific low-level implementation details (e.g. exact logic, native P/Invoke declarations, precise event binding lines) are indispensable.
+
+> [!IMPORTANT]
+> **Modular Architecture Depth & Context Isolation**:
+> Architecture documents must be sufficiently detailed (interfaces, records, state transitions, threading guarantees) so that broad, whole-repository code scans are prevented. At the same time, maintaining separate files per module (`docs/architecture/modules/<module>.md`) ensures that agents only load the single relevant module into context, preventing the agent's context window from continuously filling up.
+
+## Universal Model Tiering & Dual Execution Strategy
+
+This repository supports cross-platform execution across **Google Antigravity**, **GitHub Copilot**, **Cursor**, and standalone LLM environments. Detailed tier mappings and platform preferences are specified in [`rules/model-tiers.json`](file:///rules/model-tiers.json).
+
+### Execution Modes
+1. **Multi-Agent Mode (Antigravity / AGY)**:
+   - Dispatches isolated, parallel subagents via the platform API (`invoke_subagent`).
+   - Dynamically allocates model classes: `pro` (Tier 1), `flash` (Tier 2/3), `flash_lite` (Tier 4).
+2. **Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)**:
+   - For clients lacking subagent-forking APIs, a single agent executes role phases sequentially (Architekt -> Developer -> Tester).
+   - Modulates cognitive depth semantically via prompt-based thinking budgets (High/Extended for Tier 1, Balanced for Tier 2/3, Minimal for Tier 4).
+
+### Zero-Token Runtime Capability Detection
+To determine the active environment and available models at zero token cost:
+
+```powershell
+# Windows
+powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1
+```
+```bash
+# macOS / Linux
+bash ./scripts/detect-models.sh
+```
+
 ## Integration in Projects
 
-### As a Git Submodule (Recommended: `_agents`)
+### Client Directory Compatibility (`.agents` vs. `_agents`)
 
-To integrate these shared skills into any workspace, adding the submodule as `_agents` is recommended:
+Different AI coding assistants discover skill directories differently:
+
+- **Gemini / Google Antigravity**: Works seamlessly with both `_agents` and `.agents` customization roots.
+- **GitHub Copilot & Other Clients**: Specifically expect `.agents/` as the default directory. If your repository is used with GitHub Copilot or other AI coding tools, use `.agents` (or create a symlink pointing `.agents` to `_agents`).
+
+### As a Git Submodule
+
+#### Option A: Target Directory `_agents` (Optimized for Gemini / Antigravity)
+Adding the shared repository as `_agents` leaves `.agents` free for repository-specific rules and local custom overrides:
 
 ```bash
 git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git _agents
 ```
 
-> [!TIP]
-> **Why `_agents` instead of `.agents`?**  
-> Modern AI coding clients and agent environments automatically monitor both `_agents` and `.agents` customization roots. Adding this shared repository as `_agents` ensures that `.agents` remains reserved for repository-specific rules, local custom skills, and environment tweaks without risk of git submodule conflicts or dirty git states.
+#### Option B: Target Directory `.agents` (Universal / GitHub Copilot & Gemini)
+If your workflow involves GitHub Copilot or tools requiring `.agents/`:
 
-When cloning a repository that uses this submodule:
+```bash
+git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git .agents
+```
+
+### Cloning a Repository with Submodules
 
 ```bash
 git clone --recurse-submodules <repo-url>
-# or update existing clone:
+# or in an existing clone:
 git submodule update --init --recursive
 ```
 
 ### Updating to Latest Skills
 
 ```bash
+# For _agents:
 git submodule update --remote _agents
+# For .agents:
+git submodule update --remote .agents
 ```

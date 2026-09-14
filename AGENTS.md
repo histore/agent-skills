@@ -20,8 +20,19 @@ This workspace employs specialized subagent roles to enforce **Clean Code**, **C
 6. **User Decision on Conflicts**: In case of contradictions or duplicates, the user must make the decision.
 7. **Immutability of Existing Requirements**: Existing requirements may only be modified with explicit user instruction.
 8. **100% Coverage**: 100% of code/system changes must be covered by approved requirements.
-9. **Dynamic Model & Reasoning Allocation**: The `Control` agent assigns capability tiers (Tier 1 to Tier 4) and reasoning depth (Thinking Budget: High/Extended, Medium, Low/Fast) matched to the available LLM models in the user's environment, using the current generation (**Gemini 3.8 Pro / Flash**) as reference standard with graceful single-model fallback.
+9. **Dynamic Model Allocation & Universal Execution Strategy**:
+   - Model tiers and execution modes are declaratively defined in [`rules/model-tiers.json`](file:///rules/model-tiers.json).
+   - In **Antigravity / AGY**, roles execute in isolated subagents via `invoke_subagent` mapped to model classes (`pro`, `flash`, `flash_lite`).
+   - In **GitHub Copilot / Cursor / Single-Model environments**, roles execute in **Sequential Persona Mode** using prompt-modulated thinking budgets (High/Extended, Medium, Low/Fast) with zero overhead.
+   - Runtime capabilities can be probed deterministically at zero token cost via `scripts/detect-models.ps1` / `scripts/detect-models.sh`.
 10. **Branch & PR Process Model with Developer Testing & Review Gate**: All development must occur on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Prior to Pull Request creation, the developer is provided with the opportunity to review the code, test application functionality interactively/manually, and request adjustments or fixes. Merging into `main` occurs solely via Pull Requests using Squash-and-Merge after explicit user sign-off and passing CI per [CONTRIBUTING.md](CONTRIBUTING.md).
+11. **Four-Step Codebase Analysis Protocol**:
+    When exploring, analyzing, or diagnosing a codebase, agents must strictly follow four progressive steps:
+    1. **Check Current Modular Architecture Baseline**: Verify `ARCHITECTURE.md`, module specifications (`docs/architecture/modules/*.md`), and state checkpoint (`.arch-sync.json`).
+    2. **Synchronize Architecture if Needed**: If the documentation is missing, outdated, or desynchronized from recent git commits, trigger `ArchitectureSync` to update affected module documents.
+    3. **Deduce State from Modular Architecture Documentation**: Derive component responsibilities, public contracts, data flows, and runtime state directly from the relevant modular architecture specification (`docs/architecture/modules/<module>.md`).
+    4. **Targeted Code Inspection Only for Critical Details**: Read concrete source code files strictly when specific low-level implementation details (e.g. algorithmic nuance, Win32 P/Invoke declarations, exact event routing lines) are indispensable.
+    **Modular Architecture Depth & Context Guardrail**: Architecture documents must provide rich, granular detail (contracts, interfaces, state flows, threading guarantees) to obviate broad code scans, while maintaining strict modular separation into per-module files so reading documentation never continuously bloats or exhausts the agent's context window.
 
 ## Subagent Roles & Model Profiles
 1. **Control**: Orchestrates workflow pipelines, breaks down tasks, assigns model capability tiers / reasoning levels, provides strictly minimal context packages, and facilitates the Developer Testing & Review gate before PR creation.
@@ -49,5 +60,9 @@ This workspace employs specialized subagent roles to enforce **Clean Code**, **C
 - Subagents must be called with only the minimum context required for their specific role.
 - Intermediate results (e.g. root cause reports, UX blueprints, i18n dictionaries, architecture contracts, diffs, acceptance criteria) are passed downstream sequentially.
 - No role shall receive bloated discussion history or unrelated files.
+
+## Client Directory Compatibility (`.agents` vs. `_agents`)
+- **Gemini / Antigravity**: Seamlessly supports both `_agents` and `.agents` customization roots.
+- **GitHub Copilot & Other Clients**: Specifically expect `.agents/` as the standard discovery root. When sharing skills across multiple AI clients or targeting Copilot, use `.agents` (or create a symbolic link / submodule pointing to `.agents`).
 
 Detailed skill definitions can be found in `skills/` (or `_agents/skills/` / `.agents/skills/` when consumed as a submodule) and rules in `rules/` (or `_agents/rules/` / `.agents/rules/`).

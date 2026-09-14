@@ -3,7 +3,11 @@
 ## Core Principles
 1. **Isolated Context**: Each subagent role operates within an isolated task context to prevent context bloat and distraction.
 2. **Minimal Context Transfer**: Only essential information (inputs, specific requirements, direct dependencies) is passed between roles.
-3. **Dynamic Model & Reasoning Assignment**: The `Control` agent dynamically assigns capability tiers (Tier 1 to Tier 4) and reasoning levels (Thinking Budget: High/Extended, Medium, Low/Fast) matched to the active LLM environment, referencing the modern Gemini 3.8 family (Pro / Flash) as the primary baseline.
+3. **Universal Model Tiering & Dual Execution Strategy**:
+   - Tier mappings and platform preferences are declaratively defined in [`rules/model-tiers.json`](file:///rules/model-tiers.json).
+   - **Multi-Agent Mode (Antigravity / AGY)**: Leverages `invoke_subagent` with explicit model tier dispatch (`pro` for Tier 1, `flash` for Tier 2/3, `flash_lite` for Tier 4).
+   - **Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)**: In clients without subagent APIs, the agent adopts role personas sequentially, modulating cognitive depth via prompt-based thinking budgets (High/Extended for Tier 1, Balanced for Tier 2/3, Minimal for Tier 4).
+   - **Runtime Probe**: Zero-token detection scripts (`scripts/detect-models.ps1` / `scripts/detect-models.sh`) determine the active platform and model availability dynamically.
 4. **Clean Architecture & Clean Code Enforcement**:
    - **Clean Architecture**: Dependency rule (dependencies point inward), clear layer boundaries (`Models`, `Services`, `ViewModels`, `Views`), independent of external UI/OS details.
    - **Clean Code**: SOLID, DRY, KISS, YAGNI, Boy Scout Rule, small focused classes/methods, descriptive naming, English comments.
@@ -26,6 +30,13 @@
    - **Full Coverage**: 100% of code/system changes must be covered by approved requirements.
 9. **Maximum User Usability & Aesthetic Excellence**: The dedicated `UIDesigner` role ensures every UI component provides effortless keyboard navigation, intuitive ergonomics, and rich visual aesthetics.
 10. **Branch & PR Process Model with Developer Testing & Review Gate**: All development must occur on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Prior to Pull Request creation, the developer is provided with the opportunity to review the code, test application functionality interactively/manually, and request adjustments or fixes. Merging into `main` occurs solely via Pull Requests using Squash-and-Merge after explicit user sign-off and passing CI per [CONTRIBUTING.md](CONTRIBUTING.md).
+11. **Four-Step Codebase Analysis Protocol & Modular Architecture Depth**:
+    Whenever a codebase is analyzed, explored, or investigated, agents must strictly follow a 4-step workflow:
+    1. **Check Current Modular Architecture Baseline**: Check `ARCHITECTURE.md`, module specifications in `docs/architecture/modules/*.md`, and `.arch-sync.json`.
+    2. **Synchronize Architecture if Needed**: If the documentation is missing, outdated, or desynchronized from recent git commits, invoke `ArchitectureSync` (`get-arch-diff.ps1` / `get-arch-diff.sh`) to synchronize affected module specifications.
+    3. **Deduce State from Modular Architecture Documentation**: Derive component responsibilities, public contracts, data flows, and runtime state directly from the relevant modular architecture specification (`docs/architecture/modules/<module>.md`).
+    4. **Targeted Code Inspection Only for Critical Details**: Read concrete source code files strictly when specific low-level implementation details (e.g. algorithmic nuance, Win32 P/Invoke declarations, exact event routing lines) are indispensable.
+    **Context Guardrail**: Modular architecture documents must be sufficiently detailed (contracts, interfaces, state flows, threading guarantees) to obviate whole-codebase scans, yet partitioned into discrete files per module so that agents load only the required module into context without continuous context bloat.
 
 ---
 
@@ -51,3 +62,9 @@
 18. **TerminalEngineSpecialist** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Deeply analyzes and optimizes Win32 ConPTY handles, ANSI/VT100 streams, OSC 7/9/133 integration, TrueColor palettes, and zero-allocation UTF-8 decoding.
 19. **CodeExplainer** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's operating system language, inserting clear English didactic comments directly into code files.
 20. **ArchitectureSync** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to avoid context bloat and unnecessary scans.
+
+---
+
+## Client Directory Compatibility (`.agents` vs. `_agents`)
+- **Gemini / Antigravity**: Seamlessly supports and monitors both `_agents` and `.agents` customization roots.
+- **GitHub Copilot & Other Clients**: Specifically expect `.agents/` as the standard discovery root. When sharing skills across multiple AI clients or targeting Copilot, use `.agents` (or create a symbolic link / submodule pointing to `.agents`).

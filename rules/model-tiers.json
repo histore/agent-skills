@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "Universal model tier, reasoning budget, and execution mode mapping across Antigravity, GitHub Copilot, Cursor, and custom LLM environments.",
+  "execution_modes": {
+    "multi_agent": {
+      "description": "Isolated parallel subagents via platform API (Antigravity invoke_subagent). Each role executes in its own isolated context with allocated model tier.",
+      "client_support": ["antigravity"],
+      "tier_dispatch": {
+        "tier_1_deep_reasoning": {
+          "model_class": "pro",
+          "reasoning_budget": "high_extended",
+          "roles": ["RequirementEngineer", "Architekt", "Troubleshooter", "Verifikation", "CodeExplainer", "Tiebreaker", "TerminalEngineSpecialist"]
+        },
+        "tier_2_analytical": {
+          "model_class": "flash",
+          "reasoning_budget": "high",
+          "roles": ["UIDesigner", "PerformanceOptimizer", "SecurityAuditor"]
+        },
+        "tier_3_balanced": {
+          "model_class": "flash",
+          "reasoning_budget": "medium",
+          "roles": ["Developer", "Tester", "LocalizationSpecialist", "DocumentationSpecialist", "RefactoringSpecialist", "ArchitectureSync"]
+        },
+        "tier_4_fast_deterministic": {
+          "model_class": "flash_lite",
+          "fallback_model_class": "flash",
+          "reasoning_budget": "low_minimal",
+          "roles": ["CommitManager", "PRManager", "ReleaseManager"]
+        }
+      }
+    },
+    "sequential_persona": {
+      "description": "Single-agent sequential persona switching with prompt-modulated thinking budgets. Used in GitHub Copilot, Cursor, or single-model environments where subagent forking is unavailable.",
+      "client_support": ["copilot", "cursor", "claude_code", "generic_llm"],
+      "tier_modulation": {
+        "tier_1_deep_reasoning": {
+          "effort": "high",
+          "prompt_directive": "Act as [ROLE]. Activate deep extended reasoning. Exhaustively evaluate architectural invariants, failure modes, and edge cases before outputting solutions."
+        },
+        "tier_2_analytical": {
+          "effort": "high",
+          "prompt_directive": "Act as [ROLE]. Perform systematic structural and UX analysis with focused analytical reasoning."
+        },
+        "tier_3_balanced": {
+          "effort": "medium",
+          "prompt_directive": "Act as [ROLE]. Implement clean, maintainable, and strictly specified code or tests adhering directly to Clean Architecture without speculative over-reasoning."
+        },
+        "tier_4_fast_deterministic": {
+          "effort": "low",
+          "prompt_directive": "Act as [ROLE]. Execute deterministically and rapidly. Output strictly the requested command, commit message, or manifest with zero conversational overhead."
+        }
+      }
+    }
+  },
+  "platform_preferences": {
+    "antigravity": {
+      "tier_1": ["gemini-3.1-pro-high", "claude-opus-4-6-thinking", "claude-sonnet-4-6"],
+      "tier_2": ["gemini-3.8-flash-high", "gemini-3.7-flash-high"],
+      "tier_3": ["gemini-3.8-flash-medium", "gemini-3.7-flash-medium"],
+      "tier_4": ["gemini-3.8-flash-low", "gemini-3.7-flash-low"]
+    },
+    "copilot": {
+      "tier_1": ["claude-3.7-sonnet-thinking", "o3-mini", "o1"],
+      "tier_2": ["claude-3.7-sonnet", "gpt-4o"],
+      "tier_3": ["claude-3.5-sonnet", "gpt-4o"],
+      "tier_4": ["gpt-4o-mini", "claude-3.5-haiku"]
+    },
+    "generic": {
+      "tier_1": ["deep-reasoning-flagship"],
+      "tier_2": ["fast-analytical-flagship"],
+      "tier_3": ["balanced-coder-flagship"],
+      "tier_4": ["ultra-fast-mini"]
+    }
+  }
+}
