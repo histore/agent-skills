@@ -44,6 +44,41 @@ Maintain module documents at a level of depth (public contracts, interfaces, sta
 
 ---
 
+## Storage Modes & Zero-Footprint Configuration (Internal vs. External)
+
+Architecture documentation and checkpoints can be stored either **internally** within the project repository or **externally** in a separate directory/repository.
+
+### Storage Modes:
+- **Internal Mode (Default)**:
+  - Documentation resides in `<RepoRoot>/docs/architecture/` (with root `ARCHITECTURE.md`).
+  - Checkpoint resides in `<RepoRoot>/docs/architecture/.arch-sync.json`.
+- **External Mode**:
+  - Documentation and checkpoints reside completely outside the project repository (e.g. in a centralized architecture hub).
+  - **Zero Project Footprint**: The project repository contains **no files, no directories, and no git diffs** related to the architecture documentation.
+
+### Project-Level Configuration Without Repository Footprint:
+To configure external storage on project level without creating tracked files or git noise in the workspace, utilize Git's private local configuration:
+```bash
+# Configure via git directly:
+git config --local arch-sync.doc-dir "C:/path/to/external-architecture-docs/project-a"
+
+# Or via the script helper:
+powershell -File ./_agents/skills/la-architecture-sync/scripts/get-arch-diff.ps1 -SetDocDir "C:/path/to/external-architecture-docs/project-a"
+# macOS / Linux:
+bash ./_agents/skills/la-architecture-sync/scripts/get-arch-diff.sh --set-doc-dir "/path/to/external-architecture-docs/project-a"
+```
+*The setting is recorded in `.git/config` which is strictly local and never tracked or committed by Git.*
+
+### Intentional Override Hierarchy:
+The target documentation directory is resolved dynamically in strict priority order (highest to lowest):
+1. **CLI Parameter (Immediate Override)**: `-DocDir <path>` / `--doc-dir <path>`
+2. **Environment Variable**: `$env:ARCH_SYNC_DOC_DIR` / `ARCH_SYNC_DOC_DIR`
+3. **Project-Level Git Config (Zero Footprint)**: `git config --local --get arch-sync.doc-dir`
+4. **User Global Git Config**: `git config --global --get arch-sync.external-base-dir` (appended with repository name)
+5. **Default Fallback**: `<RepoRoot>/docs/architecture`
+
+---
+
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
 - **Gemini / Antigravity**: Supports both `_agents` and `.agents` customization roots.
 - **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. In multi-tool setups or when using Copilot, configure skills under `.agents/` (or create a symlink from `.agents` to `_agents`).
