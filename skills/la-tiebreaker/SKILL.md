@@ -14,9 +14,9 @@ Act as the cognitive circuit breaker and workflow supervisor. Continuously monit
 
 | Pattern | Detection Criteria | Typical Symptoms |
 | :--- | :--- | :--- |
-| **Build/Test Thrashing** | >= 2 consecutive failed attempts with the same or alternating error signature. | Compiler errors (`CSxxxx`, `AVLNxxxx`), test failures repeating despite edits. |
+| **Build/Test Thrashing** | >= 2 consecutive failed attempts with the same or alternating error signature. | Compiler errors, build failures, test failures repeating despite edits. |
 | **Oscillation (Flapping)** | Reverting previously changed code or switching back and forth between two opposing approaches. | Edits undoing recent modifications; conflicting subagent recommendations. |
-| **Resource/Environment Deadlock** | File access locks, antivirus/AMSI heuristics, lingering background processes blocking execution. | `Access to path ... is denied`, hanging tasks, process termination loops. |
+| **Resource/Environment Deadlock** | File access locks, lingering background processes blocking execution. | Access denied, hanging tasks, process termination loops. |
 | **Context Contamination** | Subagent repeatedly executing ineffective actions due to stale or misleading conversation history. | Repeating obsolete assumptions despite code changes. |
 | **Requirement Contradiction** | Mutually exclusive constraints that cannot be satisfied simultaneously. | Trade-off deadlocks without clear priority. |
 
@@ -36,7 +36,7 @@ flowchart TD
 ### Level 1: Re-Evaluation & Strategic Pivot
 - Halt the current execution track immediately.
 - Re-diagnose the root cause from first principles rather than applying incremental patches.
-- Propose an alternative architectural or technical solution (e.g., native control vs. embedded web view, in-memory streaming vs. file dropping).
+- Propose an alternative architectural or technical solution (e.g., in-memory streaming vs. temporary file dropping).
 
 ### Level 2: Dynamic Model Re-Allocation & Upgrade
 - When a subagent fails due to subtle reasoning limitations, escalate the assigned capability tier:
@@ -56,7 +56,7 @@ flowchart TD
 - Stop all modifying tool calls immediately.
 - Present a concise, structured diagnostic report to the user:
   - **Summary of the Impasse**: What went wrong and why the current approach stalled.
-  - **Identified Root Cause**: Specific technical blocker (e.g., AV heuristic, upstream library incompatibility).
+  - **Identified Root Cause**: Specific technical blocker.
   - **Actionable Alternatives**: 2-3 clear options with trade-offs.
   - **Recommendation**: The optimal path forward.
 

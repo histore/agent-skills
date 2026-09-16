@@ -27,9 +27,9 @@ Generate a clean, structured commit message in English following the Conventiona
   - `fix`: A bug fix or remediation
   - `refactor`: Code restructurings that neither fix a bug nor add a feature
   - `test`: Adding or correcting tests
-  - `docs`: Documentation updates (XML docs, markdown guides)
+  - `docs`: Documentation updates (doc comments, markdown guides)
   - `chore` / `perf`: Build configuration, dependencies, or performance optimizations
-- **Body**: Detailed bullet points explaining the rationale, architectural considerations, and specific modifications. If applicable, reference corresponding requirement IDs (e.g., `REQ-HIST-002`).
+- **Body**: Detailed bullet points explaining the rationale, architectural considerations, and specific modifications. If applicable, reference corresponding requirement IDs (e.g., `REQ-CORE-002`).
 
 ### Step 3: Present to User for Confirmation (Interactive Gate)
 Display the proposed commit message and list of modified files clearly in markdown to the user:
@@ -37,8 +37,8 @@ Display the proposed commit message and list of modified files clearly in markdo
 ### Proposed Commit
 **Branch**: `<branch-name>`
 **Affected Files**:
-- `path/to/file1.cs`
-- `path/to/file2.axaml`
+- `src/domain/service.ext`
+- `src/presentation/view.ext`
 
 **Commit Message**:
 ```

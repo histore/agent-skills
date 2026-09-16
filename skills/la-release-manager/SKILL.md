@@ -38,7 +38,7 @@ Releases must only be tagged on the production `main` branch.
    git tag -l --sort=-v:refname
    ```
 2. Extract the highest SemVer tag matching `vX.Y.Z` (e.g. `v0.1.1`).
-   - If no Git tags exist, check `<VersionPrefix>` or `<Version>` in the project file (`*.csproj` or `Directory.Build.props`), or default to `v0.0.0`.
+   - If no Git tags exist, check version declarations in project configuration files (e.g., `package.json`, `Cargo.toml`, `pyproject.toml`, `Directory.Build.props`, `*.csproj`), or default to `v0.0.0`.
 
 ### Step 2: Calculate New Version Number
 1. **Explicit Parameter Provided (`major` | `minor` | `patch` | `vX.Y.Z`)**:
@@ -62,8 +62,8 @@ Present the analysis and proposed tag clearly to the user:
 ### Proposed Release Tag
 - **Current Version**: `v0.1.1`
 - **Analyzed Commits**:
-  - `fix(terminal): resolve character corruption and stray brackets`
-  - `feat(ui): add 5-level font size settings`
+  - `fix(core): resolve stream framing error`
+  - `feat(api): add pagination support`
 - **Determined Bump**: `minor` (due to new feature commit)
 - **Target Tag**: `v0.2.0`
 
@@ -82,4 +82,3 @@ Once confirmed by the user:
    git push origin v<Version>
    ```
 3. Output confirmation with `git tag -l -n1 v<Version>` and report success to the user.
-
