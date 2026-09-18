@@ -10,11 +10,22 @@ Thank you for contributing to this project. To maintain high architectural integ
    - Technologies must be dynamically discovered from project configuration files and architecture specifications.
 
 2. **Core Roles vs. Domain Specialists**:
-   - **Core Lifecycle Roles** (`RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`) define the standard, linear workflow.
+   - **Core Lifecycle Roles** (`RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`, and `ReleaseManager`) define the standard, linear workflow.
    - **Domain Specialists** (`UIDesigner`, `LocalizationSpecialist`, `TerminalEngineSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`) are bound to technical domains, not frameworks. They are invoked conditionally on-demand or consulted by other skills.
 
 3. **Documentation Language**:
    - All documentation files, markdown guides, and source code comments must be written in English.
+
+## Lifecycle Action Execution Governance
+
+Operations involving Git and releases (`commit`, `push`, `pr merge`, `release`) adhere to six governance principles:
+
+1. **Strict Action Execution (Atomic Scope)**: An explicitly requested action executes only that action without unsolicited side-actions (e.g. committing never triggers an automatic push).
+2. **State-Driven Prerequisite Resolution**: If an action requires preceding state changes (e.g. uncommitted workspace changes when `push` is requested, or unpushed commits before PR creation), prerequisites are resolved automatically.
+3. **Proactive Next-Step Offering**: After completing an action, the logical successor step is proactively recommended to the user for immediate execution.
+4. **Gate Invariance**: Mandatory interactive review gates (commit message confirmation, PR description approval, release tag verification) are never bypassed.
+5. **Explicit User Override**: Explicit user instructions can combine or alter default actions at any time.
+6. **Atypical State & Safety Confirmation Gate**: If following these instructions produces an unexpected state or requires non-standard measures (e.g. detached HEAD, merge conflicts, unexpected untracked files, unverified release states), the agent halts, describes the situation, and requests explicit user confirmation before proceeding.
 
 ## Branch & Pull Request Process
 

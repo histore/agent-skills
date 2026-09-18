@@ -40,26 +40,34 @@
     3. **Deduce State from Modular Architecture Documentation**: Derive component responsibilities, public contracts, data flows, and runtime state directly from the relevant modular architecture specification (`docs/architecture/modules/<module>.md`).
     4. **Targeted Code Inspection Only for Critical Details**: Read concrete source code files strictly when specific low-level implementation details (e.g. algorithmic nuance, interop declarations, exact event routing lines) are indispensable.
     **Context Guardrail**: Modular architecture documents must be sufficiently detailed (contracts, interfaces, state flows, threading guarantees) to obviate whole-codebase scans, yet partitioned into discrete files per module so that agents load only the required module into context without continuous context bloat.
+12. **Lifecycle Action Execution Governance (Commit, Push, PR Merge, Release)**:
+    Defined Git and release actions adhere to six explicit execution principles:
+    1. **Strict Action Execution (Atomic Scope)**: When the user requests a specific action (e.g. `commit`), execute only that action (e.g. commit only, do not automatically push).
+    2. **State-Driven Prerequisite Resolution**: If the requested action requires preceding steps based on current workspace or repository state (e.g. uncommitted changes present when `push` is requested), automatically resolve the necessary prerequisites first.
+    3. **Proactive Next-Step Offering**: When an action completes and a logical subsequent step is derivable, proactively offer the user to execute it directly.
+    4. **Gate Invariance**: All interactive review gates and safety validations (commit message confirmation, PR description review, SemVer release tag approval) remain mandatory and cannot be bypassed.
+    5. **Explicit User Override**: The user may explicitly instruct deviating or combined behavior at any time (e.g. "commit and push directly").
+    6. **Atypical State & Anomaly Gate**: If following these instructions would produce an unusual state or require non-standard/atypical measures (e.g. detached HEAD, merge conflicts, unexpected untracked files, unverified release states, cross-cutting multi-scope changes), the agent must pause, describe the situation, and prompt the user for explicit confirmation before proceeding.
 
 ---
 
 ## Role Summary & Profiles
 
 ### Core Lifecycle Roles (Standard Workflow)
-1. **Control**: Central workflow orchestrator, model tier/reasoning dispatcher, domain specialist coordinator, minimal-context packager, and coordinator of the Developer Testing & Review gate before PR creation.
+1. **Control**: Central workflow orchestrator, model tier/reasoning dispatcher, lifecycle action governance manager, domain specialist coordinator, minimal-context packager, and coordinator of the Developer Testing & Review gate before PR creation.
 2. **RequirementEngineer** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Given-When-Then criteria, conflict detection, requirement integrity.
 3. **Architekt** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Clean Architecture, SOLID interfaces, layer boundaries, dependency inversion. Consults domain specialists for domain contracts.
 4. **Developer** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Clean Code implementation, English comments, iterative refinements from developer review, adapting dynamically to project conventions. Consults domain specialists for domain-specific details.
 5. **Tester** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements comprehensive automated tests (unit and integration tests) and executes the project's native test runner (AAA pattern, 0 failures).
 6. **Verifikation** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Quality gate auditing acceptance criteria, 100% requirements coverage, test pass rate, Clean Code, performance, security, and architectural compliance prior to developer testing.
-7. **CommitManager** (`Tier 4 - Fast & Deterministic | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Generates conventional commit messages from diffs, stages changes, commits, and pushes to remote branches strictly on-demand after interactive user confirmation.
-8. **PRManager** (`Tier 4 - Fast & Deterministic | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages the Pull Request lifecycle (template drafting, `gh pr create`, efficient CI checks audit with delayed polling, squash-merge, and branch cleanup) strictly on-demand after developer review approval.
+7. **CommitManager** (`Tier 4 - Fast & Deterministic | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages Git commit and push actions with atomic isolation, resolves prerequisite commits when push is requested, offers push after commit, halts on atypical workspace states, and requires interactive user confirmation.
+8. **PRManager** (`Tier 4 - Fast & Deterministic | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages the Pull Request lifecycle (prerequisite push/commit resolution, template drafting, `gh pr create`, delayed-polling CI checks, squash-merge, and proactive next-step guidance) strictly on-demand after developer review approval.
 
 ### General Support Roles (Lifecycle Specialists)
 9. **Troubleshooter** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): RCA, stack trace analysis, event hierarchy & race condition diagnostics. Consults domain specialists for domain subsystems.
 10. **RefactoringSpecialist** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Code smell detection, technical debt remediation, Boy Scout rule.
 11. **DocumentationSpecialist** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors API doc comments (in project-standard format), user manuals, and in-app help guides in English.
-12. **ReleaseManager** (`Tier 4 - Fast & Deterministic | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, SemVer calculation, and application manifests.
+12. **ReleaseManager** (`Tier 4 - Fast & Deterministic | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, SemVer calculation, prerequisite branch/sync verification, anomaly detection, and tag creation & push upon user approval.
 13. **Tiebreaker** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Monitors active operations, detects loops/deadlocks/thrashing, and enforces remediation via strategy pivots, model upgrades, context purges, or user escalation.
 14. **CodeExplainer** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's operating system language, inserting clear didactic comments directly into code files (in English by default, or in a user-specified language).
 15. **ArchitectureSync** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to avoid context bloat and unnecessary scans.
