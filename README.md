@@ -45,14 +45,14 @@ agent-skills/
 4. **Developer** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements clean, maintainable code adhering to architectural blueprints, requirements, and reviews, adapting dynamically to the project's language and conventions.
 5. **Tester** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements comprehensive automated tests (unit and integration tests) using the project's native test runner (AAA pattern, 0 failures).
 6. **Verifikation** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Quality gate auditing acceptance criteria, 100% requirements coverage, test pass rate, Clean Code, and architectural compliance.
-7. **CommitManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Generates conventional commit messages, stages changes, commits, and pushes strictly on-demand after interactive user confirmation.
-8. **PRManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages the Pull Request lifecycle (`gh pr create`, CI checks audit with delayed polling, squash-merge) strictly on-demand after approval.
+7. **CommitManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages Git commit and push actions with atomic isolation, state-driven prerequisite resolution, interactive message confirmation, and proactive next-step recommendations.
+8. **PRManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages the Pull Request lifecycle (`gh pr create`, delayed-polling CI checks, squash-merge, and proactive next steps) strictly on-demand after developer approval.
 
 ### General Support Roles (Lifecycle Specialists)
 9. **Troubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses bugs, analyzes call stacks and event hierarchies, identifies root causes, and specifies test-driven remediation plans.
 10. **RefactoringSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Audits code smells and technical debt, designing safe, test-backed refactorings.
 11. **DocumentationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors API doc comments (project standard), user manuals, and in-app help guides in English.
-12. **ReleaseManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, SemVer tag calculation, and application manifests.
+12. **ReleaseManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, SemVer tag calculation, branch/sync prerequisite validation, and tag creation & push upon user approval.
 13. **Tiebreaker** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Monitors active operations, detects loops/deadlocks/thrashing, and enforces remediation.
 14. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting didactic comments directly into code files (in English by default, or in a user-specified language).
 15. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to eliminate context bloat.
@@ -101,6 +101,23 @@ powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1
 # macOS / Linux
 bash ./scripts/detect-models.sh
 ```
+
+## Lifecycle Action Execution Governance
+
+Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to six core execution principles:
+
+1. **Strict Action Execution (Atomic Scope)**:
+   When an action is explicitly requested (e.g. `commit`), only that action is performed. Unsolicited side-actions (e.g. automatic `push`) are omitted.
+2. **State-Driven Prerequisite Resolution**:
+   If the repository or workspace state requires preceding actions (e.g. uncommitted workspace changes when `push` is requested), the necessary prerequisites are automatically resolved first.
+3. **Proactive Next-Step Offering**:
+   Upon successful completion of an action, the logical successor action is proactively offered to the user (e.g. offering `push` after `commit`, or offering PR creation after `push`).
+4. **Gate Invariance**:
+   All interactive review and approval gates (conventional commit message review, PR description approval, SemVer release tag confirmation) remain active and mandatory.
+5. **Explicit User Override**:
+   The user may explicitly direct combined or deviating behavior at any time (e.g. "commit and push directly").
+6. **Atypical State & Safety Confirmation Gate**:
+   If following these rules encounters an unexpected or high-risk state (e.g. detached HEAD, merge conflicts, unexpected untracked files, unverified release states), the agent halts, describes the situation, and requests explicit user confirmation before proceeding.
 
 ## Integration in Projects
 

@@ -42,37 +42,45 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
    - Filter context for downstream agents to only what is strictly necessary.
    - Provide only the single relevant module document (`docs/architecture/modules/<module>.md`) instead of whole-repo scans, ensuring modular architecture depth without continuous context exhaustion.
 
-6. **Stage Gating, Developer Review & Result Aggregation**:
-   - Ensure each automated step passes its criteria before advancing.
-   - Provide the developer/user with summary diffs, launch instructions, and test guidance for manual testing & review before PR creation.
-   - Route developer feedback or correction requests back to Developer/Tester/Architect for fast pre-PR resolution.
-   - Consolidate outputs and report final status to the user.
-
----
-
-## Model & Reasoning Allocation Matrix
-
-| Role | Capability Tier | Reference Model (Current Gen) | Reasoning Tier | Alternative Equivalents | Complexity Focus |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **RequirementEngineer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Deep analysis, Given-When-Then criteria, conflict detection |
-| **Troubleshooter** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Root cause analysis, event hierarchy, call stacks, race conditions |
-| **Architekt** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Clean Architecture boundaries, contracts/interfaces, layer design |
-| **Verifikation** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | 100% requirements coverage audit, strict quality gate, compliance |
-| **Tiebreaker** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Loop & deadlock detection, strategy pivots, circuit breaker |
-| **TerminalEngineSpecialist** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Domain: PTY/terminal streams, VT/ANSI escape sequences, OSC integration |
-| **CodeExplainer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Code deconstruction, control/data flows, didactic explanations |
-| **UIDesigner** | **Tier 2** (Analytical / UX) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: UI ergonomics, interaction flows, layout hierarchy, style tokens |
-| **PerformanceOptimizer** | **Tier 2** (Analytical / Hotspots) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Profiling, zero-allocation patterns, memory leaks, throughput |
-| **SecurityAuditor** | **Tier 2** (Analytical / Auditing) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Secret leaks, dependency CVE auditing, injection prevention |
-| **Developer** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Clean Code implementation, project conventions, review feedback |
-| **RefactoringSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Code smell analysis, technical debt reduction, Boy Scout rule |
-| **Tester** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Test case generation (AAA), boundary & error coverage, native test runner |
-| **LocalizationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Domain: i18n audits, string extraction, bilingual dictionaries (de/en) |
-| **DocumentationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | API doc comments, user manuals, help guides in English |
-| **ArchitectureSync** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Git delta sync, zero-token pre-filtering, `ARCHITECTURE.md` & modular docs |
-| **CommitManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | Conventional commit authoring, staging, push upon user approval |
-| **PRManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | PR drafting, template compliance, `gh pr` operations, CI monitoring |
-| **ReleaseManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | SemVer calculation, git tag creation & push upon user approval |
+45: 6. **Stage Gating, Developer Review & Result Aggregation**:
+46:    - Ensure each automated step passes its criteria before advancing.
+47:    - Provide the developer/user with summary diffs, launch instructions, and test guidance for manual testing & review before PR creation.
+48:    - Route developer feedback or correction requests back to Developer/Tester/Architect for fast pre-PR resolution.
+49:    - Consolidate outputs and report final status to the user.
+50: 
+51: 7. **Lifecycle Action Execution Governance**:
+52:    - **Strict Action Execution (Atomic Scope)**: Execute strictly the requested action without unsolicited follow-ups (e.g., commit only without push).
+53:    - **State-Driven Prerequisite Resolution**: Automatically identify and resolve preceding requirements (e.g. uncommitted changes before push, unpushed commits before PR creation).
+54:    - **Proactive Next-Step Offering**: Actively recommend the next logical successor action once a stage completes.
+55:    - **Gate Invariance**: Strictly preserve all interactive review gates (commit message, PR description, SemVer tag).
+56:    - **Explicit User Override**: Honor explicit user commands combining or deviating from default steps.
+57:    - **Atypical State & Anomaly Gate**: Halt and request explicit confirmation whenever an unexpected repository state or non-standard action is encountered.
+58: 
+59: ---
+60: 
+61: ## Model & Reasoning Allocation Matrix
+62: 
+63: | Role | Capability Tier | Reference Model (Current Gen) | Reasoning Tier | Alternative Equivalents | Complexity Focus |
+64: | :--- | :--- | :--- | :--- | :--- | :--- |
+65: | **RequirementEngineer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Deep analysis, Given-When-Then criteria, conflict detection |
+66: | **Troubleshooter** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Root cause analysis, event hierarchy, call stacks, race conditions |
+67: | **Architekt** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Clean Architecture boundaries, contracts/interfaces, layer design |
+68: | **Verifikation** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | 100% requirements coverage audit, strict quality gate, compliance |
+69: | **Tiebreaker** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Loop & deadlock detection, strategy pivots, circuit breaker |
+70: | **TerminalEngineSpecialist** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Domain: PTY/terminal streams, VT/ANSI escape sequences, OSC integration |
+71: | **CodeExplainer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Code deconstruction, control/data flows, didactic explanations |
+72: | **UIDesigner** | **Tier 2** (Analytical / UX) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: UI ergonomics, interaction flows, layout hierarchy, style tokens |
+73: | **PerformanceOptimizer** | **Tier 2** (Analytical / Hotspots) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Profiling, zero-allocation patterns, memory leaks, throughput |
+74: | **SecurityAuditor** | **Tier 2** (Analytical / Auditing) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Secret leaks, dependency CVE auditing, injection prevention |
+75: | **Developer** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Clean Code implementation, project conventions, review feedback |
+76: | **RefactoringSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Code smell analysis, technical debt reduction, Boy Scout rule |
+77: | **Tester** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Test case generation (AAA), boundary & error coverage, native test runner |
+78: | **LocalizationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Domain: i18n audits, string extraction, bilingual dictionaries (de/en) |
+79: | **DocumentationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | API doc comments, user manuals, help guides in English |
+80: | **ArchitectureSync** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Git delta sync, zero-token pre-filtering, `ARCHITECTURE.md` & modular docs |
+81: | **CommitManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | Atomic commit/push, prerequisite commits, next-step offers, safety gate |
+82: | **PRManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | PR drafting, prerequisite push/commit, delayed CI watch, squash-merge |
+83: | **ReleaseManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | SemVer calculation, prerequisite branch/sync check, tag push, safety gate |
 
 ---
 
