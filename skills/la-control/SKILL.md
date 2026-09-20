@@ -20,14 +20,17 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
      - **Step 3 (Deduce)**: Derive system state, components, interfaces, and data flows directly from the relevant modular architecture specification.
      - **Step 4 (Targeted Inspection)**: Permit reading source code strictly when low-level implementation details (e.g. exact logic statements, interop signatures) are indispensable.
      - This 4-step protocol serves as the mandatory prerequisite for exploration, feature design, troubleshooting, and code explanations.
-   - **Core Feature Development Pipeline**:
-     Codebase Analysis -> Requirements (`RequirementEngineer`) -> Architecture (`Architekt`) -> Implementation (`Developer`) -> Documentation & ArchitectureSync (`DocumentationSpecialist`, `ArchitectureSync`) -> Testing (`Tester`) -> Verification (`Verifikation`) -> **Developer Review & Live Testing Gate** -> CommitManager (Commit/Push) -> PRManager (PR & CI).
-   - **Bug Fixing / Troubleshooting Pipeline**:
-     Diagnostics (`Troubleshooter` following 4-step analysis) -> Reproduction Testing (`Tester`) -> Implementation (`Developer`) -> Verification (`Verifikation`) -> **Developer Review & Live Testing Gate** -> CommitManager -> PRManager.
-   - **Refactoring Pipeline**:
-     Architecture & Debt Audit (`RefactoringSpecialist`) -> Safe Refactoring (`Developer`) -> Regression Testing (`Tester`) -> ArchitectureSync -> Verification (`Verifikation`) -> **Developer Review & Live Testing Gate** -> CommitManager -> PRManager.
+   - **Core Feature Development Pipeline (Stub-First TDD)**:
+     Codebase Analysis -> Requirements (`RequirementEngineer`) -> Architecture & Compilable Stubs (`Architekt`) -> Phase RED: Test Creation & Fail Verification (`Tester`) -> Phase GREEN: Implementation until Tests Pass (`Developer`, max 3 feedback loops) -> Phase REFACTOR: Clean Code & Structure (`RefactoringSpecialist` / `Developer`) -> Documentation & ArchitectureSync (`DocumentationSpecialist`, `ArchitectureSync`) -> Verification (`Verifikation`) -> **Developer Review & Live Testing Gate** -> CommitManager (Commit/Push) -> PRManager (PR & CI).
+   - **Bug Fixing / Troubleshooting Pipeline (Reproduction TDD)**:
+     Diagnostics (`Troubleshooter` following 4-step analysis) -> Phase RED: Reproduction Test Creation & Fail Verification (`Tester`) -> Phase GREEN: Bug Remediation (`Developer`, max 3 feedback loops) -> Phase REFACTOR (`Developer`) -> Verification (`Verifikation`) -> **Developer Review & Live Testing Gate** -> CommitManager -> PRManager.
+   - **Refactoring Pipeline (Regression Guarded)**:
+     Architecture & Debt Audit (`RefactoringSpecialist`) -> Safe Refactoring (`Developer`) -> Regression Testing (`Tester`, asserting 100% pass) -> ArchitectureSync -> Verification (`Verifikation`) -> **Developer Review & Live Testing Gate** -> CommitManager -> PRManager.
    - **Hardening Pipeline**:
      Performance / Security Audit (`PerformanceOptimizer`, `SecurityAuditor`) -> Implementation (`Developer`) -> Testing (`Tester`) -> Verification (`Verifikation`) -> **Developer Review & Live Testing Gate** -> CommitManager -> PRManager.
+   - **TDD Circuit Breaker & Test Immutability Guardrail**:
+     - **Iteration Cap**: In Phase GREEN, `Developer` is allowed a maximum of 3 test-fix feedback loops (`Code` -> `Run Tests` -> `Fix`). If tests do not pass within 3 iterations, halt and escalate to `Tiebreaker` or prompt the user.
+     - **Test Immutability**: During Phase GREEN, `Developer` is strictly forbidden from modifying test files or relaxing assertions. Test files may only be modified by `Tester`.
 
 3. **Domain Specialist Coordination & Consulting**:
    - Domain specialists (`UIDesigner`, `LocalizationSpecialist`, `TerminalEngineSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`) are **not** part of the default linear pipeline.
@@ -126,3 +129,4 @@ Roles evaluate cognitive capability by **Tier criteria** rather than hardcoded m
 - In Multi-Agent Mode, do not perform code editing directly in the Control role; delegate strictly to specialized subagents.
 - In Sequential Persona Mode, announce role transitions explicitly (e.g. `### [Role: Architekt] Establishing Module Contracts...`).
 - When a task requires domain expertise (e.g. UI layout or terminal protocols), invoke the corresponding domain specialist, or instruct the implementing role to consult them.
+- Enforce the Stub-First TDD lifecycle: do not dispatch `Developer` until `Tester` has authored tests and verified that they fail against the Architect's stubs (Phase RED). Ensure `Developer` iterates solely on implementation code to turn tests green (Phase GREEN).
