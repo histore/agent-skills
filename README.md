@@ -39,17 +39,17 @@ agent-skills/
 ## Available Subagent Roles
 
 ### Core Lifecycle Roles (Standard Workflow)
-1. **Control**: Central workflow orchestrator, model tier/reasoning dispatcher, domain specialist coordinator, and manager of the Developer Testing & Review gate.
+1. **Control**: Central workflow orchestrator, model tier/reasoning dispatcher, domain specialist coordinator, TDD pipeline manager, and coordinator of the Developer Testing & Review gate.
 2. **RequirementEngineer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Translates user requirements into Given-When-Then acceptance criteria, checking for duplicates/conflicts.
-3. **Architekt** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Defines contracts, interfaces, dependency management, and layer boundaries following Clean Architecture.
-4. **Developer** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements clean, maintainable code adhering to architectural blueprints, requirements, and reviews, adapting dynamically to the project's language and conventions.
-5. **Tester** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements comprehensive automated tests (unit and integration tests) using the project's native test runner (AAA pattern, 0 failures).
-6. **Verifikation** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Quality gate auditing acceptance criteria, 100% requirements coverage, test pass rate, Clean Code, and architectural compliance.
+3. **Architekt** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Defines contracts, interfaces, dependency management, and layer boundaries following Clean Architecture, generating compilable skeleton stubs (`todo!()`, `NotImplementedException`) for TDD.
+4. **Tester** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements Phase RED unit/integration and bug reproduction tests against stubs/spec before code implementation, verifies semantic failures, and certifies 100% pass rates post-implementation via the native test runner (AAA pattern, 0 failures).
+5. **Developer** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements Phase GREEN production code strictly to satisfy failing tests without modifying test files, adhering to Clean Code, project conventions, and the 3-iteration circuit breaker.
+6. **Verifikation** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Quality gate auditing acceptance criteria, 100% requirements coverage, test pass rate, Clean Code, test immutability compliance, and architectural compliance.
 7. **CommitManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages Git commit and push actions with atomic isolation, state-driven prerequisite resolution, interactive message confirmation, and proactive next-step recommendations.
 8. **PRManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages the Pull Request lifecycle (`gh pr create`, delayed-polling CI checks, squash-merge, and proactive next steps) strictly on-demand after developer approval.
 
 ### General Support Roles (Lifecycle Specialists)
-9. **Troubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses bugs, analyzes call stacks and event hierarchies, identifies root causes, and specifies test-driven remediation plans.
+9. **Troubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses bugs, analyzes call stacks and event hierarchies, identifies root causes, and specifies minimal failing reproduction tests for the Tester (Phase RED handoff).
 10. **RefactoringSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Audits code smells and technical debt, designing safe, test-backed refactorings.
 11. **DocumentationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors API doc comments (project standard), user manuals, and in-app help guides in English.
 12. **ReleaseManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, SemVer tag calculation, branch/sync prerequisite validation, and tag creation & push upon user approval.

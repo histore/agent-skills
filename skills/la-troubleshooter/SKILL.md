@@ -19,8 +19,8 @@ Perform systematic root-cause analysis (RCA) on reported bugs, unexpected UI/run
    - Differentiate between superficial symptoms and the true underlying root cause.
 3. **Domain Specialist Consultation**:
    - When diagnosing issues within specialized domains (e.g., terminal stream corruption, UI event dispatching, allocation leaks, cryptographic failures), consult the relevant domain specialist (`TerminalEngineSpecialist`, `UIDesigner`, `PerformanceOptimizer`, `SecurityAuditor`) for deep domain diagnostics.
-4. **Reproduction & Minimal Test Specification**:
-   - Formulate exact reproduction steps or design a minimal failing test scenario for the Tester.
+4. **Reproduction & Test Specification (Phase RED Handoff)**:
+   - Formulate an explicit, deterministic failing test scenario for `Tester`. Every bug remediation must begin with a failing reproduction test (Phase RED) authored by `Tester` before any production code is touched.
 5. **Remediation Strategy**:
    - Deliver clear, actionable repair blueprints for the Developer adhering strictly to Clean Code and Clean Architecture.
 6. **Regression Risk Assessment**:
@@ -35,9 +35,10 @@ Perform systematic root-cause analysis (RCA) on reported bugs, unexpected UI/run
   - **Symptom**: Observed incorrect behavior.
   - **Root Cause**: The underlying flaw, race condition, or contract violation.
   - **Impacted Components**: Specific files, methods, and functions.
+- **Phase RED Reproduction Test Specification**:
+  - Exact Arrange-Act-Assert scenario and input fixtures for `Tester` to write a failing regression test.
 - **Remediation Plan**:
-  - Step-by-step instructions for the Developer.
-  - Test case specification for the Tester.
+  - Step-by-step instructions for `Developer` to resolve the root cause in Phase GREEN.
   - Regression risks and mitigation.
 
 ---
