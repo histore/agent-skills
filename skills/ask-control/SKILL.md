@@ -29,12 +29,12 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
    - **Hardening Pipeline**:
      Performance / Security Audit (`PerformanceOptimizer`, `SecurityAuditor`) -> Implementation (`Developer`) -> Testing (`Tester`) -> Verification (`Verifikation`) -> **Developer Review & Live Testing Gate** -> CommitManager -> PRManager.
    - **TDD Circuit Breaker & Test Immutability Guardrail**:
-     - **Iteration Cap**: In Phase GREEN, `Developer` is allowed a maximum of 3 test-fix feedback loops (`Code` -> `Run Tests` -> `Fix`). If tests do not pass within 3 iterations, halt and escalate to `Tiebreaker` or prompt the user.
-     - **Test Immutability**: During Phase GREEN, `Developer` is strictly forbidden from modifying test files or relaxing assertions. Test files may only be modified by `Tester`.
+      - **Iteration Cap**: In Phase GREEN, `Developer` is allowed a maximum of 3 test-fix feedback loops (`Code` -> `Run Tests` -> `Fix`). If tests do not pass within 3 iterations, halt and execute the Circuit Breaking protocol (Step 8) or prompt the user.
+      - **Test Immutability**: During Phase GREEN, `Developer` is strictly forbidden from modifying test files or relaxing assertions. Test files may only be modified by `Tester`.
 
 3. **Domain Specialist Coordination & Consulting**:
-   - Domain specialists (`UIDesigner`, `LocalizationSpecialist`, `TerminalEngineSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`) are **not** part of the default linear pipeline.
-   - **Conditional Inclusion**: `Control` incorporates domain specialists when the task requires domain-specific design (e.g., dispatching `UIDesigner` when UI layouts/interactions are created, or `TerminalEngineSpecialist` when terminal protocol/PTY streams are touched).
+   - Domain specialists (`UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`) are **not** part of the default linear pipeline.
+   - **Conditional Inclusion**: `Control` incorporates domain specialists when the task requires domain-specific design (e.g., dispatching `UIDesigner` when UI layouts/interactions are created, `DatabaseSpecialist` for schema migrations, or `ApiContractSpecialist` for REST/gRPC contracts).
    - **Cross-Role Consultation**: Other roles (such as `Developer`, `Architekt`, or `Troubleshooter`) may request input from domain specialists to clarify domain-specific nuances, data contracts, edge cases, or protocol intricacies.
 
 4. **Dynamic Model & Reasoning Allocation**:
@@ -45,63 +45,73 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
    - Filter context for downstream agents to only what is strictly necessary.
    - Provide only the single relevant module document (`docs/architecture/modules/<module>.md`) instead of whole-repo scans, ensuring modular architecture depth without continuous context exhaustion.
 
-45: 6. **Stage Gating, Developer Review & Result Aggregation**:
-46:    - Ensure each automated step passes its criteria before advancing.
-47:    - Provide the developer/user with summary diffs, launch instructions, and test guidance for manual testing & review before PR creation.
-48:    - Route developer feedback or correction requests back to Developer/Tester/Architect for fast pre-PR resolution.
-49:    - Consolidate outputs and report final status to the user.
-50: 
-51: 7. **Lifecycle Action Execution Governance**:
-52:    - **Strict Action Execution (Atomic Scope)**: Execute strictly the requested action without unsolicited follow-ups (e.g., commit only without push).
-53:    - **State-Driven Prerequisite Resolution**: Automatically identify and resolve preceding requirements (e.g. uncommitted changes before push, unpushed commits before PR creation).
-54:    - **Proactive Next-Step Offering**: Actively recommend the next logical successor action once a stage completes.
-55:    - **Gate Invariance**: Strictly preserve all interactive review gates (commit message, PR description, SemVer tag).
-56:    - **Explicit User Override**: Honor explicit user commands combining or deviating from default steps.
-57:    - **Atypical State & Anomaly Gate**: Halt and request explicit confirmation whenever an unexpected repository state or non-standard action is encountered.
-58: 
-59: ---
-60: 
-61: ## Model & Reasoning Allocation Matrix
-62: 
-63: | Role | Capability Tier | Reference Model (Current Gen) | Reasoning Tier | Alternative Equivalents | Complexity Focus |
-64: | :--- | :--- | :--- | :--- | :--- | :--- |
-65: | **RequirementEngineer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Deep analysis, Given-When-Then criteria, conflict detection |
-66: | **Troubleshooter** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Root cause analysis, event hierarchy, call stacks, race conditions |
-67: | **Architekt** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Clean Architecture boundaries, contracts/interfaces, layer design |
-68: | **Verifikation** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | 100% requirements coverage audit, strict quality gate, compliance |
-69: | **Tiebreaker** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Loop & deadlock detection, strategy pivots, circuit breaker |
-70: | **TerminalEngineSpecialist** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Domain: PTY/terminal streams, VT/ANSI escape sequences, OSC integration |
-71: | **CodeExplainer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Code deconstruction, control/data flows, didactic explanations |
-72: | **UIDesigner** | **Tier 2** (Analytical / UX) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: UI ergonomics, interaction flows, layout hierarchy, style tokens |
-73: | **PerformanceOptimizer** | **Tier 2** (Analytical / Hotspots) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Profiling, zero-allocation patterns, memory leaks, throughput |
-74: | **SecurityAuditor** | **Tier 2** (Analytical / Auditing) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Secret leaks, dependency CVE auditing, injection prevention |
-75: | **Developer** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Clean Code implementation, project conventions, review feedback |
-76: | **RefactoringSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Code smell analysis, technical debt reduction, Boy Scout rule |
-77: | **Tester** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Test case generation (AAA), boundary & error coverage, native test runner |
-78: | **LocalizationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Domain: i18n audits, string extraction, bilingual dictionaries (de/en) |
-79: | **DocumentationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | API doc comments, user manuals, help guides in English |
-80: | **ArchitectureSync** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Git delta sync, zero-token pre-filtering, `ARCHITECTURE.md` & modular docs |
-81: | **CommitManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | Atomic commit/push, prerequisite commits, next-step offers, safety gate |
-82: | **PRManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | PR drafting, prerequisite push/commit, delayed CI watch, squash-merge |
-83: | **ReleaseManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | SemVer calculation, prerequisite branch/sync check, tag push, safety gate |
+6. **Stage Gating, Developer Review & Result Aggregation**:
+   - Ensure each automated step passes its criteria before advancing.
+   - Provide the developer/user with summary diffs, launch instructions, and test guidance for manual testing & review before PR creation.
+   - Route developer feedback or correction requests back to Developer/Tester/Architect for fast pre-PR resolution.
+   - Consolidate outputs and report final status to the user.
+
+7. **Lifecycle Action Execution Governance**:
+   - **Strict Action Execution (Atomic Scope)**: Execute strictly the requested action without unsolicited follow-ups (e.g., commit only without push).
+   - **State-Driven Prerequisite Resolution**: Automatically identify and resolve preceding requirements (e.g. uncommitted changes before push, unpushed commits before PR creation).
+   - **Proactive Next-Step Offering**: Actively recommend the next logical successor action once a stage completes.
+   - **Gate Invariance**: Strictly preserve all interactive review gates (commit message, PR description, SemVer tag).
+   - **Explicit User Override**: Honor explicit user commands combining or deviating from default steps.
+   - **Atypical State & Anomaly Gate**: Halt and request explicit confirmation whenever an unexpected repository state or non-standard action is encountered.
+
+8. **Loop Detection, Deadlock Resolution & Escalation Hierarchy (Circuit Breaking)**:
+   - Continuously monitor execution trajectories for repetitive loops, build thrashing, oscillation, or resource deadlocks:
+     - **Level 1 (Strategic Pivot)**: Re-diagnose root causes from first principles, formulate an alternative technical strategy.
+     - **Level 2 (Model Upgrade)**: Escalate the failing role to Tier 1 High-Capacity Reasoning (`Gemini 3.8 Pro` / Claude 3.7 Sonnet Thinking / o3) with an expanded thinking budget.
+     - **Level 3 (Context Purge)**: Discard cyclical intermediate discussion history; reconstruct a pristine minimal context containing only active requirements, current code state, and failure logs.
+     - **Level 4 (User Escalation)**: If an impasse persists after 3 iterations, stop tool calls and present a structured diagnostic report with actionable alternatives to the user.
+
+---
+
+## Model & Reasoning Allocation Matrix
+
+| Role | Capability Tier | Reference Model (Current Gen) | Reasoning Tier | Alternative Equivalents | Complexity Focus |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **RequirementEngineer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Deep analysis, Given-When-Then criteria, conflict detection |
+| **Troubleshooter** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Root cause analysis, event hierarchy, call stacks, race conditions |
+| **GitTroubleshooter** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Git anomalies, 3-way merge/rebase conflicts, reflog recovery, zero-data-loss |
+| **Architekt** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Clean Architecture boundaries, contracts/interfaces, layer design |
+| **Verifikation** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | 100% requirements coverage audit, strict quality gate, compliance |
+| **CodeExplainer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Code deconstruction, control/data flows, didactic explanations |
+| **UIDesigner** | **Tier 2** (Analytical / UX) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: UI ergonomics, interaction flows, layout hierarchy, style tokens |
+| **PerformanceOptimizer** | **Tier 2** (Analytical / Hotspots) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Profiling, zero-allocation patterns, memory leaks, throughput |
+| **SecurityAuditor** | **Tier 2** (Analytical / Auditing) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Secret leaks, dependency CVE auditing, injection prevention |
+| **DatabaseSpecialist** | **Tier 2** (Analytical / Data) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Schemas, migrations, ORM, indexing, N+1 query avoidance |
+| **ApiContractSpecialist** | **Tier 2** (Analytical / API) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: REST/OpenAPI, gRPC/Protobuf, API versioning, RFC 7807 |
+| **Developer** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Clean Code implementation, project conventions, review feedback |
+| **RefactoringSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Code smell analysis, technical debt reduction, Boy Scout rule |
+| **Tester** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Test case generation (AAA), boundary & error coverage, native test runner |
+| **LocalizationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Domain: i18n audits, string extraction, bilingual dictionaries (de/en) |
+| **DocumentationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | API doc comments, user manuals, help guides in English |
+| **ArchitectureSync** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Git delta sync, zero-token pre-filtering, `ARCHITECTURE.md` & modular docs |
+| **DevOpsEngineer** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | CI/CD workflows, GitHub Actions, Docker, environment configuration |
+| **CommitManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | Atomic commit/push, prerequisite commits, next-step offers, safety gate |
+| **PRManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | PR drafting, prerequisite push/commit, delayed CI watch, squash-merge |
+| **ReleaseManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | SemVer calculation, prerequisite branch/sync check, tag push, safety gate |
 
 ---
 
 ## Environment Adaptation & Universal Execution Strategy
 
-Detailed tier mappings and platform preferences are declaratively specified in [`rules/model-tiers.json`](file:///rules/model-tiers.json).
+Detailed tier mappings and platform preferences are declaratively specified in [`rules/model-tiers.json`](rules/model-tiers.json).
 
-### 1. Pre-Flight Runtime Detection (Zero-Token Probe)
+### 1. Pre-Flight Runtime Detection & 24h Persistent Caching (Zero-Token Probe)
 Prior to dispatching tasks or starting complex workflows, optionally determine the active runtime platform and model capabilities:
 - **Windows**: `powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1` (or `./_agents/scripts/detect-models.ps1` / `./.agents/scripts/detect-models.ps1`)
 - **macOS / Linux**: `bash ./scripts/detect-models.sh` (or `./_agents/scripts/detect-models.sh` / `./.agents/scripts/detect-models.sh`)
-This script inspects `agy models`, GitHub Copilot CLI, or generic fallback environments with zero token cost.
+- **24-Hour Cross-Session Cache**: Results are automatically persisted across all skills and chat sessions with a 24-hour TTL (`%LOCALAPPDATA%/agent-skills/model-cache.json` or `~/.cache/agent-skills/model-cache.json`). Cached invocations return in < 50ms with `"cached": true` and zero subprocess overhead.
+- **On-Demand Cache Refresh**: Force an immediate re-probe at any time using `-Force` (PowerShell) or `--force` (Bash).
 
 ### 2. Dual Execution Strategy
 
 #### Mode A: Multi-Agent Mode (Antigravity / AGY)
 When running in Antigravity or environments supporting the `invoke_subagent` tool:
-- **Tier 1 (Deep Reasoning)**: Dispatch subagent with `Model: "pro"` (resolves to `gemini-3.1-pro`, `claude-opus-4-6-thinking`, etc.).
+- **Tier 1 (Deep Reasoning)**: Dispatch subagent with `Model: "pro"` (resolves to `gemini-3.8-pro`, `claude-opus-4-6-thinking`, etc.).
 - **Tier 2 (Analytical UX & Hotspots)**: Dispatch subagent with `Model: "flash"` and extended prompt instructions.
 - **Tier 3 (Balanced Implementation)**: Dispatch subagent with `Model: "flash"`.
 - **Tier 4 (Fast & Deterministic)**: Dispatch subagent with `Model: "flash_lite"` (or `"flash"`).
@@ -128,5 +138,5 @@ Roles evaluate cognitive capability by **Tier criteria** rather than hardcoded m
 - For each step, construct a dedicated prompt package containing role definition, isolated input, and explicit constraints.
 - In Multi-Agent Mode, do not perform code editing directly in the Control role; delegate strictly to specialized subagents.
 - In Sequential Persona Mode, announce role transitions explicitly (e.g. `### [Role: Architekt] Establishing Module Contracts...`).
-- When a task requires domain expertise (e.g. UI layout or terminal protocols), invoke the corresponding domain specialist, or instruct the implementing role to consult them.
+- When a task requires domain expertise (e.g. UI layout, database schemas, or API contracts), invoke the corresponding domain specialist, or instruct the implementing role to consult them.
 - Enforce the Stub-First TDD lifecycle: do not dispatch `Developer` until `Tester` has authored tests and verified that they fail against the Architect's stubs (Phase RED). Ensure `Developer` iterates solely on implementation code to turn tests green (Phase GREEN).

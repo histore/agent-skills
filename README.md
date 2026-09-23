@@ -13,13 +13,16 @@ agent-skills/
 │   ├── model-tiers.json    # Universal model tier mapping and thinking budgets
 │   └── subagents.md        # Architectural rules and context-isolation protocol
 ├── scripts/                # Zero-token runtime capability detection scripts
-└── skills/                 # 21 specialized subagent skills
+└── skills/                 # 22 specialized subagent skills
+    ├── ask-api-contract-specialist/
     ├── ask-architect/
     ├── ask-architecture-sync/
     ├── ask-code-explainer/
     ├── ask-commit-manager/
     ├── ask-control/
+    ├── ask-database-specialist/
     ├── ask-developer/
+    ├── ask-devops-engineer/
     ├── ask-documentation-specialist/
     ├── ask-git-troubleshooter/
     ├── ask-localization-specialist/
@@ -29,9 +32,7 @@ agent-skills/
     ├── ask-release-manager/
     ├── ask-requirement-engineer/
     ├── ask-security-auditor/
-    ├── ask-terminal-engine-specialist/
     ├── ask-tester/
-    ├── ask-tiebreaker/
     ├── ask-troubleshooter/
     ├── ask-ui-designer/
     └── ask-verification/
@@ -40,7 +41,7 @@ agent-skills/
 ## Available Subagent Roles
 
 ### Core Lifecycle Roles (Standard Workflow)
-1. **Control**: Central workflow orchestrator, model tier/reasoning dispatcher, domain specialist coordinator, TDD pipeline manager, and coordinator of the Developer Testing & Review gate.
+1. **Control**: Central workflow orchestrator, model tier/reasoning dispatcher, domain specialist coordinator, TDD pipeline manager, loop circuit breaker, and coordinator of the Developer Testing & Review gate.
 2. **RequirementEngineer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Translates user requirements into Given-When-Then acceptance criteria, checking for duplicates/conflicts.
 3. **Architekt** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Defines contracts, interfaces, dependency management, and layer boundaries following Clean Architecture, generating compilable skeleton stubs (`todo!()`, `NotImplementedException`) for TDD.
 4. **Tester** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements Phase RED unit/integration and bug reproduction tests against stubs/spec before code implementation, verifies semantic failures, and certifies 100% pass rates post-implementation via the native test runner (AAA pattern, 0 failures).
@@ -51,21 +52,22 @@ agent-skills/
 
 ### General Support Roles (Lifecycle Specialists)
 9. **Troubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses bugs, analyzes call stacks and event hierarchies, identifies root causes, and specifies minimal failing reproduction tests for the Tester (Phase RED handoff).
-10. **RefactoringSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Audits code smells and technical debt, designing safe, test-backed refactorings.
-11. **DocumentationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors API doc comments (project standard), user manuals, and in-app help guides in English.
+10. **RefactoringSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Audits code smells and technical debt, designing and executing safe, test-backed Fowler refactorings.
+11. **DocumentationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors API doc comments (project standard), user manuals, CHANGELOG.md, and in-app help guides in English.
 12. **ReleaseManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, SemVer tag calculation, branch/sync prerequisite validation, and tag creation & push upon user approval.
-13. **Tiebreaker** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Monitors active operations, detects loops/deadlocks/thrashing, and enforces remediation.
-14. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting didactic comments directly into code files (in English by default, or in a user-specified language).
-15. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to eliminate context bloat.
-16. **GitTroubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses repository anomalies, resolves complex three-way merge, rebase, and cherry-pick conflicts, safely recovers lost commits or detached states via reflog, and enforces a strict zero-data-loss safety protocol (backup snapshots, automated build & test gates).
+13. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting didactic comments directly into code files (in English by default, or in a user-specified language).
+14. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to eliminate context bloat.
+15. **GitTroubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses repository anomalies, resolves complex three-way merge, rebase, and cherry-pick conflicts, safely recovers lost commits or detached states via reflog, and enforces a strict zero-data-loss safety protocol (backup snapshots, automated build & test gates).
+16. **DevOpsEngineer** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors and maintains CI/CD automation workflows (GitHub Actions), multi-stage Dockerfiles, compose environments, build matrices, and deployment configurations.
 
 ### Domain Specialists (On-Demand / Consulted by Skills)
 Domain specialists are **not** part of the default linear workflow. They are engaged conditionally by `Control` when appropriate for the task, or consulted directly by other skills (Developer, Architekt, Troubleshooter) to resolve domain-specific details:
 17. **UIDesigner** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): UI/UX ergonomics, interaction flows, layout hierarchy, and design tokens for the project's UI environment.
 18. **LocalizationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): i18n audits, 0% hardcoded strings, and bilingual dictionaries (`de`/`en`) in the project's localization format.
-19. **TerminalEngineSpecialist** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Terminal subsystems, pseudo-terminals (PTY/ConPTY), ANSI/VT escape sequences, OSC integration, streaming, and character encoding.
-20. **PerformanceOptimizer** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Low-level profiling, allocation reduction, memory leak prevention, and throughput optimization.
-21. **SecurityAuditor** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Command execution safety, secret leak prevention, dependency CVE audits via ecosystem tools, path traversal prevention, and secure serialization.
+19. **PerformanceOptimizer** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Low-level profiling, allocation reduction, memory leak prevention, and throughput optimization.
+20. **SecurityAuditor** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Command execution safety, secret leak prevention, dependency CVE audits via ecosystem tools, path traversal prevention, and secure serialization.
+21. **DatabaseSpecialist** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Database schema design, ORM persistence mappings, reversible migrations, indexing strategies, and N+1 query avoidance.
+22. **ApiContractSpecialist** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): API design and contract governance specialist for OpenAPI 3.x, gRPC/Protobuf, GraphQL, RFC 7807 Problem Details, and non-breaking contract evolution.
 
 ## Four-Step Codebase Analysis Protocol
 
@@ -82,7 +84,7 @@ Whenever an agent explores, analyzes, or debugs a codebase, it must strictly pro
 
 ## Universal Model Tiering & Dual Execution Strategy
 
-This repository supports cross-platform execution across **Google Antigravity**, **GitHub Copilot**, **Cursor**, and standalone LLM environments. Detailed tier mappings and platform preferences are specified in [`rules/model-tiers.json`](file:///rules/model-tiers.json).
+This repository supports cross-platform execution across **Google Antigravity**, **GitHub Copilot**, **Cursor**, and standalone LLM environments. Detailed tier mappings and platform preferences are specified in [`rules/model-tiers.json`](rules/model-tiers.json).
 
 ### Execution Modes
 1. **Multi-Agent Mode (Antigravity / AGY)**:
@@ -92,16 +94,22 @@ This repository supports cross-platform execution across **Google Antigravity**,
    - For clients lacking subagent-forking APIs, a single agent executes role phases sequentially (Architekt -> Developer -> Tester).
    - Modulates cognitive depth semantically via prompt-based thinking budgets (High/Extended for Tier 1, Balanced for Tier 2/3, Minimal for Tier 4).
 
-### Zero-Token Runtime Capability Detection
+### Zero-Token Runtime Capability Detection & 24h Persistent Caching
 To determine the active environment and available models at zero token cost:
 
 ```powershell
-# Windows
+# Windows (Cached for 24 hours across sessions & skills)
 powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1
+
+# Force on-demand re-probe
+powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1 -Force
 ```
 ```bash
-# macOS / Linux
+# macOS / Linux (Cached for 24 hours across sessions & skills)
 bash ./scripts/detect-models.sh
+
+# Force on-demand re-probe
+bash ./scripts/detect-models.sh --force
 ```
 
 ## Lifecycle Action Execution Governance

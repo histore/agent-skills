@@ -1,17 +1,66 @@
 #!/usr/bin/env bash
-# detect-models.sh - Probes the AI environment, available models, and optimal execution mode.
+# ==============================================================================
+# detect-models.sh - Probes the AI environment, available models, and optimal
+# execution mode. Persists detection results to a cross-session cache with a
+# 24-hour TTL (configurable) to eliminate redundant probing.
+# ==============================================================================
 
 set -e
 
 output_path=""
+cache_path=""
+max_age_hours=24
+force=false
+
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -o|--output) output_path="$2"; shift ;;
-        *) ;;
+        -o|--output) output_path="$2"; shift 2 ;;
+        -c|--cache-path) cache_path="$2"; shift 2 ;;
+        -m|--max-age-hours) max_age_hours="$2"; shift 2 ;;
+        -f|--force) force=true; shift ;;
+        *) shift ;;
     esac
-    shift
 done
 
+# 1. Determine persistent cache location across sessions & skills
+if [[ -z "$cache_path" ]]; then
+    base_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}"
+    cache_path="$base_cache_dir/agent-skills/model-cache.json"
+fi
+
+# 2. Check existing cache unless --force was specified
+if [[ "$force" = false && -f "$cache_path" ]]; then
+    # Calculate file age in seconds
+    now_epoch=$(date +%s)
+    if stat -c %Y "$cache_path" &>/dev/null; then
+        file_epoch=$(stat -c %Y "$cache_path")
+    elif stat -f %m "$cache_path" &>/dev/null; then
+        file_epoch=$(stat -f %m "$cache_path")
+    else
+        file_epoch=0
+    fi
+
+    age_seconds=$((now_epoch - file_epoch))
+    max_age_seconds=$((max_age_hours * 3600))
+
+    if [[ "$age_seconds" -ge 0 && "$age_seconds" -lt "$max_age_seconds" ]]; then
+        # Cache is valid and fresh
+        if command -v jq &>/dev/null; then
+            cached_output=$(jq --arg cache_file "$cache_path" '. + {cached: true, cache_file: $cache_file}' "$cache_path" 2>/dev/null || sed 's/"cached": false/"cached": true/' "$cache_path")
+        else
+            cached_output=$(sed 's/"cached": false/"cached": true/' "$cache_path")
+        fi
+
+        if [[ -n "$output_path" ]]; then
+            mkdir -p "$(dirname "$output_path")"
+            echo "$cached_output" > "$output_path"
+        fi
+        echo "$cached_output"
+        exit 0
+    fi
+fi
+
+# 3. Perform fresh environment probe
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 if command -v agy &>/dev/null; then
@@ -19,9 +68,13 @@ if command -v agy &>/dev/null; then
     execution_mode="multi_agent"
     supports_subagents=true
 
-    # Probe available models via agy models
+    # Probe available models via agy models (with timeout guard if available)
     models_json="[]"
-    raw_models=$(agy models 2>/dev/null || true)
+    if command -v timeout >/dev/null 2>&1; then
+        raw_models=$(timeout 3 agy models 2>/dev/null || true)
+    else
+        raw_models=$(agy models 2>/dev/null || true)
+    fi
     if [[ -n "$raw_models" ]]; then
         models_array=()
         while IFS= read -r line; do
@@ -40,6 +93,8 @@ if command -v agy &>/dev/null; then
     json_output=$(cat <<EOF
 {
   "timestamp": "$timestamp",
+  "cached": false,
+  "cache_file": "$cache_path",
   "platform": "$platform",
   "execution_mode": "$execution_mode",
   "supports_subagents": $supports_subagents,
@@ -58,6 +113,8 @@ elif command -v gh &>/dev/null; then
     json_output=$(cat <<EOF
 {
   "timestamp": "$timestamp",
+  "cached": false,
+  "cache_file": "$cache_path",
   "platform": "copilot",
   "execution_mode": "sequential_persona",
   "supports_subagents": false,
@@ -76,6 +133,8 @@ else
     json_output=$(cat <<EOF
 {
   "timestamp": "$timestamp",
+  "cached": false,
+  "cache_file": "$cache_path",
   "platform": "generic",
   "execution_mode": "sequential_persona",
   "supports_subagents": false,
@@ -91,6 +150,11 @@ EOF
 )
 fi
 
+# 4. Save to persistent cache file
+mkdir -p "$(dirname "$cache_path")" 2>/dev/null || true
+echo "$json_output" > "$cache_path" 2>/dev/null || true
+
+# 5. Save to explicit output_path if requested
 if [[ -n "$output_path" ]]; then
     mkdir -p "$(dirname "$output_path")"
     echo "$json_output" > "$output_path"

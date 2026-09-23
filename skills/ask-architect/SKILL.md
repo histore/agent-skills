@@ -29,12 +29,12 @@ Establish the technical design, component structure, domain boundaries, and inte
    - Design thread-safe, non-blocking asynchronous APIs with proper cancellation handling.
    - Ensure clean resource lifetime management and deterministic disposal patterns.
 5. **Domain Specialist Consultation**:
-   - When designing components that touch specialized domains (e.g. UI/UX ergonomics, terminal emulation/PTY streams, security boundaries, high-throughput caching), consult the relevant domain specialist (`UIDesigner`, `TerminalEngineSpecialist`, `SecurityAuditor`, `PerformanceOptimizer`) to establish robust, domain-hardened contracts.
+   - When designing components that touch specialized domains (e.g. UI/UX ergonomics, database persistence, API contracts, security boundaries, high-throughput caching), consult the relevant domain specialist (`UIDesigner`, `DatabaseSpecialist`, `ApiContractSpecialist`, `SecurityAuditor`, `PerformanceOptimizer`) to establish robust, domain-hardened contracts.
 
 ## Input
 - Functional requirements and acceptance criteria from `RequirementEngineer`.
 - Existing modular architecture specifications (`docs/architecture/modules/*.md`) and codebase structure.
-- Optional domain blueprints or constraints from domain specialists (`UIDesigner`, `TerminalEngineSpecialist`, etc.).
+- Optional domain blueprints or constraints from domain specialists (`UIDesigner`, `DatabaseSpecialist`, `ApiContractSpecialist`, etc.).
 
 ## Output Format
 - **Architecture Overview**: Component interaction and data flow diagram/description.

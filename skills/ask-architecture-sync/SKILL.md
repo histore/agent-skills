@@ -88,18 +88,16 @@ The target documentation directory is resolved dynamically in strict priority or
 ## Workflow & Protocol
 
 ### Step 1: Pre-Flight Delta Detection
-Execute the platform-appropriate detection script (adjust path based on `_agents` or `.agents`):
+Execute the platform-appropriate detection script (adjust path based on standalone repo `skills/`, or submodule `.agents/` / `_agents/`):
 ```powershell
-# Windows (PowerShell) - _agents (Gemini) or .agents (Copilot / Gemini)
-powershell -ExecutionPolicy Bypass -File ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1
-# Or if mounted under .agents:
-# powershell -ExecutionPolicy Bypass -File ./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1
+# Windows (PowerShell) - standalone repo or submodule:
+$scriptPath = (Get-ChildItem -Path @(".", "./skills", "./.agents/skills", "./_agents/skills") -Filter "get-arch-diff.ps1" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+powershell -ExecutionPolicy Bypass -File $scriptPath
 ```
 ```bash
-# macOS / Linux (Bash) - _agents (Gemini) or .agents (Copilot / Gemini)
-bash ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh
-# Or if mounted under .agents:
-# bash ./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh
+# macOS / Linux (Bash) - standalone repo or submodule:
+SCRIPT_PATH=$(find . -name "get-arch-diff.sh" | head -n 1)
+bash "$SCRIPT_PATH"
 ```
 - If `has_changes` is `false`: Report to `Control` that architecture documentation is up to date. End execution.
 - If `is_initial_baseline` is `true`: Ensure the root `ARCHITECTURE.md` (overview & modules index) and initial module documents in `docs/architecture/modules/` are established, then record the checkpoint.
