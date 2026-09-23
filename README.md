@@ -94,16 +94,22 @@ This repository supports cross-platform execution across **Google Antigravity**,
    - For clients lacking subagent-forking APIs, a single agent executes role phases sequentially (Architekt -> Developer -> Tester).
    - Modulates cognitive depth semantically via prompt-based thinking budgets (High/Extended for Tier 1, Balanced for Tier 2/3, Minimal for Tier 4).
 
-### Zero-Token Runtime Capability Detection
+### Zero-Token Runtime Capability Detection & 24h Persistent Caching
 To determine the active environment and available models at zero token cost:
 
 ```powershell
-# Windows
+# Windows (Cached for 24 hours across sessions & skills)
 powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1
+
+# Force on-demand re-probe
+powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1 -Force
 ```
 ```bash
-# macOS / Linux
+# macOS / Linux (Cached for 24 hours across sessions & skills)
 bash ./scripts/detect-models.sh
+
+# Force on-demand re-probe
+bash ./scripts/detect-models.sh --force
 ```
 
 ## Lifecycle Action Execution Governance

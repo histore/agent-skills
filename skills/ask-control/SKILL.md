@@ -100,11 +100,12 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 
 Detailed tier mappings and platform preferences are declaratively specified in [`rules/model-tiers.json`](rules/model-tiers.json).
 
-### 1. Pre-Flight Runtime Detection (Zero-Token Probe)
+### 1. Pre-Flight Runtime Detection & 24h Persistent Caching (Zero-Token Probe)
 Prior to dispatching tasks or starting complex workflows, optionally determine the active runtime platform and model capabilities:
 - **Windows**: `powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1` (or `./_agents/scripts/detect-models.ps1` / `./.agents/scripts/detect-models.ps1`)
 - **macOS / Linux**: `bash ./scripts/detect-models.sh` (or `./_agents/scripts/detect-models.sh` / `./.agents/scripts/detect-models.sh`)
-This script inspects `agy models`, GitHub Copilot CLI, or generic fallback environments with zero token cost.
+- **24-Hour Cross-Session Cache**: Results are automatically persisted across all skills and chat sessions with a 24-hour TTL (`%LOCALAPPDATA%/agent-skills/model-cache.json` or `~/.cache/agent-skills/model-cache.json`). Cached invocations return in < 50ms with `"cached": true` and zero subprocess overhead.
+- **On-Demand Cache Refresh**: Force an immediate re-probe at any time using `-Force` (PowerShell) or `--force` (Bash).
 
 ### 2. Dual Execution Strategy
 

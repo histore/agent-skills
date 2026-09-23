@@ -118,6 +118,40 @@ else
     assert_condition 1 "All repository files use LF line endings" "CRLF line endings detected in $CRLF_COUNT files"
 fi
 
+# 5. Validate model detection persistent caching functionality
+echo -e "\n\033[33m5. Testing detect-models.sh 24h caching...\033[0m"
+TEMP_CACHE=$(mktemp 2>/dev/null || echo "/tmp/model-cache-test.json")
+# 5.1 Fresh probe test
+PROBE1_OUT=$(bash "$REPO_ROOT/scripts/detect-models.sh" --cache-path "$TEMP_CACHE" --force 2>/dev/null || true)
+if echo "$PROBE1_OUT" | grep -q '"cached": false'; then
+    assert_condition 0 "Fresh probe returns 'cached: false'" "Expected 'cached: false' on fresh probe"
+else
+    assert_condition 1 "Fresh probe returns 'cached: false'" "Expected 'cached: false' on fresh probe"
+fi
+
+if [ -f "$TEMP_CACHE" ]; then
+    assert_condition 0 "Cache file was persisted to disk" "Cache file was not created"
+else
+    assert_condition 1 "Cache file was persisted to disk" "Cache file was not created"
+fi
+
+# 5.2 Cached retrieval test
+PROBE2_OUT=$(bash "$REPO_ROOT/scripts/detect-models.sh" --cache-path "$TEMP_CACHE" 2>/dev/null || true)
+if echo "$PROBE2_OUT" | grep -q '"cached": true'; then
+    assert_condition 0 "Second call returns 'cached: true'" "Expected 'cached: true' on second call"
+else
+    assert_condition 1 "Second call returns 'cached: true'" "Expected 'cached: true' on second call"
+fi
+
+# 5.3 Force refresh test
+PROBE3_OUT=$(bash "$REPO_ROOT/scripts/detect-models.sh" --cache-path "$TEMP_CACHE" --force 2>/dev/null || true)
+if echo "$PROBE3_OUT" | grep -q '"cached": false'; then
+    assert_condition 0 "Call with --force bypasses cache and returns 'cached: false'" "Expected 'cached: false' with --force"
+else
+    assert_condition 1 "Call with --force bypasses cache and returns 'cached: false'" "Expected 'cached: false' with --force"
+fi
+rm -f "$TEMP_CACHE" 2>/dev/null || true
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"
