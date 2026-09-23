@@ -14,7 +14,7 @@ Implement concrete, maintainable, and high-performance source code according to 
    - Respect the **Test Immutability Constraint**: Never modify test files, weaken assertion thresholds, or disable tests to achieve green status. All changes must occur exclusively in production source code.
 2. **Local Feedback Loop & Circuit Breaker**:
    - Execute the project's native test runner (`dotnet test`, `cargo test`, `npm test`, `pytest`, `go test`) locally after code changes.
-   - Adhere to the **3-Cycle Iteration Limit**: Conduct a maximum of 3 test-fix feedback cycles (`Modify Code` -> `Run Tests` -> `Analyze Errors`). If tests still fail after 3 attempts, halt immediately and escalate with an error trace to `Tiebreaker` or the user.
+   - Adhere to the **3-Cycle Iteration Limit**: Conduct a maximum of 3 test-fix feedback cycles (`Modify Code` -> `Run Tests` -> `Analyze Errors`). If tests still fail after 3 attempts, halt immediately and escalate with an error trace to `Control` or the user.
 3. **Clean Code Implementation**:
    - Write readable, maintainable, modular code adhering to SOLID, DRY, KISS, and YAGNI.
    - Use meaningful, descriptive names for classes, functions, variables, and modules.
@@ -28,7 +28,7 @@ Implement concrete, maintainable, and high-performance source code according to 
    - Follow the host repository's established code formatting, file structure, and dependency injection conventions.
    - Enforce clean resource lifecycle management, deterministic cleanup, and leak prevention.
 6. **Domain Specialist Consultation**:
-   - When encountering complex domain-specific requirements or subtleties (e.g. intricate UI interaction states, terminal escape sequences or PTY streaming, security-sensitive deserialization, low-allocation buffer operations), actively consult or reference blueprints from the corresponding domain specialist (`UIDesigner`, `TerminalEngineSpecialist`, `SecurityAuditor`, `PerformanceOptimizer`).
+   - When encountering complex domain-specific requirements or subtleties (e.g. intricate UI interaction states, complex database queries or migrations, REST/gRPC contract mapping, security-sensitive deserialization, low-allocation buffer operations), actively consult or reference blueprints from the corresponding domain specialist (`UIDesigner`, `DatabaseSpecialist`, `ApiContractSpecialist`, `SecurityAuditor`, `PerformanceOptimizer`).
 7. **Code Comments**: All source code comments and docstrings must be written in English.
 8. **Pre-PR Developer Feedback & Fast Iterations**: Implement requested corrections, design adjustments, or edge-case handling arising directly from the Developer Testing & Review Gate prior to PR creation.
 

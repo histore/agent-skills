@@ -19,9 +19,13 @@ if command -v agy &>/dev/null; then
     execution_mode="multi_agent"
     supports_subagents=true
 
-    # Probe available models via agy models
+    # Probe available models via agy models (with timeout guard if available)
     models_json="[]"
-    raw_models=$(agy models 2>/dev/null || true)
+    if command -v timeout >/dev/null 2>&1; then
+        raw_models=$(timeout 3 agy models 2>/dev/null || true)
+    else
+        raw_models=$(agy models 2>/dev/null || true)
+    fi
     if [[ -n "$raw_models" ]]; then
         models_array=()
         while IFS= read -r line; do

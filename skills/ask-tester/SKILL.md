@@ -29,7 +29,7 @@ Author and execute comprehensive automated tests (unit and integration tests) fo
    - Use lightweight test doubles (fakes, stubs, mocks) for external dependencies, file systems, network, and process lifecycles.
    - Verify integration contracts and subsystem interactions safely in the host environment.
 7. **Domain Specialist Consultation**:
-   - When designing tests for specialized domains (e.g. terminal escape sequence parsing, complex UI state transitions, cryptographic operations), consult domain specialists (`TerminalEngineSpecialist`, `UIDesigner`, `SecurityAuditor`) for tricky edge cases and realistic domain fixtures.
+   - When designing tests for specialized domains (e.g. database transactions and migrations, API contract schemas, complex UI state transitions, cryptographic operations), consult domain specialists (`DatabaseSpecialist`, `ApiContractSpecialist`, `UIDesigner`, `SecurityAuditor`) for tricky edge cases and realistic domain fixtures.
 8. **Final Test Suite Validation**:
    - Following the Developer's Phase GREEN and REFACTOR passes, execute the complete test suite.
    - Verify 100% pass rate with 0 failures before verification sign-off.

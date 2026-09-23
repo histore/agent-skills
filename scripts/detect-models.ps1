@@ -34,7 +34,24 @@ if ($agyCmd) {
     $result.execution_mode = "multi_agent"
     $result.supports_subagents = $true
 
-    $rawModels = & agy models 2>$null
+    $rawModels = $null
+    try {
+        $psi = [System.Diagnostics.ProcessStartInfo]::new()
+        $psi.FileName = $agyCmd.Source
+        $psi.Arguments = "models"
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.UseShellExecute = $false
+        $psi.CreateNoWindow = $true
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        if ($proc.WaitForExit(3000)) {
+            $rawModels = $proc.StandardOutput.ReadToEnd()
+        } else {
+            $proc.Kill()
+        }
+    } catch {
+        $rawModels = $null
+    }
     if ($rawModels) {
         $modelList = @()
         foreach ($line in ($rawModels -split "`r?`n")) {

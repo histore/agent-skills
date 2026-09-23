@@ -4,7 +4,7 @@
 1. **Isolated Context**: Each subagent role operates within an isolated task context to prevent context bloat and distraction.
 2. **Minimal Context Transfer**: Only essential information (inputs, specific requirements, direct dependencies) is passed between roles.
 3. **Universal Model Tiering & Dual Execution Strategy**:
-   - Tier mappings and platform preferences are declaratively defined in [`rules/model-tiers.json`](file:///rules/model-tiers.json).
+   - Tier mappings and platform preferences are declaratively defined in [`rules/model-tiers.json`](model-tiers.json).
    - **Multi-Agent Mode (Antigravity / AGY)**: Leverages `invoke_subagent` with explicit model tier dispatch (`pro` for Tier 1, `flash` for Tier 2/3, `flash_lite` for Tier 4).
    - **Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)**: In clients without subagent APIs, the agent adopts role personas sequentially, modulating cognitive depth via prompt-based thinking budgets (High/Extended for Tier 1, Balanced for Tier 2/3, Minimal for Tier 4).
    - **Runtime Probe**: Zero-token detection scripts (`scripts/detect-models.ps1` / `scripts/detect-models.sh`) determine the active platform and model availability dynamically.
@@ -17,17 +17,20 @@
    - **Reproduction TDD Bugfixing Pipeline**: `Troubleshooter (RCA)` -> `Tester (Phase RED: Failing Regression Test)` -> `Developer (Phase GREEN: Remediation)` -> `Verifikation` -> `Developer Review Gate` -> `CommitManager` -> `PRManager`.
    - **Test Immutability Constraint**: During Phase GREEN, test files and assertions are immutable for the `Developer`. Only the `Tester` is authorized to author or modify test cases.
    - **Circuit Breaker**: The `Developer`'s local feedback loop (`Code` -> `Testrunner` -> `Fix`) is limited to a maximum of 3 cycles before escalation.
-   - Domain Specialists (`UIDesigner`, `LocalizationSpecialist`, `TerminalEngineSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`) are bound to technical domains, not frameworks.
-   - They are **not** part of the default linear pipeline. `Control` incorporates them conditionally when appropriate for the task, and other roles (Developer, Architekt, Troubleshooter) consult them directly to resolve domain questions.
+    - Domain Specialists (`UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`) are bound to technical domains, not frameworks.
+    - They are **not** part of the default linear pipeline. `Control` incorporates them conditionally when appropriate for the task, and other roles (Developer, Architekt, Troubleshooter) consult them directly to resolve domain questions.
 6. **Systematic Root Cause Analysis & Reproduction TDD**:
    - The `Troubleshooter` diagnoses bugs, analyzes event hierarchies and call stacks, and delivers an explicit reproduction test specification to `Tester` for Phase RED before any code fix is attempted.
 7. **Full Internationalization (i18n & l10n)**:
    - For user-facing interfaces, the `LocalizationSpecialist` enforces 0% hardcoded UI strings, managing bilingual German (`de`) and English (`en`) resource files in the project's native localization format.
-8. **Performance, Security & Code Health**:
+8. **Performance, Security, Persistence, DevOps & Code Health**:
    - `PerformanceOptimizer` enforces zero-allocation patterns, memory leak prevention, and throughput optimizations.
    - `SecurityAuditor` audits command safety, path traversal prevention, dependency CVEs via project ecosystem audit tools, and secure serialization.
+   - `DatabaseSpecialist` governs schema design, migrations, indexing, and ORM persistence architecture.
+   - `ApiContractSpecialist` governs REST/OpenAPI, gRPC/Protobuf, and non-breaking contract evolution.
+   - `DevOpsEngineer` manages CI/CD automation (GitHub Actions), Docker containerization, and build matrices.
    - `RefactoringSpecialist` continuously eliminates technical debt and code smells.
-   - `DocumentationSpecialist` maintains API doc comments, user manuals, and in-app help guides in English.
+   - `DocumentationSpecialist` maintains API doc comments, user manuals, CHANGELOG.md, and in-app help guides in English.
    - `ArchitectureSync` incrementally synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/`).
    - `ReleaseManager` manages packaging, SemVer tags, and manifests.
    - `GitTroubleshooter` manages repository anomalies, 3-way merge/rebase conflict resolutions, and state recovery under zero-data-loss invariants.
@@ -58,7 +61,7 @@
 ## Role Summary & Profiles
 
 ### Core Lifecycle Roles (Standard Workflow)
-1. **Control**: Central workflow orchestrator, model tier/reasoning dispatcher, lifecycle action governance manager, domain specialist coordinator, minimal-context packager, and coordinator of the Developer Testing & Review gate before PR creation.
+1. **Control**: Central workflow orchestrator, model tier/reasoning dispatcher, lifecycle action governance manager, loop escalation & circuit breaker, domain specialist coordinator, minimal-context packager, and coordinator of the Developer Testing & Review gate before PR creation.
 2. **RequirementEngineer** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Given-When-Then criteria, conflict detection, requirement integrity.
 3. **Architekt** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Clean Architecture, SOLID interfaces, layer boundaries, dependency inversion, and compilable skeleton stubs (`todo!()`, `NotImplementedException`) for Phase RED testing. Consults domain specialists for domain contracts.
 4. **Tester** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Implements Phase RED unit/integration and reproduction tests against stubs/spec before code implementation, verifies semantic failures, and certifies 100% pass rates post-implementation via the native test runner (AAA pattern, 0 failures).
@@ -69,20 +72,21 @@
 
 ### General Support Roles (Lifecycle Specialists)
 9. **Troubleshooter** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): RCA, stack trace analysis, event hierarchy & race condition diagnostics, and Phase RED reproduction test specification. Consults domain specialists for domain subsystems.
-10. **RefactoringSpecialist** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Code smell detection, technical debt remediation, Boy Scout rule.
-11. **DocumentationSpecialist** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors API doc comments (in project-standard format), user manuals, and in-app help guides in English.
+10. **RefactoringSpecialist** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Code smell detection, technical debt remediation, Boy Scout rule, and Fowler refactoring execution.
+11. **DocumentationSpecialist** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors API doc comments (in project-standard format), user manuals, CHANGELOG.md, and in-app help guides in English.
 12. **ReleaseManager** (`Tier 4 - Fast & Deterministic | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, SemVer calculation, prerequisite branch/sync verification, anomaly detection, and tag creation & push upon user approval.
-13. **Tiebreaker** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Monitors active operations, detects loops/deadlocks/thrashing, and enforces remediation via strategy pivots, model upgrades, context purges, or user escalation.
-14. **CodeExplainer** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's operating system language, inserting clear didactic comments directly into code files (in English by default, or in a user-specified language).
-15. **ArchitectureSync** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to avoid context bloat and unnecessary scans.
-16. **GitTroubleshooter** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses repository anomalies, resolves complex three-way merge, rebase, and cherry-pick conflicts, safely recovers lost commits or detached states via reflog, and enforces a strict zero-data-loss safety protocol (backup snapshots, automated build & test gates).
+13. **CodeExplainer** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's operating system language, inserting clear didactic comments directly into code files (in English by default, or in a user-specified language).
+14. **ArchitectureSync** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to avoid context bloat and unnecessary scans.
+15. **GitTroubleshooter** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses repository anomalies, resolves complex three-way merge, rebase, and cherry-pick conflicts, safely recovers lost commits or detached states via reflog, and enforces a strict zero-data-loss safety protocol (backup snapshots, automated build & test gates).
+16. **DevOpsEngineer** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors and maintains CI/CD automation workflows (GitHub Actions), multi-stage Dockerfiles, compose environments, build matrices, and deployment configurations.
 
 ### Domain Specialists (Engaged On-Demand by Control or Consulted by Skills)
 17. **UIDesigner** (`Tier 2 - Advanced Analytical | High Reasoning` - Ref: `Gemini 3.8 Flash`): Usability, interaction flows, layout hierarchy, ergonomics, and styling tokens for the project's UI environment.
 18. **LocalizationSpecialist** (`Tier 3 - Balanced Implementation | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): i18n audits, 0% hardcoded strings, bilingual dictionaries (`de`/`en`) in project localization format.
-19. **TerminalEngineSpecialist** (`Tier 1 - Deep Reasoning | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Terminal subsystems, pseudo-terminals (PTY/ConPTY), ANSI/VT escape sequences, OSC integration, streaming, and character encoding.
-20. **PerformanceOptimizer** (`Tier 2 - Advanced Analytical | High Reasoning` - Ref: `Gemini 3.8 Flash`): Low-level profiling, allocation reduction, memory leak prevention, and throughput optimization.
-21. **SecurityAuditor** (`Tier 2 - Advanced Analytical | High Reasoning` - Ref: `Gemini 3.8 Flash`): Command execution safety, secret leak prevention, dependency CVE audits via ecosystem tools, path traversal prevention, secure serialization.
+19. **PerformanceOptimizer** (`Tier 2 - Advanced Analytical | High Reasoning` - Ref: `Gemini 3.8 Flash`): Low-level profiling, allocation reduction, memory leak prevention, and throughput optimization.
+20. **SecurityAuditor** (`Tier 2 - Advanced Analytical | High Reasoning` - Ref: `Gemini 3.8 Flash`): Command execution safety, secret leak prevention, dependency CVE audits via ecosystem tools, path traversal prevention, secure serialization.
+21. **DatabaseSpecialist** (`Tier 2 - Advanced Analytical | High Reasoning` - Ref: `Gemini 3.8 Flash`): Schema design, ORM mappings, reversible migrations, indexing strategies, and N+1 query avoidance.
+22. **ApiContractSpecialist** (`Tier 2 - Advanced Analytical | High Reasoning` - Ref: `Gemini 3.8 Flash`): API design and contract governance specialist for OpenAPI 3.x, gRPC/Protobuf, GraphQL, RFC 7807 Problem Details, and non-breaking contract evolution.
 
 ---
 

@@ -18,7 +18,7 @@ Perform systematic root-cause analysis (RCA) on reported bugs, unexpected UI/run
    - Analyze call stacks, log traces, event propagation hierarchies, I/O streams, and asynchronous state machines against architectural contracts.
    - Differentiate between superficial symptoms and the true underlying root cause.
 3. **Domain Specialist Consultation**:
-   - When diagnosing issues within specialized domains (e.g., terminal stream corruption, UI event dispatching, allocation leaks, cryptographic failures), consult the relevant domain specialist (`TerminalEngineSpecialist`, `UIDesigner`, `PerformanceOptimizer`, `SecurityAuditor`) for deep domain diagnostics.
+   - When diagnosing issues within specialized domains (e.g., database deadlocks/query timeouts, API contract desynchronization, UI event dispatching, allocation leaks, cryptographic failures), consult the relevant domain specialist (`DatabaseSpecialist`, `ApiContractSpecialist`, `UIDesigner`, `PerformanceOptimizer`, `SecurityAuditor`) for deep domain diagnostics.
 4. **Reproduction & Test Specification (Phase RED Handoff)**:
    - Formulate an explicit, deterministic failing test scenario for `Tester`. Every bug remediation must begin with a failing reproduction test (Phase RED) authored by `Tester` before any production code is touched.
 5. **Remediation Strategy**:

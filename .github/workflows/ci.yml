@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-linux:
+    name: Validate Skills (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Skills Test Suite (Bash)
+        run: bash ./scripts/test-skills.sh
+
+  validate-windows:
+    name: Validate Skills (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Skills Test Suite (PowerShell)
+        run: pwsh -File ./scripts/test-skills.ps1

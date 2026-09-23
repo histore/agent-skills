@@ -10,8 +10,8 @@ Thank you for contributing to this project. To maintain high architectural integ
    - Technologies must be dynamically discovered from project configuration files and architecture specifications.
 
 2. **Core Roles vs. Domain Specialists**:
-   - **Core Lifecycle Roles** (`RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`, and `ReleaseManager`) define the standard, linear workflow.
-   - **Domain Specialists** (`UIDesigner`, `LocalizationSpecialist`, `TerminalEngineSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`) are bound to technical domains, not frameworks. They are invoked conditionally on-demand or consulted by other skills.
+   - **Core Lifecycle Roles** (`RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`) define the standard, linear workflow, supported by **Lifecycle Specialists** (e.g. `ReleaseManager`, `Troubleshooter`, `ArchitectureSync`, `GitTroubleshooter`, `DevOpsEngineer`, `RefactoringSpecialist`, `DocumentationSpecialist`, `CodeExplainer`).
+   - **Domain Specialists** (`UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`) are bound to technical domains, not frameworks. They are invoked conditionally on-demand or consulted by other skills.
 
 3. **Documentation Language**:
    - All documentation files, markdown guides, and source code comments must be written in English.
