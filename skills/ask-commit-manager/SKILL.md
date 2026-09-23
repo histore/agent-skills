@@ -29,12 +29,12 @@ CommitManager strictly observes six governance principles:
 5. **Explicit User Override**:
    - The user may explicitly instruct combined or deviating behavior (e.g. *"commit and push directly"*, *"push without committing unstaged files"*). Explicit user instructions override default atomic scoping.
 6. **Atypical State & Safety Confirmation Gate**:
-   - If an unusual workspace or repository state is detected, the agent must **pause**, describe the anomaly, and require explicit user confirmation before taking action:
+   - If an unusual workspace or repository state is detected, the agent must **pause**, describe the anomaly, require explicit user confirmation before taking action, and proactively offer delegation to `GitTroubleshooter`:
      - Working directly on `main` instead of a dedicated branch (`feat/`, `fix/`, etc.).
-     - Detached HEAD state.
-     - Ongoing merge conflicts, rebase in progress, or cherry-pick in progress.
-     - Unexpected untracked binary files, sensitive credential files, or large file trees.
-     - Upstream branch divergence requiring pull/rebase.
+     - Detached HEAD state (recommend `GitTroubleshooter` Workflow D).
+     - Ongoing merge conflicts, rebase in progress, or cherry-pick in progress (recommend `GitTroubleshooter` Workflow A).
+     - Unexpected untracked binary files, sensitive credential files, or large file trees (recommend `GitTroubleshooter` Workflow E).
+     - Upstream branch divergence requiring pull/rebase (recommend `GitTroubleshooter` Workflow B).
 
 ---
 
@@ -44,7 +44,7 @@ CommitManager strictly observes six governance principles:
 
 #### Step 1: Inspect Status & Safety Check
 - Run `git status` and `git diff`.
-- Verify working tree is not in an atypical state (detached HEAD, merge conflict, or sensitive untracked files). If atypical, trigger the **Atypical State & Safety Confirmation Gate** and wait for user confirmation.
+- Verify working tree is not in an atypical state (detached HEAD, merge conflict, or sensitive untracked files). If atypical, trigger the **Atypical State & Safety Confirmation Gate**, pause, and suggest delegating to `GitTroubleshooter`.
 - If there are no changes to commit, inform the user: *"Working tree clean, nothing to commit."*
 
 #### Step 2: Draft Standardized Conventional Commit Message
