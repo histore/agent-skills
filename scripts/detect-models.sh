@@ -46,9 +46,9 @@ if [[ "$force" = false && -f "$cache_path" ]]; then
     if [[ "$age_seconds" -ge 0 && "$age_seconds" -lt "$max_age_seconds" ]]; then
         # Cache is valid and fresh
         if command -v jq &>/dev/null; then
-            cached_output=$(jq --arg cache_file "$cache_path" '. + {cached: true, cache_file: $cache_file}' "$cache_path" 2>/dev/null || cat "$cache_path")
+            cached_output=$(jq --arg cache_file "$cache_path" '. + {cached: true, cache_file: $cache_file}' "$cache_path" 2>/dev/null || sed 's/"cached": false/"cached": true/' "$cache_path")
         else
-            cached_output=$(cat "$cache_path")
+            cached_output=$(sed 's/"cached": false/"cached": true/' "$cache_path")
         fi
 
         if [[ -n "$output_path" ]]; then

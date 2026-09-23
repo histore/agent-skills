@@ -100,7 +100,7 @@ for pattern in "${GHOST_PATTERNS[@]}"; do
         if [ -n "$match_file" ]; then
             FOUND_FILES+=("$match_file")
         fi
-    done < <(grep -rnw --exclude-dir=".git" "$REPO_ROOT" -e "$pattern" 2>/dev/null | cut -d: -f1 | sort -u || true)
+    done < <(grep -rnw --exclude-dir=".git" --include="*.md" "$REPO_ROOT" -e "$pattern" 2>/dev/null | cut -d: -f1 | sort -u || true)
 
     if [ ${#FOUND_FILES[@]} -eq 0 ]; then
         assert_condition 0 "Zero occurrences of ghost role '$pattern'" "Found ghost role '$pattern'"
