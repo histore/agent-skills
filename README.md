@@ -13,7 +13,7 @@ agent-skills/
 │   ├── model-tiers.json    # Universal model tier mapping and thinking budgets
 │   └── subagents.md        # Architectural rules and context-isolation protocol
 ├── scripts/                # Zero-token runtime capability detection scripts
-└── skills/                 # 20 specialized subagent skills
+└── skills/                 # 21 specialized subagent skills
     ├── ask-architect/
     ├── ask-architecture-sync/
     ├── ask-code-explainer/
@@ -21,6 +21,7 @@ agent-skills/
     ├── ask-control/
     ├── ask-developer/
     ├── ask-documentation-specialist/
+    ├── ask-git-troubleshooter/
     ├── ask-localization-specialist/
     ├── ask-performance-optimizer/
     ├── ask-pr-manager/
@@ -56,14 +57,15 @@ agent-skills/
 13. **Tiebreaker** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Monitors active operations, detects loops/deadlocks/thrashing, and enforces remediation.
 14. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting didactic comments directly into code files (in English by default, or in a user-specified language).
 15. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts to eliminate context bloat.
+16. **GitTroubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses repository anomalies, resolves complex three-way merge, rebase, and cherry-pick conflicts, safely recovers lost commits or detached states via reflog, and enforces a strict zero-data-loss safety protocol (backup snapshots, automated build & test gates).
 
 ### Domain Specialists (On-Demand / Consulted by Skills)
 Domain specialists are **not** part of the default linear workflow. They are engaged conditionally by `Control` when appropriate for the task, or consulted directly by other skills (Developer, Architekt, Troubleshooter) to resolve domain-specific details:
-16. **UIDesigner** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): UI/UX ergonomics, interaction flows, layout hierarchy, and design tokens for the project's UI environment.
-17. **LocalizationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): i18n audits, 0% hardcoded strings, and bilingual dictionaries (`de`/`en`) in the project's localization format.
-18. **TerminalEngineSpecialist** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Terminal subsystems, pseudo-terminals (PTY/ConPTY), ANSI/VT escape sequences, OSC integration, streaming, and character encoding.
-19. **PerformanceOptimizer** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Low-level profiling, allocation reduction, memory leak prevention, and throughput optimization.
-20. **SecurityAuditor** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Command execution safety, secret leak prevention, dependency CVE audits via ecosystem tools, path traversal prevention, and secure serialization.
+17. **UIDesigner** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): UI/UX ergonomics, interaction flows, layout hierarchy, and design tokens for the project's UI environment.
+18. **LocalizationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): i18n audits, 0% hardcoded strings, and bilingual dictionaries (`de`/`en`) in the project's localization format.
+19. **TerminalEngineSpecialist** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Terminal subsystems, pseudo-terminals (PTY/ConPTY), ANSI/VT escape sequences, OSC integration, streaming, and character encoding.
+20. **PerformanceOptimizer** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Low-level profiling, allocation reduction, memory leak prevention, and throughput optimization.
+21. **SecurityAuditor** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Command execution safety, secret leak prevention, dependency CVE audits via ecosystem tools, path traversal prevention, and secure serialization.
 
 ## Four-Step Codebase Analysis Protocol
 

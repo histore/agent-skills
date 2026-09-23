@@ -10,7 +10,7 @@
         "tier_1_deep_reasoning": {
           "model_class": "pro",
           "reasoning_budget": "high_extended",
-          "roles": ["RequirementEngineer", "Architekt", "Troubleshooter", "Verifikation", "CodeExplainer", "Tiebreaker", "TerminalEngineSpecialist"]
+          "roles": ["RequirementEngineer", "Architekt", "Troubleshooter", "Verifikation", "CodeExplainer", "Tiebreaker", "TerminalEngineSpecialist", "GitTroubleshooter"]
         },
         "tier_2_analytical": {
           "model_class": "flash",
