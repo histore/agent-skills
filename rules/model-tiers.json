@@ -10,12 +10,12 @@
         "tier_1_deep_reasoning": {
           "model_class": "pro",
           "reasoning_budget": "high_extended",
-          "roles": ["Control", "RequirementEngineer", "Architekt", "Troubleshooter", "Verifikation", "CodeExplainer", "GitTroubleshooter"]
+          "roles": ["Control", "Troubleshooter", "CodeExplainer", "GitTroubleshooter"]
         },
         "tier_2_analytical": {
           "model_class": "flash",
           "reasoning_budget": "high",
-          "roles": ["UIDesigner", "PerformanceOptimizer", "SecurityAuditor", "DatabaseSpecialist", "ApiContractSpecialist"]
+          "roles": ["Architekt", "RequirementEngineer", "Verifikation", "UIDesigner", "PerformanceOptimizer", "SecurityAuditor", "DatabaseSpecialist", "ApiContractSpecialist"]
         },
         "tier_3_balanced": {
           "model_class": "flash",
