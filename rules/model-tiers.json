@@ -3,8 +3,20 @@
   "version": "1.0.0",
   "description": "Universal model tier, reasoning budget, and execution mode mapping across Antigravity, GitHub Copilot, Cursor, and custom LLM environments.",
   "execution_modes": {
+    "compound_execution": {
+      "description": "Default primary execution strategy: Single-context continuous execution with phased persona switching (Plan -> Inner-Loop TDD -> Verify -> Commit). Maximizes prompt caching / KV-cache reuse (75-90% token discount) and eliminates multi-agent serialization latency.",
+      "client_support": ["antigravity", "copilot", "cursor", "claude_code", "generic_llm"],
+      "subagent_policy": "invoke_subagent is reserved strictly for divergent research, broad exploratory repository searches, or independent background sidecars.",
+      "phase_reasoning_budgets": {
+        "specification_and_architecture": "high",
+        "implementation_inner_loop": "low_minimal",
+        "test_execution": "minimal",
+        "verification_and_gate": "low_minimal",
+        "lifecycle_git": "minimal"
+      }
+    },
     "multi_agent": {
-      "description": "Isolated parallel subagents via platform API (Antigravity invoke_subagent). Each role executes in its own isolated context with allocated model tier.",
+      "description": "Isolated parallel subagents via platform API (Antigravity invoke_subagent). Used selectively for divergent exploration, broad codebase research, or independent background sidecars.",
       "client_support": ["antigravity"],
       "tier_dispatch": {
         "tier_1_deep_reasoning": {
@@ -19,7 +31,7 @@
         },
         "tier_3_balanced": {
           "model_class": "flash",
-          "reasoning_budget": "medium",
+          "reasoning_budget": "low",
           "roles": ["Developer", "Tester", "LocalizationSpecialist", "DocumentationSpecialist", "RefactoringSpecialist", "ArchitectureSync", "DevOpsEngineer"]
         },
         "tier_4_fast_deterministic": {
@@ -43,8 +55,8 @@
           "prompt_directive": "Act as [ROLE]. Perform systematic structural and UX analysis with focused analytical reasoning."
         },
         "tier_3_balanced": {
-          "effort": "medium",
-          "prompt_directive": "Act as [ROLE]. Implement clean, maintainable, and strictly specified code or tests adhering directly to Clean Architecture without speculative over-reasoning."
+          "effort": "low",
+          "prompt_directive": "Act as [ROLE]. Implement clean, maintainable, and strictly specified code or tests adhering directly to Clean Architecture. Rely on compiler and testrunner feedback rather than speculative over-reasoning."
         },
         "tier_4_fast_deterministic": {
           "effort": "low",

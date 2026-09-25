@@ -6,7 +6,7 @@ description: Orchestrates task decomposition, model/reasoning level allocation, 
 # Role: Control (Orchestrator & Flow Manager)
 
 ## Objective
-Act as the central orchestrator. Deconstruct complex requests into discrete subtasks, dynamically discover the project's tech stack and conventions, classify task complexity into adaptive execution profiles (Fast-Track, Standard, Complex), assign tasks to specialized subagents with strictly isolated minimal context, dynamically allocate appropriate LLM models and reasoning levels per role, engage domain and lifecycle specialists conditionally on-demand, and monitor stage progression through quality gates.
+Act as the central orchestrator. Deconstruct complex requests into discrete subtasks, dynamically discover the project's tech stack and conventions, classify task complexity into adaptive execution profiles (Fast-Track, Standard, Complex), execute workflows via **Compound Phased Execution** (leveraging KV-cache prefix discounts in a continuous context), selectively invoke subagents for divergent exploration, dynamically allocate appropriate LLM models and reasoning levels per role, and monitor stage progression through quality gates.
 
 ## Responsibilities
 1. **Dynamic Tech Stack Discovery**:
@@ -14,6 +14,12 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
    - Pass this project stack context to downstream subagents so they immediately operate in the correct idioms without hardcoded assumptions.
 
 2. **Adaptive Workflow & Task Decomposition**:
+   - **Compound Execution & KV-Cache Optimization (Default Strategy)**:
+     - Core development workflows execute as **Compound Phased Execution** within a single, continuous conversation thread. This preserves prompt prefix continuity, unlocking 75–90% KV-cache discounts and eliminating subagent cold-start overhead.
+     - Subagents (`invoke_subagent`) are reserved strictly for **divergent research**, broad multi-file searches, web lookups, or independent background sidecars.
+   - **Terminal Hygiene & Context Noise Prevention**:
+     - Execute PowerShell commands with `-NoProfile` to eliminate profile warnings.
+     - Run testrunners in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`) so passing test noise does not consume context window tokens.
    - **Codebase Exploration & Analysis (Mandatory 4-Step Protocol)**:
      - **Step 1 (Check)**: Verify current modular architecture documentation (`ARCHITECTURE.md`, `docs/architecture/modules/*.md`, `.arch-sync.json`).
      - **Step 2 (Sync)**: If architecture documents are outdated or desynchronized from recent git commits, invoke `ArchitectureSync` first.
@@ -111,23 +117,22 @@ Prior to dispatching tasks or starting complex workflows, optionally determine t
 - **24-Hour Cross-Session Cache**: Results are automatically persisted across all skills and chat sessions with a 24-hour TTL (`%LOCALAPPDATA%/agent-skills/model-cache.json` or `~/.cache/agent-skills/model-cache.json`). Cached invocations return in < 50ms with `"cached": true` and zero subprocess overhead.
 - **On-Demand Cache Refresh**: Force an immediate re-probe at any time using `-Force` (PowerShell) or `--force` (Bash).
 
-### 2. Dual Execution Strategy
+### 2. Universal Execution Strategy
 
-#### Mode A: Multi-Agent Mode (Antigravity / AGY)
-When running in Antigravity or environments supporting the `invoke_subagent` tool:
-- **Tier 1 (Deep Reasoning)**: Dispatch subagent with `Model: "pro"` (resolves to `gemini-3.8-pro`, `claude-opus-4-6-thinking`, etc.).
-- **Tier 2 (Analytical UX & Hotspots)**: Dispatch subagent with `Model: "flash"` and extended prompt instructions.
-- **Tier 3 (Balanced Implementation)**: Dispatch subagent with `Model: "flash"`.
-- **Tier 4 (Fast & Deterministic)**: Dispatch subagent with `Model: "flash_lite"` (or `"flash"`).
+#### Strategy 1: Compound Execution Mode (Default - All Platforms)
+- Standard development workflows execute within a **single, continuous conversation thread** using phased persona transitions (Plan -> Inner-Loop TDD -> Verify -> Commit).
+- **Prompt Caching / KV-Cache**: Reuses the common prefix across turns, cutting token costs by 75–90% and eliminating subagent spawn latency.
+- State, read files, and compiler feedback remain immediately accessible without serialization handoffs.
 
-#### Mode B: Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)
-When running in GitHub Copilot, Cursor, or single-model environments where subagent forking is unavailable:
-- The central agent executes roles **sequentially** within the conversation, adopting the persona of each role in order (Architekt -> Developer -> Tester).
-- Apply the **Prompt-Modulated Thinking Budget** from `rules/model-tiers.json`:
-  - **Tier 1 Roles**: Activate extended deep reasoning (prompt directive: *"Activate deep extended reasoning. Exhaustively evaluate architectural invariants and edge cases before outputting code"*).
-  - **Tier 2 & Tier 3 Roles**: Use balanced, implementation-focused reasoning.
-  - **Tier 4 Roles**: Execute with minimal/fast effort for deterministic, zero-overhead output.
-- **Context Isolation Guardrail**: Even in Sequential Persona Mode, strictly follow the 4-step codebase analysis protocol and load only one module file (`docs/architecture/modules/<module>.md`) at a time to keep the session context lean.
+#### Strategy 2: Multi-Agent Forking (Selective & Divergent)
+- Used selectively when a subtask is **divergent or context-polluting** (e.g. reading 50 codebase files during broad architecture exploration, external web research, or background testing jobs).
+- Subagents execute in isolated sandboxes and return concise executive summaries, protecting the primary thread from exploratory token bloat.
+
+#### Strategy 3: Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)
+- For clients without subagent APIs, apply prompt-modulated thinking budgets (`rules/model-tiers.json`):
+  - **Tier 1**: Extended deep reasoning for architecture and root cause analysis.
+  - **Tier 2**: Analytical reasoning for specifications and UX.
+  - **Tier 3 / Tier 4**: Low/minimal reasoning for deterministic code implementation, testing, and Git operations.
 
 ### 3. Model Evolution & Deprecation
 Roles evaluate cognitive capability by **Tier criteria** rather than hardcoded model string dependencies, ensuring full forward-compatibility with future model releases.
@@ -139,8 +144,7 @@ Roles evaluate cognitive capability by **Tier criteria** rather than hardcoded m
 ---
 
 ## Protocol & Execution Instructions
-- For each step, construct a dedicated prompt package containing role definition, isolated input, and explicit constraints.
-- In Multi-Agent Mode, do not perform code editing directly in the Control role; delegate strictly to specialized subagents.
-- In Sequential Persona Mode, announce role transitions explicitly (e.g. `### [Role: Architekt] Establishing Module Contracts...`).
-- When a task requires domain expertise (e.g. UI layout, database schemas, or API contracts), invoke the corresponding domain specialist, or instruct the implementing role to consult them.
+- Default to **Compound Execution Mode**: execute core development phases within the active session. Announce role/phase transitions explicitly (e.g. `### [Phase: Architecture Contract]` -> `### [Phase: Inner-Loop TDD]`).
+- Invoke subagents (`invoke_subagent`) selectively for noisy, divergent research tasks to isolate search waste from the main context.
+- Always execute PowerShell commands with `-NoProfile` and run testrunners in quiet mode (`--verbosity quiet`, `-q`) to maintain context hygiene.
 - Enforce Inner-Loop TDD: Ensure `Developer` authors unit tests and implementation code to satisfy acceptance criteria and modular contracts, running targeted tests locally before final verification. For Complex profiles, `Tester` validates broader integration test suites.

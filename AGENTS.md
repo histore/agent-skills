@@ -40,9 +40,10 @@ All skills and rules are designed to be general and reusable across diverse proj
 10. **100% Coverage**: 100% of code/system changes must be covered by approved requirements.
 11. **Dynamic Model Allocation & Universal Execution Strategy**:
     - Model tiers and execution modes are declaratively defined in [`rules/model-tiers.json`](rules/model-tiers.json).
-    - In **Antigravity / AGY**, roles execute in isolated subagents via `invoke_subagent` mapped to model classes (`pro`, `flash`, `flash_lite`).
-    - In **GitHub Copilot / Cursor / Single-Model environments**, roles execute in **Sequential Persona Mode** using prompt-modulated thinking budgets (High/Extended, Medium, Low/Fast) with zero overhead.
-    - Runtime capabilities can be probed deterministically at zero token cost via `scripts/detect-models.ps1` / `scripts/detect-models.sh`.
+    - **Compound Phased Execution (Default Strategy)**: Core development workflows (Plan -> Inner-Loop TDD -> Verify -> Commit) execute within a **continuous conversation thread** via phased persona transitions. This preserves prefix continuity, unlocking **75–90% prompt caching / KV-cache discounts** and eliminating multi-agent spawn latency.
+    - **Selective Subagent Forking (`invoke_subagent`)**: Reserved strictly for **divergent research**, broad multi-file repository exploration, web lookups, or independent background sidecars to keep exploratory token noise out of the primary thread.
+    - **Terminal & Context Hygiene**: All PowerShell commands must use `-NoProfile`. Testrunners must run in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `pytest -q`) to prevent terminal logs from bloating the context window.
+    - **Sequential Persona Mode (Copilot / Cursor / Single-Model)**: Uses prompt-modulated thinking budgets (Extended for Tier 1, Low/Minimal for Tier 3/4).
 12. **Branch & PR Process Model with Developer Testing & Review Gate**: All development must occur on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Prior to Pull Request creation, the developer is provided with the opportunity to review the code, test application functionality interactively/manually, and request adjustments or fixes. Merging into `main` occurs solely via Pull Requests using Squash-and-Merge after explicit user sign-off and passing CI per [CONTRIBUTING.md](CONTRIBUTING.md).
 13. **Four-Step Codebase Analysis Protocol**:
     When exploring, analyzing, or diagnosing a codebase, agents must strictly follow four progressive steps:
