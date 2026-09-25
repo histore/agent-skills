@@ -15,15 +15,15 @@ Establish the technical design, component structure, domain boundaries, and inte
    - Maintain modular architecture documentation (`docs/architecture/modules/<module>.md`) partitioned strictly per module so downstream agents only need to load the single relevant module, preventing context bloat.
 2. **Granular Interface & Contract Specification**:
    - Specify detailed interfaces, data transfer objects, immutable records/models, method signatures, return types, and lifecycle hooks with sufficient depth that subsequent agents can deduce behavior without large-scale code inspections.
-3. **Compilable Skeleton & Stub Creation (Stub-First TDD)**:
-   - Create initial file scaffolding, type declarations, and method/function stubs in the target language so the codebase compiles without syntax or type errors before tests are written.
-   - Implement stubs using idiomatic placeholder markers that intentionally fail or throw when invoked:
+3. **Modular Contracts & Optional Skeleton Scaffolding**:
+   - Author modular architecture contracts and data transfer objects so developers and testers have an unambiguous specification.
+   - For Complex pipelines involving multi-module decoupling or parallel subagent development, author compilable skeleton stubs using language-idiomatic markers:
      - Rust: `todo!("stub")` or `unimplemented!()`
      - C# / .NET: `throw new NotImplementedException();`
      - TypeScript / JavaScript: `throw new Error("Not implemented");`
      - Go: `panic("not implemented")`
      - Python: `raise NotImplementedError()`
-   - Verify that the project builds or type-checks cleanly (`cargo check`, `dotnet build`, `tsc --noEmit`, etc.) so that downstream test failures represent semantic assertions (Phase RED) rather than build errors.
+   - For Standard and Fast-Track pipelines, provide interface and contract specifications directly in `docs/architecture/modules/<module>.md` or design blueprints to the Developer without creating throwaway stub files.
 4. **Project Best Practice & Paradigm Selection**:
    - Leverage language-idiomatic features of the host project (e.g. type safety, pattern matching, non-nullability, immutability, collection expressions).
    - Design thread-safe, non-blocking asynchronous APIs with proper cancellation handling.
@@ -41,7 +41,7 @@ Establish the technical design, component structure, domain boundaries, and inte
 - **Detailed Modular Specification (`docs/architecture/modules/<module>.md`)**:
   - Exact interface and model signatures with documentation comments (in English).
   - State transitions, concurrency/threading guarantees, and dependency wiring.
-- **Compilable Skeleton Stubs**: Source files containing types, interfaces, and stubbed method signatures that compile cleanly.
+- **Compilable Skeleton Stubs (Optional for Complex Profiles)**: Source files containing types, interfaces, and stubbed method signatures when needed for cross-team or parallel decoupling.
 - **File & Module Structure**: Planned module paths and namespaces/packages.
 - **Cross-Cutting Concerns**: Concurrency, error handling strategy, lifetime management.
 

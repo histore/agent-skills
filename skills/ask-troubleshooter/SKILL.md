@@ -19,8 +19,8 @@ Perform systematic root-cause analysis (RCA) on reported bugs, unexpected UI/run
    - Differentiate between superficial symptoms and the true underlying root cause.
 3. **Domain Specialist Consultation**:
    - When diagnosing issues within specialized domains (e.g., database deadlocks/query timeouts, API contract desynchronization, UI event dispatching, allocation leaks, cryptographic failures), consult the relevant domain specialist (`DatabaseSpecialist`, `ApiContractSpecialist`, `UIDesigner`, `PerformanceOptimizer`, `SecurityAuditor`) for deep domain diagnostics.
-4. **Reproduction & Test Specification (Phase RED Handoff)**:
-   - Formulate an explicit, deterministic failing test scenario for `Tester`. Every bug remediation must begin with a failing reproduction test (Phase RED) authored by `Tester` before any production code is touched.
+4. **Reproduction & Test Specification (Reproduction TDD)**:
+   - Formulate an explicit, deterministic failing test scenario. Every bug remediation must be verified by a failing reproduction test before or during the fix. In Fast-Track pipelines, hand this specification directly to `Developer` to execute Inner-Loop TDD; in Complex pipelines, hand it to `Tester`.
 5. **Remediation Strategy**:
    - Deliver clear, actionable repair blueprints for the Developer adhering strictly to Clean Code and Clean Architecture.
 6. **Regression Risk Assessment**:
@@ -36,9 +36,9 @@ Perform systematic root-cause analysis (RCA) on reported bugs, unexpected UI/run
   - **Root Cause**: The underlying flaw, race condition, or contract violation.
   - **Impacted Components**: Specific files, methods, and functions.
 - **Phase RED Reproduction Test Specification**:
-  - Exact Arrange-Act-Assert scenario and input fixtures for `Tester` to write a failing regression test.
+  - Exact Arrange-Act-Assert scenario and input fixtures for `Developer` (or `Tester`) to author a failing regression test.
 - **Remediation Plan**:
-  - Step-by-step instructions for `Developer` to resolve the root cause in Phase GREEN.
+  - Step-by-step instructions for `Developer` to resolve the root cause and refactor in-place.
   - Regression risks and mitigation.
 
 ---
