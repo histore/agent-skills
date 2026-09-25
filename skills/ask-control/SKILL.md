@@ -54,8 +54,10 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
    - Filter context for downstream agents to only what is strictly necessary.
    - Provide only the single relevant module document (`docs/architecture/modules/<module>.md`) instead of whole-repo scans, ensuring modular architecture depth without continuous context exhaustion.
 
-6. **Stage Gating, Developer Review & Result Aggregation**:
-   - Ensure each automated step passes its criteria before advancing.
+6. **Two-Stage Quality Gating, Developer Review & Result Aggregation**:
+   - **Two-Stage Quality Gate (Shift-Left Validation)**:
+     - *Stage 1 (Deterministic Fast-Gate - Zero Tokens)*: Compiler/build, linter, and quiet native test runner (0 errors, 100% pass). If failed, route back to Developer immediately without spending LLM tokens on semantic analysis.
+     - *Stage 2 (Concise Traceability Gate)*: `Verifikation` performs targeted audit against acceptance criteria and architecture boundaries.
    - Provide the developer/user with summary diffs, launch instructions, and test guidance for manual testing & review before PR creation.
    - Route developer feedback or correction requests back to Developer/Tester/Architect for fast pre-PR resolution.
    - Consolidate outputs and report final status to the user.
@@ -77,32 +79,8 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 
 ---
 
-## Model & Reasoning Allocation Matrix
-
-| Role | Capability Tier | Reference Model (Current Gen) | Reasoning Tier | Alternative Equivalents | Complexity Focus |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Control** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Pipeline orchestration, adaptive profile selection, circuit breaking |
-| **Troubleshooter** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Root cause analysis, event hierarchy, call stacks, race conditions |
-| **GitTroubleshooter** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Git anomalies, 3-way merge/rebase conflicts, reflog recovery, zero-data-loss |
-| **CodeExplainer** | **Tier 1** (Deep Reasoning) | **Gemini 3.8 Pro** | **High / Extended** | Claude 3.7 Sonnet (Thinking) / o3 | Code deconstruction, control/data flows, didactic explanations |
-| **RequirementEngineer** | **Tier 2** (Analytical / Spec) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Given-When-Then criteria, conflict detection, requirement integrity (Tier 1 for Complex) |
-| **Architekt** | **Tier 2** (Analytical / Architecture) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Clean Architecture boundaries, contracts/interfaces, layer design (Tier 1 for Complex) |
-| **Verifikation** | **Tier 2** (Analytical / Gate) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | 100% requirements coverage audit, strict quality gate, compliance (Tier 1 for Complex) |
-| **UIDesigner** | **Tier 2** (Analytical / UX) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: UI ergonomics, interaction flows, layout hierarchy, style tokens |
-| **PerformanceOptimizer** | **Tier 2** (Analytical / Hotspots) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Profiling, zero-allocation patterns, memory leaks, throughput |
-| **SecurityAuditor** | **Tier 2** (Analytical / Auditing) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Secret leaks, dependency CVE auditing, injection prevention |
-| **DatabaseSpecialist** | **Tier 2** (Analytical / Data) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: Schemas, migrations, ORM, indexing, N+1 query avoidance |
-| **ApiContractSpecialist** | **Tier 2** (Analytical / API) | **Gemini 3.8 Flash** | **High** | Claude 3.7 Sonnet / GPT-4o | Domain: REST/OpenAPI, gRPC/Protobuf, API versioning, RFC 7807 |
-| **Developer** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Inner-Loop TDD, Clean Code implementation, targeted test feedback loop |
-| **RefactoringSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o | Code smell analysis, technical debt reduction, Boy Scout rule (On-Demand) |
-| **Tester** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Integration test suites, complex edge cases, property testing, native test runner |
-| **LocalizationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Domain: i18n audits, string extraction, bilingual dictionaries (de/en) |
-| **DocumentationSpecialist** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | API doc comments, user manuals, help guides in English (On-Demand) |
-| **ArchitectureSync** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | Git delta sync, zero-token pre-filtering, `ARCHITECTURE.md` & modular docs |
-| **DevOpsEngineer** | **Tier 3** (Balanced Implementation) | **Gemini 3.8 Flash** | **Medium** | Claude 3.5 Sonnet / GPT-4o-mini | CI/CD workflows, GitHub Actions, Docker, environment configuration |
-| **CommitManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | Atomic commit/push, prerequisite commits, next-step offers, safety gate |
-| **PRManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | PR drafting, prerequisite push/commit, delayed CI watch, squash-merge |
-| **ReleaseManager** | **Tier 4** (Fast & Deterministic) | **Gemini 3.8 Flash** | **Low / Fast** | Claude 3.5 Haiku / GPT-4o-mini | SemVer calculation, prerequisite branch/sync check, tag push, safety gate |
+## Dynamic Model & Reasoning Allocation
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json). Control dynamically allocates models in multi-agent environments or modulates reasoning depth in sequential environments based on this configuration.
 
 ---
 
