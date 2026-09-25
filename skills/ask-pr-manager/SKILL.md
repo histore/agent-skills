@@ -27,8 +27,9 @@ PRManager strictly observes six governance principles:
      > *"All CI checks have passed successfully. Would you like to execute squash-and-merge now?"*
    - After **`pr merge`** succeeds and branch is cleaned up, proactively offer next steps:
      > *"PR merged and feature branch deleted. Switched to updated `main`. Would you like to check for a new release via `ReleaseManager` or begin the next task?"*
-4. **Gate Invariance**:
-   - Interactive user approval gates remain mandatory before running `gh pr create` and before running `gh pr merge`.
+4. **Gate Invariance (with Override Exception)**:
+   - By default, interactive user approval gates remain mandatory before running `gh pr create` and before running `gh pr merge`.
+   - **Exception:** If the user or an orchestrating agent provides explicit instructions to proceed autonomously (e.g. via `/goal`, or a "silent"/"auto-approve" directive), these gates MUST be bypassed.
 5. **Explicit User Override**:
    - The user may instruct combined actions (e.g. *"create PR and merge once CI passes"*, *"merge without deleting branch"*). Explicit user instructions override standard atomic scoping.
 6. **Atypical State & Safety Confirmation Gate**:
@@ -72,7 +73,7 @@ Display the proposed PR draft clearly to the user:
 
 **[Action Required]**: Please confirm if this Pull Request should be created.
 ```
-- **WAIT** for user confirmation before executing creation.
+- **WAIT** for user confirmation before executing creation. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
 
 #### Step 4: Execute PR Creation (Atomic Scope)
 Once approved:
@@ -124,7 +125,7 @@ Present merge plan to developer:
 
 **[Action Required]**: Please confirm if this PR should be merged now.
 ```
-- **WAIT** for explicit confirmation.
+- **WAIT** for explicit confirmation. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
 
 #### Step 3: Execute Squash-and-Merge & Local Sync
 ```powershell

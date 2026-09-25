@@ -24,8 +24,9 @@ CommitManager strictly observes six governance principles:
      > *"Commit applied successfully. Would you like to push these changes to `origin/<branch>` now?"*
    - When **`push`** finishes successfully on a feature/fix branch, proactively offer the logical successor action:
      > *"Push completed successfully. Would you like to create a Pull Request via `PRManager` now?"*
-4. **Gate Invariance**:
-   - The interactive review gate for commit messages (Step 3) is **mandatory** and can **never** be bypassed, even when commit is triggered as a prerequisite for push.
+4. **Gate Invariance (with Override Exception)**:
+   - By default, the interactive review gate for commit messages (Step 3) is **mandatory** and cannot be bypassed.
+   - **Exception:** If the user or an orchestrating agent (e.g. via `/goal` or an explicit "auto-approve", "silent", or "non-interactive" directive) provides clear instructions to proceed autonomously, this gate MUST be bypassed to allow uninterrupted workflow execution.
 5. **Explicit User Override**:
    - The user may explicitly instruct combined or deviating behavior (e.g. *"commit and push directly"*, *"push without committing unstaged files"*). Explicit user instructions override default atomic scoping.
 6. **Atypical State & Safety Confirmation Gate**:
@@ -72,7 +73,7 @@ Display the proposed commit message and affected files clearly to the user:
 
 **[Action Required]**: Please confirm if this commit message should be applied.
 ```
-- **WAIT** for user feedback or approval. Update the message if adjustments are requested.
+- **WAIT** for user feedback or approval. Update the message if adjustments are requested. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
 
 #### Step 4: Stage & Commit (Atomic Scope - No Push)
 Once explicit confirmation is received:
