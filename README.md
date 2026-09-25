@@ -82,17 +82,20 @@ Whenever an agent explores, analyzes, or debugs a codebase, it must strictly pro
 > **Modular Architecture Depth & Context Isolation**:
 > Architecture documents must be sufficiently detailed (interfaces, records, state transitions, threading guarantees) so that broad, whole-repository code scans are prevented. At the same time, maintaining separate files per module (`docs/architecture/modules/<module>.md`) ensures that agents only load the single relevant module into context, preventing the agent's context window from continuously filling up.
 
-## Universal Model Tiering & Dual Execution Strategy
+## Universal Model Tiering & Compound Execution Strategy
 
-This repository supports cross-platform execution across **Google Antigravity**, **GitHub Copilot**, **Cursor**, and standalone LLM environments. Detailed tier mappings and platform preferences are specified in [`rules/model-tiers.json`](rules/model-tiers.json).
+This repository supports cross-platform execution across **Google Antigravity**, **GitHub Copilot**, **Cursor**, and standalone LLM environments. Detailed tier mappings, thinking budgets, and platform preferences are specified in [`rules/model-tiers.json`](rules/model-tiers.json).
 
-### Execution Modes
-1. **Multi-Agent Mode (Antigravity / AGY)**:
-   - Dispatches isolated, parallel subagents via the platform API (`invoke_subagent`).
-   - Dynamically allocates model classes: `pro` (Tier 1), `flash` (Tier 2/3), `flash_lite` (Tier 4).
-2. **Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)**:
-   - For clients lacking subagent-forking APIs, a single agent executes role phases sequentially (Architekt -> Developer -> Tester).
-   - Modulates cognitive depth semantically via prompt-based thinking budgets (High/Extended for Tier 1, Balanced for Tier 2/3, Minimal for Tier 4).
+### Execution Strategy & Modes
+1. **Compound Phased Execution (Default & Recommended)**:
+   - The primary agent executes role phases sequentially within a single persistent session (Control -> Requirement -> Architekt -> Developer -> Verifikation).
+   - **KV-Cache Continuity**: Retaining the conversation history unlocks 75–90% prompt caching discounts across turns, dramatically slashing latency and token expenditure.
+   - **Calibrated Thinking Budgets**: Developer and Tester use `low` reasoning budgets because compiler diagnostics and test suites act as deterministic ground truth.
+   - **Terminal Hygiene**: Scripts and testrunners run quietly (`dotnet test --verbosity quiet`, `cargo test -q`, PowerShell `-NoProfile`) to eliminate terminal spam.
+2. **Selective Subagent Forking (Antigravity / AGY)**:
+   - Subagents (`invoke_subagent`) are leveraged selectively for **divergent, high-noise exploration** (broad file searches, web research, multi-repo audits) to prevent polluting the primary thread's cache prefix.
+3. **Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)**:
+   - For clients lacking subagent-forking APIs, a single agent executes role phases sequentially using semantic prompt-based thinking budgets.
 
 ### Zero-Token Runtime Capability Detection & 24h Persistent Caching
 To determine the active environment and available models at zero token cost:

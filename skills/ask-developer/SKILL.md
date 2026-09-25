@@ -13,8 +13,9 @@ Implement robust, maintainable, and high-performance source code and automated u
    - **Phase RED**: Author targeted unit and component tests based on acceptance criteria (Given-When-Then) and architecture contracts before or alongside implementation.
    - **Phase GREEN**: Implement business logic, algorithms, and handlers to turn failing tests green.
    - **Phase REFACTOR**: Clean up, modularize, and polish code in-place immediately while preserving green test status (Boy Scout Rule, DRY, SOLID).
-2. **Local Feedback Loop, Circuit Breaker & Targeted Test Execution**:
-   - Execute the project's native test runner (`dotnet test`, `cargo test`, `npm test`, `pytest`, `go test`) locally, targeting only the affected test file or class (e.g. `--filter`, path argument) to prevent full-suite build thrashing.
+2. **Local Feedback Loop, Circuit Breaker & Quiet Targeted Execution**:
+   - Execute the project's native test runner locally in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`), targeting only the affected test file or class (e.g. `--filter`, path argument) to prevent full-suite build thrashing and avoid context window pollution. In PowerShell, run commands with `-NoProfile`.
+   - Rely on compiler and testrunner output as the ground truth rather than burning speculative reasoning/thinking tokens.
    - Adhere to the **3-Cycle Iteration Limit**: Conduct a maximum of 3 test-fix feedback cycles (`Modify Code` -> `Run Targeted Tests` -> `Analyze Errors`). If tests still fail after 3 attempts, halt immediately and escalate with an error trace to `Control` or the user.
 3. **Test Integrity & Coverage Guardrail**:
    - Replaces rigid test immutability. The Developer is empowered to adjust and refine test fixtures, signatures, and assertions to accurately reflect real contracts and idiomatic types.

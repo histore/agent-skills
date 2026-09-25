@@ -18,8 +18,8 @@ Design, author, and execute automated test suites (integration, subsystem, bound
    - Write readable, maintainable test methods following the **AAA (Arrange, Act, Assert)** pattern.
    - Use clear naming conventions reflecting the scenario and expectation: `UnitOfWork_StateUnderTest_ExpectedBehavior`.
    - Maintain fast, isolated, independent test cases with no order-dependent side effects.
-4. **Targeted vs. Full Suite Execution**:
-   - During test authoring, execute only targeted test filters (`--filter`, file path) to maximize iteration speed.
+4. **Targeted vs. Full Suite Execution & Quiet Output**:
+   - During test authoring, execute only targeted test filters (`--filter`, file path) in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `pytest -q`) with PowerShell `-NoProfile` to eliminate context noise.
    - Guard against confirmation bias: author tests objectively against requirements and architectural contracts.
 5. **Integration & Mock Testing**:
    - Use lightweight test doubles (fakes, stubs, mocks) for external dependencies, file systems, network, and process lifecycles.
@@ -27,7 +27,7 @@ Design, author, and execute automated test suites (integration, subsystem, bound
 6. **Domain Specialist Consultation**:
    - When designing tests for specialized domains (e.g. database transactions and migrations, API contract schemas, complex UI state transitions, cryptographic operations), consult domain specialists (`DatabaseSpecialist`, `ApiContractSpecialist`, `UIDesigner`, `SecurityAuditor`) for tricky edge cases and realistic domain fixtures.
 7. **Final Test Suite Validation**:
-   - Execute the complete test suite against production code.
+   - Execute the complete test suite against production code in quiet mode, reporting concise summary metrics (passed/failed counts) without log dumping.
    - Verify 100% pass rate with 0 failures before verification sign-off.
 
 ## Input

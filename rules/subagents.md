@@ -1,13 +1,16 @@
 # Subagent Orchestration, Clean Architecture & Context Isolation Guidelines
 
 ## Core Principles
-1. **Isolated Context**: Each subagent role operates within an isolated task context to prevent context bloat and distraction.
-2. **Minimal Context Transfer**: Only essential information (inputs, specific requirements, direct dependencies) is passed between roles.
-3. **Universal Model Tiering & Dual Execution Strategy**:
-   - Tier mappings and platform preferences are declaratively defined in [`rules/model-tiers.json`](model-tiers.json).
-   - **Multi-Agent Mode (Antigravity / AGY)**: Leverages `invoke_subagent` with explicit model tier dispatch (`pro` for Tier 1, `flash` for Tier 2/3, `flash_lite` for Tier 4).
-   - **Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)**: In clients without subagent APIs, the agent adopts role personas sequentially, modulating cognitive depth via prompt-based thinking budgets (High/Extended for Tier 1, Balanced for Tier 2/3, Minimal for Tier 4).
-   - **Runtime Probe**: Zero-token detection scripts (`scripts/detect-models.ps1` / `scripts/detect-models.sh`) determine the active platform and model availability dynamically, persisted across sessions and skills with a 24-hour cache (bypassable via `-Force` / `--force`).
+1. **Compound Phased Execution & KV-Cache Continuity (Default)**:
+   - Core development workflows execute within a **continuous conversation thread** via phased persona transitions.
+   - Preserving prefix continuity unlocks **75–90% prompt caching / KV-cache discounts** across turns and eliminates subagent serialization and cold-start overhead.
+2. **Selective Subagent Forking for Divergent Exploration**:
+   - `invoke_subagent` is reserved strictly for noisy, divergent tasks (e.g. broad repository scans via `research`, external web lookups, or background tasks).
+   - Isolates exploratory search noise from the primary thread, returning concise executive summaries.
+3. **Universal Model Tiering & Execution Modes**:
+   - Tier mappings and budgets defined in [`rules/model-tiers.json`](model-tiers.json).
+   - Reasoning budgets are throttled to `low/minimal` during implementation and test execution, relying on compiler and testrunner feedback as ground truth rather than burning speculative reasoning tokens.
+   - **Terminal & Context Hygiene**: All PowerShell commands must use `-NoProfile`. Testrunners must run in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `pytest -q`) to stop log spam from bloating the context window.
 4. **Clean Architecture & Clean Code Enforcement**:
    - **Clean Architecture**: Dependency rule (dependencies point inward), clear layer boundaries (`Models`, `Services`, `Interface Adapters/ViewModels`, `Views/Frameworks`), independent of external UI, database, or OS details.
    - **Clean Code**: SOLID, DRY, KISS, YAGNI, Boy Scout Rule, small focused classes/functions, descriptive naming, English comments.

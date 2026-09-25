@@ -131,19 +131,19 @@ Write-Host "`n5. Testing detect-models.ps1 24h caching..." -ForegroundColor Yell
 $tempCache = [System.IO.Path]::GetTempFileName()
 try {
     # 5.1 Fresh probe test
-    $probe1Raw = powershell -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache -Force
+    $probe1Raw = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache -Force
     $probe1Obj = $probe1Raw | ConvertFrom-Json
     Assert-Condition ($probe1Obj.cached -eq $false) "Fresh probe returns 'cached: false'" "Expected 'cached: false' on fresh probe"
     Assert-Condition (Test-Path $tempCache) "Cache file was persisted to disk" "Cache file was not created"
 
     # 5.2 Cached retrieval test
-    $probe2Raw = powershell -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache
+    $probe2Raw = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache
     $probe2Obj = $probe2Raw | ConvertFrom-Json
     Assert-Condition ($probe2Obj.cached -eq $true) "Second call returns 'cached: true'" "Expected 'cached: true' on second call"
     Assert-Condition ($probe2Obj.platform -eq $probe1Obj.platform) "Cached platform matches original probe" "Platform mismatch in cache"
 
     # 5.3 Force refresh test
-    $probe3Raw = powershell -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache -Force
+    $probe3Raw = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache -Force
     $probe3Obj = $probe3Raw | ConvertFrom-Json
     Assert-Condition ($probe3Obj.cached -eq $false) "Call with -Force bypasses cache and returns 'cached: false'" "Expected 'cached: false' with -Force"
 } finally {
