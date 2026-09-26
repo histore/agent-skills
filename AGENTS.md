@@ -63,6 +63,11 @@ All skills and rules are designed to be general and reusable across diverse proj
     4. **Gate Invariance**: All interactive review gates and safety validations (e.g. commit message confirmation, PR description review, SemVer release tag approval) remain mandatory and cannot be bypassed.
     5. **Explicit User Override**: The user may explicitly instruct deviating or combined behavior at any time (e.g. "commit and push directly").
     6. **Atypical State & Anomaly Gate**: If following these instructions would produce an unusual state or require non-standard/atypical measures (e.g. detached HEAD, merge conflicts, unexpected untracked files, unverified release states, cross-cutting multi-scope changes), the agent must pause, describe the situation, and prompt the user for explicit confirmation before proceeding.
+15. **Adaptive Governance & Strictness Levels**:
+    - To prevent architectural overhead on small or legacy tasks, `Control` must establish and propagate a `Strictness Level` context:
+      - **Enterprise (Default)**: Strict adherence to Clean Architecture, 100% test coverage, and full Requirement mapping.
+      - **Legacy**: Tolerates architectural deviations and missing tests (does not block verification), but requires Stage 1 compilation success.
+      - **Prototype**: Focuses on speed (MVP). Architecture documentation and TDD are strictly optional.
 
 ## Subagent Roles & Governance Mappings
 All 22 specialized subagent roles, their cognitive tiers, reference models, and thinking budgets are declaratively maintained in the Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json).
@@ -72,10 +77,14 @@ All 22 specialized subagent roles, their cognitive tiers, reference models, and 
 
 Operational execution instructions are defined exclusively in each role's skill specification in [`skills/`](skills/).
 
-## Context Isolation Protocol
+## Context Isolation & Compaction Protocol
 - Subagents must be called with only the minimum context required for their specific role.
 - Intermediate results (e.g. root cause reports, UX blueprints, i18n dictionaries, architecture contracts, diffs, acceptance criteria) are passed downstream sequentially.
 - No role shall receive bloated discussion history or unrelated files.
+- **Proactive Context Compaction & Phase Checkpointing**:
+  - To prevent "Lost in the Middle" degradation and trim token bloat, `Control` executes explicit context compaction at major phase boundaries (e.g., Plan -> Implementation, or between distinct user tasks).
+  - Before transitioning or starting a new task, synthesize a concise **State Checkpoint** (active goal, touched files, verified architecture facts, next concrete steps).
+  - Discard obsolete intermediate trial-and-error logs, failed compilation attempts, and transient conversation history, while strictly preserving top-of-context system rules to maximize KV-cache prefix hits.
 
 ## Client Directory Compatibility (`.agents` vs. `_agents`)
 - **Gemini / Antigravity**: Seamlessly supports both `_agents` and `.agents` customization roots.
