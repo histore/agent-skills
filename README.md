@@ -42,7 +42,7 @@ agent-skills/
 
 ### Core Lifecycle Roles (Standard Workflow)
 1. **Control**: Central workflow orchestrator, adaptive execution profile dispatcher (Fast-Track, Standard, Complex), model tier/reasoning manager, loop circuit breaker, and coordinator of the Developer Testing & Review gate.
-2. **RequirementEngineer** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Translates user requirements into Given-When-Then acceptance criteria, checking for duplicates/conflicts (Tier 1 for Complex/Architectural profiles).
+2. **RequirementEngineer** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Translates user requirements into Given-When-Then acceptance criteria, managing single-file or modular requirements scaling (`docs/requirements/modules/*.md`), namespaced IDs, and duplicate/conflict detection (Tier 1 for Complex/Architectural profiles).
 3. **Architekt** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Defines contracts, interfaces, dependency management, and layer boundaries following Clean Architecture. Authors modular specifications and optional skeleton stubs for complex decoupling (Tier 1 for Complex/Architectural profiles).
 4. **Developer** (`Tier 3 | Low Reasoning` - Ref: `Gemini 3.8 Flash`): Implements production code and unit tests via **Inner-Loop TDD** (Red-Green-Refactor), adhering to Clean Code, targeted test feedback loops (max 3 iterations), and test integrity guardrails.
 5. **Tester** (`Tier 3 | Low Reasoning` - Ref: `Gemini 3.8 Flash`): Designs and implements integration test suites, boundary stress tests, and reproduction tests, certifying 100% pass rates post-implementation via the native quiet test runner (AAA pattern, 0 failures).

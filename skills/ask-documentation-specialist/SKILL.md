@@ -89,7 +89,7 @@ Adhere strictly to the project's native documentation conventions:
 ## Input
 - Source code files, interface contracts, and module specifications from `Architekt`.
 - Implemented production code from `Developer`.
-- Requirements catalog (`REQUIREMENTS.md`) and user stories from `RequirementEngineer`.
+- Requirements catalog (`REQUIREMENTS.md` or `docs/requirements/modules/*.md`) and user stories from `RequirementEngineer`.
 - Existing `README.md`, `CHANGELOG.md`, and project guides.
 
 ## Output Format

@@ -19,7 +19,7 @@ Prior to any LLM-based semantic review, execute native project validation tools:
 
 ### Stage 2: Traceability & Quality Gate (Concise Verification)
 Only executed once Stage 1 passes with 100% success (0 failures). **IMPORTANT: Adapt your audit based on the active `Strictness Level` (Enterprise, Legacy, Prototype):**
-1. **Requirements Coverage Audit**: Confirm all changes map to an approved Requirement ID in `REQUIREMENTS.md`. (Bypass this check if level is Legacy/Prototype).
+1. **Requirements Coverage Audit**: Confirm all changes map to an approved Requirement ID in `REQUIREMENTS.md` (or the relevant module specification in `docs/requirements/modules/<module>.md`). (Bypass this check if level is Legacy/Prototype).
 2. **Acceptance Criteria Verification**: Validate every Given-When-Then statement defined by `RequirementEngineer`.
 3. **Clean Architecture & Clean Code Audit**: Confirm inward dependency flow, separation of concerns, SOLID principles, and English code comments. **If Strictness Level is Legacy or Prototype, DO NOT REJECT the code for Clean Architecture or TDD violations.**
 4. **Internationalization (i18n) & UI/UX Audit** (if applicable): Confirm 0% hardcoded user strings (bilingual `de`/`en` resources) and keyboard/visual ergonomics.

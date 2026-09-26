@@ -53,7 +53,7 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 
 5. **Context Minimization, Isolation & Active Compaction**:
    - Filter context for downstream agents to only what is strictly necessary.
-   - Provide only the single relevant module document (`docs/architecture/modules/<module>.md`) instead of whole-repo scans, ensuring modular architecture depth without continuous context exhaustion.
+   - Provide only the single relevant module document (`docs/architecture/modules/<module>.md`) and relevant requirement segment (`docs/requirements/modules/<module>.md` or scoped sections of `REQUIREMENTS.md`) instead of whole-repo scans, ensuring modular depth without continuous context exhaustion.
    - **Phase Checkpointing & Proactive Compaction**:
      - At phase transitions (e.g. from Architecture/Contracts to `Developer` TDD) and between consecutive user tasks in the same session, condense intermediate history into a compact **State Checkpoint** (Active Goal, Touched Files, Architectural Facts, Immediate Next Step).
      - Discard verbose compiler/terminal outputs, abandoned code drafts, and conversational chatter.

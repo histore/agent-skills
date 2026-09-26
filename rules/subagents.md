@@ -42,8 +42,12 @@
    - `ArchitectureSync` incrementally synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/`) when git deltas warrant it.
    - `ReleaseManager` manages packaging, SemVer tags, and manifests.
    - `GitTroubleshooter` manages repository anomalies, 3-way merge/rebase conflict resolutions, and state recovery under zero-data-loss invariants.
-9. **Strict Requirements Governance**:
-   - **Check Against Existing Requirements**: Every new requirement must be validated against `REQUIREMENTS.md`.
+9. **Strict Requirements Governance & Modular Architecture**:
+   - **Check Against Existing Requirements**: Every new requirement must be validated against existing requirements.
+   - **Single-File vs. Modular Hub-and-Spoke Architecture**:
+     - *Single-File (`REQUIREMENTS.md`)*: Used for smaller projects or initial prototypes (< ~30–50 requirements).
+     - *Modular Architecture (`docs/requirements/modules/<module>.md`)*: For growing codebases or multi-module projects, requirements are segmented per module. The root `REQUIREMENTS.md` serves as the central Hub, Index, ID Registry, and Non-Functional Requirements (NFR) Baseline.
+   - **Namespaced IDs & Lifecycle Tracking**: Standardized IDs (`REQ-<SCOPE>-XXX`) and explicit lifecycle status (`PROPOSED`, `APPROVED`, `IMPLEMENTED`, `VERIFIED`, `DEPRECATED`).
    - **User Decision on Conflicts/Duplicates**: Contradictions or duplicates must be escalated to the user for explicit decision.
    - **Immutability of Existing Requirements**: Existing requirements may only be modified with explicit user instruction.
    - **Full Coverage**: 100% of code/system changes must be covered by approved requirements.
