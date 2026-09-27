@@ -27,9 +27,10 @@ PRManager strictly observes six governance principles:
      > *"All CI checks have passed successfully. Would you like to execute squash-and-merge now?"*
    - After **`pr merge`** succeeds and branch is cleaned up, proactively offer next steps:
      > *"PR merged and feature branch deleted. Switched to updated `main`. Would you like to check for a new release via `ReleaseManager` or begin the next task?"*
-4. **Gate Invariance (with Override Exception)**:
-   - By default, interactive user approval gates remain mandatory before running `gh pr create` and before running `gh pr merge`.
-   - **Exception:** If the user or an orchestrating agent provides explicit instructions to proceed autonomously (e.g. via `/goal`, or a "silent"/"auto-approve" directive), these gates MUST be bypassed.
+4. **Adaptive Gate Resolution (Intention Matching with Anomaly Fallback)**:
+   - When the user's prompt directly instructs creating or merging a PR (e.g. *"create PR for feature X"*, *"merge PR"*), interactive confirmation is satisfied by the prompt and executes directly, provided CI checks pass and no merge conflicts exist.
+   - **Mandatory Confirmation Fallback**: An interactive review gate remains mandatory and pauses execution if: (a) CI checks fail or are cancelled, (b) merge conflicts or upstream branch divergence exist, or (c) target branch is non-standard.
+   - Autonomous instructions (e.g. via `/goal` or explicit auto-approve flags) also bypass the gate.
 5. **Explicit User Override**:
    - The user may instruct combined actions (e.g. *"create PR and merge once CI passes"*, *"merge without deleting branch"*). Explicit user instructions override standard atomic scoping.
 6. **Atypical State & Safety Confirmation Gate**:
@@ -62,8 +63,9 @@ PRManager strictly observes six governance principles:
    - **Testing & Verification**: Test suite results (0 failures) and verification confirmation.
    - **Checklist**: Requirements coverage, Clean Code compliance, passing tests.
 
-#### Step 3: Present Draft for User Approval (Interactive Gate)
-Display the proposed PR draft clearly to the user:
+#### Step 3: Review Gate & Adaptive Resolution
+- **Direct Execution Check**: If the user prompt directly instructed creating the PR (and prerequisites are met with 0 test failures / no merge conflicts), skip interactive waiting and proceed directly to Step 4. Display the created PR URL and description summary in the completion report.
+- **Otherwise (or if an anomaly/conflict occurs)**: Display the proposed PR draft clearly to the user:
 ```markdown
 ### Proposed Pull Request
 **Branch**: `<branch-name>` -> `main`
@@ -73,10 +75,10 @@ Display the proposed PR draft clearly to the user:
 
 **[Action Required]**: Please confirm if this Pull Request should be created.
 ```
-- **WAIT** for user confirmation before executing creation. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
+- **WAIT** for user confirmation before executing creation if presented. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
 
 #### Step 4: Execute PR Creation (Atomic Scope)
-Once approved:
+Once approved or resolved via Adaptive Gate:
 ```powershell
 gh pr create --title "<title>" --body "<body>"
 ```
@@ -116,8 +118,9 @@ Pull Request created: `<pr-url>`
    ```
    If checks are failing or incomplete, report details and do not proceed.
 
-#### Step 2: Present Merge Confirmation Gate
-Present merge plan to developer:
+#### Step 2: Merge Confirmation Gate & Adaptive Resolution
+- **Direct Execution Check**: If the user prompt directly instructed merging the PR (and CI checks have passed with no merge conflicts), skip interactive waiting and proceed directly to Step 3.
+- **Otherwise (or if CI checks were pending/anomalous)**: Present merge plan to developer:
 ```markdown
 ### Proposed Merge Action
 **PR**: `<pr-number>` (`<title>`)
@@ -125,9 +128,10 @@ Present merge plan to developer:
 
 **[Action Required]**: Please confirm if this PR should be merged now.
 ```
-- **WAIT** for explicit confirmation. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
+- **WAIT** for explicit confirmation if presented. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
 
 #### Step 3: Execute Squash-and-Merge & Local Sync
+Once confirmed or resolved via Adaptive Gate:
 ```powershell
 gh pr merge --squash --delete-branch
 git checkout main

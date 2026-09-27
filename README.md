@@ -125,8 +125,8 @@ Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to si
    If the repository or workspace state requires preceding actions (e.g. uncommitted workspace changes when `push` is requested), the necessary prerequisites are automatically resolved first.
 3. **Proactive Next-Step Offering**:
    Upon successful completion of an action, the logical successor action is proactively offered to the user (e.g. offering `push` after `commit`, or offering PR creation after `push`).
-4. **Gate Invariance**:
-   All interactive review and approval gates (conventional commit message review, PR description approval, SemVer release tag confirmation) remain active and mandatory.
+4. **Adaptive Gate Resolution (Intention Matching with Anomaly Fallback)**:
+   When the user's prompt directly instructs or parameterizes an action (e.g. "erstelle einen minor release", "commit with message ..."), interactive confirmation is satisfied by the prompt and executes directly. A mandatory confirmation gate pauses execution if: (a) uncommitted/untracked changes exceed the current scope, (b) SemVer history contradicts the requested release bump, or (c) atypical repository states occur.
 5. **Explicit User Override**:
    The user may explicitly direct combined or deviating behavior at any time (e.g. "commit and push directly").
 6. **Atypical State & Safety Confirmation Gate**:

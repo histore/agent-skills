@@ -71,7 +71,7 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
    - **Strict Action Execution (Atomic Scope)**: Execute strictly the requested action without unsolicited follow-ups (e.g., commit only without push).
    - **State-Driven Prerequisite Resolution**: Automatically identify and resolve preceding requirements (e.g. uncommitted changes before push, unpushed commits before PR creation).
    - **Proactive Next-Step Offering**: Actively recommend the next logical successor action once a stage completes.
-   - **Gate Invariance**: Strictly preserve all interactive review gates (commit message, PR description, SemVer tag).
+   - **Adaptive Gate Resolution**: When the prompt directly instructs or parameterizes an action (e.g. "erstelle einen minor release", "commit with message ..."), execute directly without redundant re-confirmation, falling back to a mandatory gate only upon anomalies or out-of-scope changes.
    - **Explicit User Override**: Honor explicit user commands combining or deviating from default steps.
    - **Atypical State & Anomaly Gate**: Halt and request explicit confirmation whenever an unexpected repository state or non-standard action is encountered.
 

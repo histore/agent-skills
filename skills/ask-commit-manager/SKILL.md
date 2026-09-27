@@ -24,9 +24,10 @@ CommitManager strictly observes six governance principles:
      > *"Commit applied successfully. Would you like to push these changes to `origin/<branch>` now?"*
    - When **`push`** finishes successfully on a feature/fix branch, proactively offer the logical successor action:
      > *"Push completed successfully. Would you like to create a Pull Request via `PRManager` now?"*
-4. **Gate Invariance (with Override Exception)**:
-   - By default, the interactive review gate for commit messages (Step 3) is **mandatory** and cannot be bypassed.
-   - **Exception:** If the user or an orchestrating agent (e.g. via `/goal` or an explicit "auto-approve", "silent", or "non-interactive" directive) provides clear instructions to proceed autonomously, this gate MUST be bypassed to allow uninterrupted workflow execution.
+4. **Adaptive Gate Resolution (Intention Matching with Anomaly Fallback)**:
+   - When the user's prompt directly instructs or specifies the commit action (e.g. *"commit changes"*, *"commit with message ..."*, or the user explicitly requested implementing and committing a task), the confirmation gate is satisfied by the prompt and the commit executes directly without redundant confirmation.
+   - **Scope Check & Mandatory Fallback**: If the working tree contains uncommitted or untracked changes that exceed the scope of the current task, or if an atypical state is encountered, the agent must halt and present the interactive review gate (Step 3).
+   - If autonomous instructions (e.g. via `/goal` or explicit auto-approve flags) are active, this gate is also bypassed.
 5. **Explicit User Override**:
    - The user may explicitly instruct combined or deviating behavior (e.g. *"commit and push directly"*, *"push without committing unstaged files"*). Explicit user instructions override default atomic scoping.
 6. **Atypical State & Safety Confirmation Gate**:
@@ -54,8 +55,9 @@ Generate a clean commit message in English following the Conventional Commits sp
 - **Types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`
 - **Body**: Bullet points explaining rationale, architectural considerations, and requirement IDs (e.g. `REQ-CORE-002`).
 
-#### Step 3: Present to User for Confirmation (Interactive Gate)
-Display the proposed commit message and affected files clearly to the user:
+#### Step 3: Confirmation Gate & Adaptive Resolution
+- **Direct Execution Check**: If the user prompt directly instructed or requested committing the changes (and changes are strictly within scope of the current task with no atypical repository state), skip interactive waiting and proceed immediately to Step 4. Display the applied commit message and hash in the completion report.
+- **Otherwise (or if scope exceeded / anomaly detected)**: Display the proposed commit message and affected files clearly to the user:
 ```markdown
 ### Proposed Commit
 **Branch**: `<branch-name>`
@@ -73,10 +75,10 @@ Display the proposed commit message and affected files clearly to the user:
 
 **[Action Required]**: Please confirm if this commit message should be applied.
 ```
-- **WAIT** for user feedback or approval. Update the message if adjustments are requested. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
+- **WAIT** for user feedback or approval if presented. Update the message if adjustments are requested. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
 
 #### Step 4: Stage & Commit (Atomic Scope - No Push)
-Once explicit confirmation is received:
+Once confirmed or resolved via Adaptive Gate:
 1. Stage changes: `git add <files>` (or `git add -A` as appropriate).
 2. Commit: `git commit -m "<approved-message>"`.
 3. Verify commit with `git log -1 --oneline`.

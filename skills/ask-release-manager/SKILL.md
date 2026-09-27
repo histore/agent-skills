@@ -22,8 +22,10 @@ ReleaseManager strictly observes six governance principles:
 3. **Proactive Next-Step Offering**:
    - When the release tag is created and pushed successfully, proactively offer logical successor steps:
      > *"Release tag `v<Version>` pushed successfully. Would you like to view the GitHub release, draft a changelog entry, or create a new feature branch?"*
-4. **Gate Invariance**:
-   - The interactive user confirmation gate for the target version/tag (Step 3) is **mandatory** and can **never** be bypassed, even when version calculation is deterministic.
+4. **Adaptive Gate Resolution (Intention Matching with Anomaly Fallback)**:
+   - When the user explicitly instructs or parameterizes a release in the prompt (e.g. *"erstelle einen minor release"*, *"create release v1.2.0"*), the confirmation gate is satisfied by the prompt and the tag is created and pushed directly without redundant confirmation.
+   - **SemVer Discrepancy & Anomaly Fallback**: If the prompt requests a bump (e.g. `minor` or `patch`) but unreleased commits contain `BREAKING CHANGE` or `<type>!:`, or if unexpected branch divergence exists, execution halts immediately and the interactive confirmation gate (Step 3) is presented.
+   - Autonomous directives (e.g. via `/goal` or explicit auto-approve flags) also bypass the gate.
 5. **Explicit User Override**:
    - The user may explicitly specify the target version bump (`major`, `minor`, `patch`) or exact version string (e.g. `v1.0.0`), which overrides automatic commit history deduction.
 6. **Atypical State & Safety Confirmation Gate**:
@@ -86,8 +88,9 @@ Releases must only be tagged on the production `main` branch.
      - Contains `feat:` or `feat(...):` → Propose **`minor`** (`vX.(Y+1).0`)
      - Contains `fix:`, `perf:`, `refactor:`, `docs:`, `chore:` → Propose **`patch`** (`vX.Y.(Z+1)`)
 
-### Step 3: Mandatory User Confirmation Gate (Interactive Gate)
-Present the analysis and proposed tag clearly to the user:
+### Step 3: Confirmation Gate & Adaptive Resolution
+- **Direct Execution Check**: If the user prompt directly instructed or parameterized the release (e.g. *"erstelle einen minor release"*, *"release v1.2.0"*) AND no SemVer discrepancy (such as unhandled breaking changes) or branch anomaly was detected, skip interactive waiting and proceed directly to Step 4. Display the created tag, bumped version, and commit summary in the completion report.
+- **Otherwise (or if SemVer discrepancy / anomaly detected)**: Present the analysis and proposed tag clearly to the user:
 ```markdown
 ### Proposed Release Tag
 - **Current Version**: `v0.1.1`
@@ -99,10 +102,10 @@ Present the analysis and proposed tag clearly to the user:
 
 **[User Decision Required]**: Please confirm if the tag `v0.2.0` should be created and pushed, or specify an alternative version.
 ```
-- **WAIT** for the user's explicit response. The user may confirm the suggestion or define a different version.
+- **WAIT** for the user's explicit response if presented. The user may confirm the suggestion or define a different version.
 
 ### Step 4: Tag Creation & Push (Post-Confirmation)
-Once confirmed by the user:
+Once confirmed or resolved via Adaptive Gate:
 1. Create the annotated Git tag with the `v` prefix:
    ```powershell
    git tag -a v<Version> -m "Release v<Version>"
