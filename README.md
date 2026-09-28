@@ -102,17 +102,17 @@ To determine the active environment and available models at zero token cost:
 
 ```powershell
 # Windows (Cached for 24 hours across sessions & skills)
-powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File ./_agents/scripts/detect-models.ps1
 
 # Force on-demand re-probe
-powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1 -Force
+pwsh -NoProfile -ExecutionPolicy Bypass -File ./_agents/scripts/detect-models.ps1 -Force
 ```
 ```bash
 # macOS / Linux (Cached for 24 hours across sessions & skills)
-bash ./scripts/detect-models.sh
+bash ./_agents/scripts/detect-models.sh
 
 # Force on-demand re-probe
-bash ./scripts/detect-models.sh --force
+bash ./_agents/scripts/detect-models.sh --force
 ```
 
 ## Lifecycle Action Execution Governance
@@ -138,7 +138,7 @@ Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to si
 
 Different AI coding assistants discover skill directories differently:
 
-- **Gemini / Google Antigravity**: Works seamlessly with both `_agents` and `.agents` customization roots.
+- **Gemini / Google Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
 - **GitHub Copilot & Other Clients**: Specifically expect `.agents/` as the default directory. If your repository is used with GitHub Copilot or other AI coding tools, use `.agents` (or create a symlink pointing `.agents` to `_agents`).
 
 ### As a Git Submodule

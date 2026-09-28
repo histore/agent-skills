@@ -10,11 +10,7 @@ Keep the top-level architecture blueprint (`ARCHITECTURE.md`) and modular specif
 
 Maintain module documents at a level of depth (public contracts, interfaces, state flows, dependencies, threading guarantees) that enables subsequent agents to deduce system state directly and obviates large-scale source code scans. Concurrently, strict file modularity (`docs/architecture/modules/<module>.md`) ensures that agents only need to load the single relevant module into context, preventing continuous context window exhaustion.
 
-## Tier & Model Profile
-- **Capability Tier**: **Tier 3** (Balanced Implementation)
-- **Reference Model (Current Gen)**: **Gemini 3.8 Flash**
-- **Reasoning Tier**: **Medium**
-- **Alternative Equivalents**: Claude 3.5 Sonnet / GPT-4o
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 3: Balanced).
 
 ---
 
@@ -33,9 +29,9 @@ Maintain module documents at a level of depth (public contracts, interfaces, sta
    - Only modules with structural source code modifications (`.cs`, `.rs`, `.ts`, etc.) are reviewed.
 5. **Deterministic Script Pre-Filtering**:
    - Before consuming LLM tokens, execute the local platform script to detect real architectural changes:
-     - **Windows**: `powershell -ExecutionPolicy Bypass -File <path-to-skill>/scripts/get-arch-diff.ps1`
+     - **Windows**: `pwsh -NoProfile -ExecutionPolicy Bypass -File <path-to-skill>/scripts/get-arch-diff.ps1`
      - **macOS / Linux**: `bash <path-to-skill>/scripts/get-arch-diff.sh`
-   - If the script returns `reason: "NO_ARCH_CHANGES"` or `"UP_TO_DATE"`, **exit immediately**. Token cost = 0.
+     - If the script returns `reason: "NO_ARCH_CHANGES"` or `"UP_TO_DATE"`, **exit immediately**. Token cost = 0.
 6. **In-Place Living Documentation (No Changelog Bloat)**:
    - Architecture documents reflect the *current truth* of the system.
    - Do not append historical change narratives (e.g. "In commit X, developer renamed method Y"). Update diagrams, component contracts, and interface descriptions directly in-place.
@@ -63,7 +59,9 @@ To configure external storage on project level without creating tracked files or
 git config --local arch-sync.doc-dir "C:/path/to/external-architecture-docs/project-a"
 
 # Or via the script helper:
-powershell -File ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1 -SetDocDir "C:/path/to/external-architecture-docs/project-a"
+pwsh -NoProfile -File ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1 -SetDocDir "C:/path/to/external-architecture-docs/project-a"
+# Or if mounted under .agents (e.g. Copilot):
+# pwsh -NoProfile -File ./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1 -SetDocDir "C:/path/to/external-architecture-docs/project-a"
 # macOS / Linux:
 bash ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh --set-doc-dir "/path/to/external-architecture-docs/project-a"
 ```
@@ -80,23 +78,26 @@ The target documentation directory is resolved dynamically in strict priority or
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Gemini / Antigravity**: Supports both `_agents` and `.agents` customization roots.
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. In multi-tool setups or when using Copilot, configure skills under `.agents/` (or create a symlink from `.agents` to `_agents`).
+- **Embedding Host Project Target**: When mounted as a submodule (`_agents/` or `.agents/`), architecture files (`ARCHITECTURE.md`, `docs/architecture/modules/*.md`, `.arch-sync.json`) and git commit checkpoints target the **embedding host repository**, NOT the submodule directory. The helper scripts (`get-arch-diff.ps1` / `.sh`) automatically resolve the host repository root and exclude `_agents` and `.agents` submodule paths.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during architecture synchronization.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
 
 ---
 
 ## Workflow & Protocol
 
 ### Step 1: Pre-Flight Delta Detection
-Execute the platform-appropriate detection script (adjust path based on standalone repo `skills/`, or submodule `.agents/` / `_agents/`):
+Execute the platform-appropriate detection script (adjust path based on standalone repo `skills/`, or submodule `_agents/` / `.agents/`):
 ```powershell
 # Windows (PowerShell) - standalone repo or submodule:
-$scriptPath = (Get-ChildItem -Path @(".", "./skills", "./.agents/skills", "./_agents/skills") -Filter "get-arch-diff.ps1" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-powershell -ExecutionPolicy Bypass -File $scriptPath
+$scriptPath = @("./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1", "./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1", "./skills/ask-architecture-sync/scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+pwsh -NoProfile -ExecutionPolicy Bypass -File $scriptPath
 ```
 ```bash
 # macOS / Linux (Bash) - standalone repo or submodule:
-SCRIPT_PATH=$(find . -name "get-arch-diff.sh" | head -n 1)
+for p in ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh ./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh ./skills/ask-architecture-sync/scripts/get-arch-diff.sh; do
+  [ -f "$p" ] && SCRIPT_PATH="$p" && break
+done
 bash "$SCRIPT_PATH"
 ```
 - If `has_changes` is `false`: Report to `Control` that architecture documentation is up to date. End execution.
@@ -122,12 +123,16 @@ If new modules were introduced, deleted, or architectural boundaries between ser
 ### Step 4: Checkpoint Finalization
 After successful documentation updates, record the new checkpoint commit:
 ```powershell
-# Windows - using _agents (recommended) or .agents
-powershell -ExecutionPolicy Bypass -File ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1 -UpdateCheckpoint
+# Windows - using _agents (default), .agents, or standalone:
+$scriptPath = @("./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1", "./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1", "./skills/ask-architecture-sync/scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+pwsh -NoProfile -ExecutionPolicy Bypass -File $scriptPath -UpdateCheckpoint
 ```
 ```bash
-# macOS / Linux - using _agents (recommended) or .agents
-bash ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh --update-checkpoint
+# macOS / Linux - using _agents (default), .agents, or standalone:
+for p in ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh ./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh ./skills/ask-architecture-sync/scripts/get-arch-diff.sh; do
+  [ -f "$p" ] && SCRIPT_PATH="$p" && break
+done
+bash "$SCRIPT_PATH" --update-checkpoint
 ```
 
 ---

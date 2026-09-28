@@ -1,7 +1,7 @@
 # Module Requirements: `<Module Name>`
 
 > **Specification Path**: `docs/requirements/modules/<module>.md`  
-> **Parent Hub**: [`REQUIREMENTS.md`](../../../REQUIREMENTS.md)
+> **Parent Hub**: `REQUIREMENTS.md` (at `<RepoRoot>/REQUIREMENTS.md`)
 
 This document defines the functional and non-functional requirements specific to the **`<Module Name>`** subsystem. It forms an isolated, domain-bounded requirement segment within the project's modular requirements architecture.
 
@@ -10,7 +10,7 @@ This document defines the functional and non-functional requirements specific to
 ## Module Overview
 - **Module Name**: `<Module Name>`
 - **Scope Identifier**: `<SCOPE>` (e.g. `AUTH`, `CORE`, `UI`, `STORAGE`, `API`)
-- **Architecture Contract**: [`docs/architecture/modules/<module>.md`](../../architecture/modules/<module>.md)
+- **Architecture Contract**: `docs/architecture/modules/<module>.md`
 - **Primary Domain Specialist**: `<UIDesigner | DatabaseSpecialist | ApiContractSpecialist | SecurityAuditor | PerformanceOptimizer | None>`
 
 ---

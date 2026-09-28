@@ -8,6 +8,8 @@ description: Authors and maintains source code API doc comments, language-idioma
 ## Objective
 Author, structure, and maintain high-grade technical, API, and user-facing documentation in English. Ensure all public APIs, contracts, interfaces, and library endpoints have comprehensive doc comments conforming strictly to the host project's language paradigms. Maintain living user guides, developer onboarding documentation, and the project's `CHANGELOG.md` adhering to *Keep a Changelog* and *Semantic Versioning*. (System architecture blueprints and module specs are managed by `ArchitectureSync`).
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 3: Balanced).
+
 ---
 
 ## Responsibilities & Standards
@@ -96,3 +98,10 @@ Adhere strictly to the project's native documentation conventions:
 - **Patched Source Files**: Source code files augmented with idiomatic API doc comments.
 - **Documentation Updates**: Updated `CHANGELOG.md`, `README.md`, or markdown guides under `docs/`.
 - **Summary Report**: Clickable table listing documented symbols, modified files, and changelog updates.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all documentation files (`README.md`, `CHANGELOG.md`, `docs/`) and source code API doc comments target the **embedding host repository**, NOT the submodule directory. Never alter submodule documentation during host project tasks.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal files are never documented or modified as part of host project documentation tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

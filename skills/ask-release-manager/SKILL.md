@@ -8,6 +8,8 @@ description: Determines the latest release version, calculates SemVer bumps, val
 ## Objective
 Determine the current version, calculate or propose a Semantic Version bump (`major`, `minor`, `patch`) from commit history or explicit user parameters, create an annotated Git tag formatted with the `v` prefix (e.g. `v0.1.2`) strictly and exclusively on the `main` branch, and push the tag to the remote repository adhering to the **Lifecycle Action Execution Governance** principles.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 4: Fast Deterministic).
+
 ---
 
 ## Lifecycle Action Execution Governance
@@ -43,7 +45,8 @@ ReleaseManager strictly observes six governance principles:
 Releases must only be tagged on the production `main` branch.
 1. Verify active branch is `main`:
    ```powershell
-   $currentBranch = (git branch --show-current).Trim()
+   $rawBranch = git branch --show-current
+   $currentBranch = if ($rawBranch) { $rawBranch.Trim() } else { "" }
    if ($currentBranch -ne "main") {
      # If clean and user asked for release, offer/perform checkout of main as a prerequisite
      Write-Host "Current branch: $currentBranch. Checking if working tree is clean to switch to 'main'..."
@@ -52,12 +55,14 @@ Releases must only be tagged on the production `main` branch.
 2. Verify working tree is clean and synchronized with `origin/main`:
    ```powershell
    git fetch origin main
-   $status = git status --porcelain
+   # Exclude submodule dirty markers (_agents / .agents) so submodule scratchpads don't block host release
+   $status = (git status --porcelain --ignore-submodules=dirty) | Where-Object { $_ -notmatch '^\s*[MADRCU?!\s]\s+(_agents|\.agents)(\/|$)' }
    if ($status) {
-     # Atypical state: uncommitted files on main
-     throw "Working tree has uncommitted changes. Please commit or stash changes before tagging a release."
+     # Atypical state: uncommitted files in host project on main
+     throw "Working tree has uncommitted host project changes. Please commit or stash changes before tagging a release."
    }
-   $behindAhead = (git rev-list --left-right --count main...origin/main).Trim()
+   $rawCount = git rev-list --left-right --count main...origin/main 2>$null
+   $behindAhead = if ($rawCount) { $rawCount.Trim() } else { "0 0" }
    # Format: "<behind> <ahead>"
    ```
    - If `behind > 0`: Execute prerequisite `git pull origin main`.
@@ -81,7 +86,7 @@ Releases must only be tagged on the production `main` branch.
 2. **Automatic Proposal (No Parameter Provided)**:
    - Query all unreleased commits since the last tag:
      ```powershell
-     git log <last-tag>..HEAD --oneline
+     git log -n 100 <last-tag>..HEAD --oneline
      ```
    - Analyze commit messages according to Conventional Commits:
      - Contains `BREAKING CHANGE` or `<type>!:` → Propose **`major`** (`v(X+1).0.0`)
@@ -123,3 +128,10 @@ Release tag `v<Version>` created and pushed successfully.
 
 **[Next Step Recommendation]**: Would you like to view GitHub release status, create release notes, or switch to a new task branch?
 ```
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all version determinations, tag creations, and release tag pushes target the **embedding host repository**, NOT the submodule repository. Tags are never placed on submodule commits during host release workflows.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified or tagged during release tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

@@ -8,6 +8,8 @@ description: Specialist for CI/CD automation, GitHub Actions workflows, multi-st
 ## Objective
 Author, maintain, and optimize continuous integration and delivery (CI/CD) pipelines, containerization workflows, build matrices, and deployment configurations. Design robust, secure GitHub Actions workflows (`.github/workflows/`), multi-stage Dockerfiles, and container orchestration manifests, maximizing build speed via deterministic caching and securing pipeline execution.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 3: Balanced).
+
 ---
 
 ## Operating Status: General Support Role / Lifecycle Specialist
@@ -70,3 +72,10 @@ Author, maintain, and optimize continuous integration and delivery (CI/CD) pipel
 - **Workflow & Pipeline Files**: Clean, linted GitHub Actions workflow definitions in `.github/workflows/`.
 - **Containerization Manifests**: Production-grade multi-stage `Dockerfile`, `.dockerignore`, and `compose.yaml`.
 - **Infrastructure Documentation**: Setup instructions, required repository secrets, and caching architecture.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all CI/CD pipelines (`.github/workflows/`), container configurations (`Dockerfile`, `compose.yaml`), and deployment infrastructure target the **embedding host repository**, NOT the submodule directory.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during DevOps tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

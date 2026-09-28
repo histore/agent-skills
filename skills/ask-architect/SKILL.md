@@ -8,6 +8,8 @@ description: Designs system components, interfaces, and data flows following Cle
 ## Objective
 Establish the technical design, component structure, domain boundaries, and interface contracts according to Clean Architecture, SOLID principles, and the target project's language paradigms and architectural conventions.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 2: Analytical; Tier 1 for Complex/System-wide redesigns).
+
 ## Responsibilities
 1. **Clean Architecture Blueprint & Modular Partitioning**:
    - Define strict layer boundaries: Domain/Entities (`Models`), Application/Service Contracts (`Services`), Interface Adapters / Presenters / ViewModels (`Adapters` / `ViewModels`), Frameworks & UI (`Views` / `Infrastructure`).
@@ -26,6 +28,7 @@ Establish the technical design, component structure, domain boundaries, and inte
    - For Standard and Fast-Track pipelines, provide interface and contract specifications directly in `docs/architecture/modules/<module>.md` or design blueprints to the Developer without creating throwaway stub files.
 4. **Project Best Practice & Paradigm Selection**:
    - Leverage language-idiomatic features of the host project (e.g. type safety, pattern matching, non-nullability, immutability, collection expressions).
+   - For Rust components, design strictly within safe Rust (avoiding `unsafe`), leveraging the type system and borrow checker for sound concurrency and resource safety.
    - Design thread-safe, non-blocking asynchronous APIs with proper cancellation handling.
    - Ensure clean resource lifetime management and deterministic disposal patterns.
 5. **Domain Specialist Consultation**:
@@ -48,5 +51,6 @@ Establish the technical design, component structure, domain boundaries, and inte
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Gemini / Antigravity**: Supports both `_agents` and `.agents` customization roots.
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. In multi-tool setups or when using Copilot, configure skills under `.agents/` (or create a symlink from `.agents` to `_agents`).
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all architecture documentation (`ARCHITECTURE.md`, `docs/architecture/modules/*.md`) and skeleton stubs reside in the **embedding host repository root**, NOT inside the submodule directory.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during architectural design.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

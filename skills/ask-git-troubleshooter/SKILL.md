@@ -8,6 +8,8 @@ description: Diagnoses and resolves complex Git anomalies, merge/rebase conflict
 ## Objective
 Diagnose repository anomalies, resolve complex three-way merge, rebase, and cherry-pick conflicts, safely recover lost commits or corrupted states, and preserve repository integrity strictly adhering to a **Safety-First Zero-Data-Loss Protocol**, **Clean Architecture**, and an automated **Verification Gate** (compile cleanly, 100% tests green).
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 1: Deep Reasoning).
+
 ---
 
 ## Safety-First Zero-Data-Loss Protocol
@@ -17,7 +19,9 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
 1. **Mandatory Safety Snapshot**:
    - Before executing any rebase, hard reset, merge continuation, or branch deletion, create a temporary backup branch snapshot:
      ```powershell
-     git branch "backup/$($branch)-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+     $branch = (git branch --show-current)
+     if (-not $branch) { $branch = "detached-head" }
+     git branch "backup/${branch}-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
      ```
    - Confirm the snapshot exists in `git branch --list "backup/*"` before proceeding.
 2. **Strict Prohibition of Blind Force-Pushes**:
@@ -76,9 +80,9 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
   - Ensure every instance of `<<<<<<<`, `=======`, and `>>>>>>>` is completely removed.
 
 #### Step 5: Verification Gate (Build & Automated Tests)
-- Before marking any file resolved or continuing Git operations, execute the project's native build and test runner:
-  - **Compile / Build Check**: Run the ecosystem compiler (e.g., `dotnet build`, `cargo check`, `npm run build`, `pytest --collect-only`).
-  - **Test Suite Execution**: Run the automated test runner (e.g., `dotnet test`, `cargo test`, `npm test`, `pytest`).
+- Before marking any file resolved or continuing Git operations, execute the project's native build and test runner in quiet mode with PowerShell `-NoProfile`:
+  - **Compile / Build Check**: Run the ecosystem compiler in quiet mode (e.g., `dotnet build -v q`, `cargo check -q`, `npm run build --silent`, `pytest -q --collect-only`).
+  - **Test Suite Execution**: Run the automated test runner in quiet mode (e.g., `dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`).
 - **Pass Criteria**:
   - 0 compilation or build errors.
   - 100% of automated unit and integration tests passing (0 failures).
@@ -105,7 +109,7 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
   ```
 - Inspect commit graph divergence:
   ```powershell
-  git log --graph --oneline --left-right HEAD...origin/<branch>
+  git log --graph --oneline --left-right -n 30 HEAD...origin/<branch>
   ```
 
 #### Step 2: Determine Safe Strategy
@@ -201,8 +205,35 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
   git add --renormalize .
   ```
 
+#### Scenario 4: Submodule Merge Conflicts & Pointer Desynchronization (`_agents` / `.agents`)
+- When Git reports `CONFLICT (submodule): Merge conflict in _agents` (or `.agents`):
+  1. Inspect the conflicting submodule commits:
+     ```powershell
+     git diff --submodule
+     ```
+  2. Enter the submodule directory, fetch upstream changes, and check out the resolved commit:
+     ```powershell
+     # Using _agents (default) or .agents
+     $submoduleDir = if (Test-Path "_agents") { "_agents" } elseif (Test-Path ".agents") { ".agents" } else { $null }
+     if ($submoduleDir) {
+         git submodule sync --recursive $submoduleDir
+         git submodule update --init --recursive $submoduleDir
+     }
+     ```
+  3. Return to the host repository root and stage the resolved submodule pointer:
+     ```powershell
+     git add $submoduleDir
+     ```
+  4. Complete the active merge or rebase:
+     ```powershell
+     git commit -m "merge: resolve submodule pointer conflict in $submoduleDir"
+     # Or if in rebase: git rebase --continue
+     ```
+
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Gemini / Antigravity**: Supports both `_agents` and `.agents` customization roots.
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. In multi-tool setups or when using Copilot, configure skills under `.agents/` (or maintain a symlink pointing to `.agents/`).
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all Git diagnostic workflows, safety snapshots, resets, and conflict resolutions target the **embedding host repository**, NOT the submodule repository (except specifically for resolving submodule pointer conflicts in Scenario 4).
+- **Gemini / Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
+- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. When sharing skills across multiple AI clients or targeting Copilot, configure skills under `.agents` (or create a symbolic link from `.agents` to `_agents`).
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

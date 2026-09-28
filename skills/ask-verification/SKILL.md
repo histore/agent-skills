@@ -8,6 +8,8 @@ description: Performs rigorous code review, quality gate checks, acceptance crit
 ## Objective
 Act as the final quality gate before developer review and PR creation. Enforce a **Two-Stage Quality Gate (Shift-Left Validation)**: first execute deterministic machine checks (build, lint, quiet test runner) at zero token cost, then verify acceptance criteria, Clean Architecture/Code compliance, and 100% requirements traceability with minimal token overhead.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 2: Analytical).
+
 ## Two-Stage Quality Gate Protocol
 
 ### Stage 1: Deterministic Fast-Gate (Zero Token Cost)
@@ -21,7 +23,7 @@ Prior to any LLM-based semantic review, execute native project validation tools:
 Only executed once Stage 1 passes with 100% success (0 failures). **IMPORTANT: Adapt your audit based on the active `Strictness Level` (Enterprise, Legacy, Prototype):**
 1. **Requirements Coverage Audit**: Confirm all changes map to an approved Requirement ID in `REQUIREMENTS.md` (or the relevant module specification in `docs/requirements/modules/<module>.md`). (Bypass this check if level is Legacy/Prototype).
 2. **Acceptance Criteria Verification**: Validate every Given-When-Then statement defined by `RequirementEngineer`.
-3. **Clean Architecture & Clean Code Audit**: Confirm inward dependency flow, separation of concerns, SOLID principles, and English code comments. **If Strictness Level is Legacy or Prototype, DO NOT REJECT the code for Clean Architecture or TDD violations.**
+3. **Clean Architecture & Clean Code Audit**: Confirm inward dependency flow, separation of concerns, SOLID principles, and English code comments. For Rust codebases, verify 0 occurrences of `unsafe`. **If Strictness Level is Legacy or Prototype, DO NOT REJECT the code for Clean Architecture or TDD violations.**
 4. **Internationalization (i18n) & UI/UX Audit** (if applicable): Confirm 0% hardcoded user strings (bilingual `de`/`en` resources) and keyboard/visual ergonomics.
 
 ## Output Format (Concise & Low-Token)
@@ -34,3 +36,10 @@ Only executed once Stage 1 passes with 100% success (0 failures). **IMPORTANT: A
   - [ ] i18n & UI/UX verified (if applicable)
 - **Verdict**: `PASSED` | `REVISION_REQUIRED`
 - **Developer Review Guidance**: Concise manual testing notes or edge cases for the Developer Review Gate prior to PR creation.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all Stage 1 machine checks (build, lint, quiet test suite) and Stage 2 verification audits target the **embedding host repository**, NOT the submodule directory. Submodule files are excluded from project requirement and architecture verification. If host linters or build tools scan subdirectories by default, ensure `_agents/` and `.agents/` are excluded via tool configuration or flags (e.g. `.gitignore`, linter ignore files), keeping Stage 1 focused strictly on host project code.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never audited or verified during host project quality gates.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

@@ -61,19 +61,27 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 1
 fi
 
-HEAD_COMMIT=$(git rev-parse HEAD | tr -d '[:space:]')
-REPO_ROOT=$(git rev-parse --show-toplevel | tr -d '[:space:]')
+SUPERPROJECT=$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)
+if [[ -n "$SUPERPROJECT" ]]; then
+  REPO_ROOT="$SUPERPROJECT"
+else
+  REPO_ROOT=$(git rev-parse --show-toplevel | tr -d '[:space:]')
+  if [[ "$REPO_ROOT" =~ /(_agents|\.agents)$ ]]; then
+    REPO_ROOT="$(dirname "$REPO_ROOT")"
+  fi
+fi
 REPO_NAME=$(basename "$REPO_ROOT")
+HEAD_COMMIT=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null | tr -d '[:space:]' || true)
 
 # Handle local git config helper commands
 if [[ -n "$SET_DOC_DIR" ]]; then
-  git config --local arch-sync.doc-dir "$SET_DOC_DIR"
+  git -C "$REPO_ROOT" config --local arch-sync.doc-dir "$SET_DOC_DIR"
   echo "[OK] Project-level arch-sync.doc-dir set to: $SET_DOC_DIR (stored in .git/config, 0 project footprint)"
   exit 0
 fi
 
 if [[ -n "$SET_MODE" ]]; then
-  git config --local arch-sync.mode "$SET_MODE"
+  git -C "$REPO_ROOT" config --local arch-sync.mode "$SET_MODE"
   echo "[OK] Project-level arch-sync.mode set to: $SET_MODE (stored in .git/config, 0 project footprint)"
   exit 0
 fi
@@ -100,8 +108,8 @@ elif [[ -n "${ARCH_SYNC_DOC_DIR:-}" ]]; then
   RESOLVED_MODE="${ARCH_SYNC_MODE:-external}"
 # 3. Project-Level Git Config (git config --local arch-sync.doc-dir)
 else
-  GIT_LOCAL_DIR=$(git config --local --get arch-sync.doc-dir 2>/dev/null || true)
-  GIT_LOCAL_MODE=$(git config --local --get arch-sync.mode 2>/dev/null || true)
+  GIT_LOCAL_DIR=$(git -C "$REPO_ROOT" config --local --get arch-sync.doc-dir 2>/dev/null || true)
+  GIT_LOCAL_MODE=$(git -C "$REPO_ROOT" config --local --get arch-sync.mode 2>/dev/null || true)
 
   if [[ -n "$GIT_LOCAL_DIR" ]]; then
     RESOLVED_DOC_DIR="$GIT_LOCAL_DIR"
@@ -149,10 +157,12 @@ fi
 if [[ $INIT_STRUCTURE -eq 1 ]]; then
   mkdir -p "$RESOLVED_DOC_DIR/modules" "$RESOLVED_DOC_DIR/adr"
 
-  OVERVIEW_FILE="$RESOLVED_DOC_DIR/overview.md"
-  if [[ ! -f "$OVERVIEW_FILE" ]]; then
-    cat <<EOF > "$OVERVIEW_FILE"
-# Architecture Overview
+  # Only write ARCHITECTURE.md to repo root if storage mode is internal (0 footprint if external)
+  if [[ "$RESOLVED_MODE" == "internal" ]]; then
+    ROOT_ARCH_FILE="$REPO_ROOT/ARCHITECTURE.md"
+    if [[ ! -f "$ROOT_ARCH_FILE" ]]; then
+      cat <<EOF > "$ROOT_ARCH_FILE"
+# Architecture Documentation
 
 ## System Purpose & Scope
 High-level description of system capabilities, primary user workflows, and boundaries.
@@ -167,40 +177,55 @@ High-level description of system capabilities, primary user workflows, and bound
 - Performance, concurrency, and security.
 
 ## Modules Index
-Detailed component specifications are maintained incrementally under modules/:
+Detailed component specifications are maintained incrementally under [docs/architecture/modules/](docs/architecture/modules/):
 - *List modules here*
 EOF
-  fi
-
-  # Only write ARCHITECTURE.md to repo root if storage mode is internal (0 footprint if external)
-  if [[ "$RESOLVED_MODE" == "internal" ]]; then
-    ROOT_ARCH_FILE="$REPO_ROOT/ARCHITECTURE.md"
-    if [[ ! -f "$ROOT_ARCH_FILE" ]]; then
-      cat <<EOF > "$ROOT_ARCH_FILE"
+    fi
+  else
+    EXT_ARCH_FILE="$RESOLVED_DOC_DIR/ARCHITECTURE.md"
+    if [[ ! -f "$EXT_ARCH_FILE" ]]; then
+      cat <<EOF > "$EXT_ARCH_FILE"
 # Architecture Documentation
 
-This project's architecture is maintained under docs/architecture/:
-- **Overview**: overview.md
-- **Module Specs**: modules/
+## System Purpose & Scope
+High-level description of system capabilities, primary user workflows, and boundaries.
+
+## Architecture & Layers
+- **Domain / Models**: Core entities, value objects, and domain logic.
+- **Services / Contracts**: Application interfaces and business operations.
+- **Presentation / UI**: ViewModels and Views.
+
+## Cross-Cutting Concerns
+- Error handling, logging, and localization.
+- Performance, concurrency, and security.
+
+## Modules Index
+Detailed component specifications are maintained incrementally under [modules/](modules/):
+- *List modules here*
 EOF
     fi
   fi
 
   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  LAST_COMMIT_VAL=$(if [[ -n "$HEAD_COMMIT" ]]; then echo "\"$HEAD_COMMIT\""; else echo "null"; fi)
   cat <<EOF > "$STATE_FILE"
 {
-  "last_synced_commit": "$HEAD_COMMIT",
+  "last_synced_commit": $LAST_COMMIT_VAL,
   "last_synced_at": "$TIMESTAMP",
   "storage_mode": "$RESOLVED_MODE",
   "doc_dir": "$RESOLVED_DOC_DIR"
 }
 EOF
-  echo "[OK] Architecture structure initialized at $RESOLVED_DOC_DIR [Mode: $RESOLVED_MODE, Source: $RESOLVED_FROM] (Baseline: $HEAD_COMMIT)"
+  echo "[OK] Architecture structure initialized at $RESOLVED_DOC_DIR [Mode: $RESOLVED_MODE, Source: $RESOLVED_FROM] (Baseline: ${HEAD_COMMIT:-none})"
   exit 0
 fi
 
 # Handle checkpoint update request
 if [[ $UPDATE_CHECKPOINT -eq 1 ]]; then
+  if [[ -z "$HEAD_COMMIT" ]]; then
+    echo "Error: Cannot update checkpoint: repository has no commits yet (HEAD unborn)." >&2
+    exit 1
+  fi
   STATE_DIR=$(dirname "$STATE_FILE")
   mkdir -p "$STATE_DIR"
   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -218,12 +243,13 @@ fi
 
 # Check if state file exists
 if [[ ! -f "$STATE_FILE" ]]; then
+  HEAD_COMMIT_VAL=$(if [[ -n "$HEAD_COMMIT" ]]; then echo "\"$HEAD_COMMIT\""; else echo "null"; fi)
   cat <<EOF
 {
   "has_changes": true,
   "is_initial_baseline": true,
   "last_synced_commit": null,
-  "head_commit": "$HEAD_COMMIT",
+  "head_commit": $HEAD_COMMIT_VAL,
   "doc_dir": "$RESOLVED_DOC_DIR",
   "storage_mode": "$RESOLVED_MODE",
   "resolved_from": "$RESOLVED_FROM",
@@ -257,7 +283,7 @@ EOF
 fi
 
 # Verify commit exists in history
-if ! git cat-file -e "$LAST_COMMIT" >/dev/null 2>&1; then
+if ! git -C "$REPO_ROOT" cat-file -e "$LAST_COMMIT" >/dev/null 2>&1; then
   cat <<EOF
 {
   "has_changes": true,
@@ -294,7 +320,7 @@ EOF
 fi
 
 # Inspect changed files
-RAW_DIFF=$(git diff --name-status "$LAST_COMMIT..$HEAD_COMMIT" || true)
+RAW_DIFF=$(git -C "$REPO_ROOT" diff --name-status "$LAST_COMMIT..$HEAD_COMMIT" || true)
 
 if [[ -z "$RAW_DIFF" ]]; then
   cat <<EOF
@@ -317,7 +343,7 @@ AFFECTED_JSON=()
 IGNORED_COUNT=0
 
 SOURCE_EXT_REGEX='\.(cs|rs|go|ts|js|py|cpp|c|h|java|kt|swift)$'
-EXCLUDE_REGEX='(test|spec|mock|\.g\.cs|\.Designer\.cs|bin/|obj/|node_modules/)'
+EXCLUDE_REGEX='(test|spec|mock|\.g\.cs|\.Designer\.cs|bin/|obj/|node_modules/|(^|/)_agents(/|$)|(^|/)\.agents(/|$))'
 
 while IFS=$'\t' read -r status filepath; do
   [[ -z "$filepath" ]] && continue

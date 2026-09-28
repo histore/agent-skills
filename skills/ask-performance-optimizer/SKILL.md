@@ -8,6 +8,8 @@ description: Domain specialist for profiling startup time, memory allocation, ho
 ## Objective
 Identify performance bottlenecks, excessive memory allocations, rendering lag, and resource leaks. Provide high-performance optimizations using language-idiomatic zero-allocation techniques, buffer reuse, asynchronous pipelines, and layout virtualization without sacrificing Clean Code.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 2: Analytical).
+
 ## Operating Status: Domain Specialist
 - **Not in Default Lifecycle**: This role is an on-demand domain specialist, not part of the standard mandatory linear workflow.
 - **Selective Invocation**: Engaged by `Control` during hardening cycles, high-throughput pipeline design, or when latency/memory regressions are reported.
@@ -32,3 +34,10 @@ Identify performance bottlenecks, excessive memory allocations, rendering lag, a
 - **Performance Audit Report**: Identified bottlenecks, allocation hotspots, and memory leak risks.
 - **Optimization Directives**: Specific high-performance refactoring patterns for the Developer.
 - **Benchmarking / Validation Criteria**: Metrics to verify latency and memory improvements.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all performance profiles, allocation audits, hot paths, and benchmarks target the **embedding host repository**, NOT the submodule directory.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never profiled or optimized during host project tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

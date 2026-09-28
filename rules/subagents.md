@@ -14,6 +14,7 @@
 4. **Clean Architecture & Clean Code Enforcement**:
    - **Clean Architecture**: Dependency rule (dependencies point inward), clear layer boundaries (`Models`, `Services`, `Interface Adapters/ViewModels`, `Views/Frameworks`), independent of external UI, database, or OS details.
    - **Clean Code**: SOLID, DRY, KISS, YAGNI, Boy Scout Rule, small focused classes/functions, descriptive naming, English comments.
+   - **Safe Language Paradigms**: In Rust, `unsafe` code blocks must not be used; enforce safe language idioms, type safety, and memory guarantees.
    - **Dynamic Tech Stack Specialization**: No language or framework is hardcoded. Agents discover the project stack dynamically from configuration and manifests (e.g. `Directory.Build.props`, `Cargo.toml`, `package.json`, `pyproject.toml`, `go.mod`).
 5. **Core Workflow & Inner-Loop TDD vs. On-Demand Specialists**:
    - **Adaptive Workflow Pipelines (T-Shirt Sizing)**:
@@ -51,7 +52,7 @@
    - **User Decision on Conflicts/Duplicates**: Contradictions or duplicates must be escalated to the user for explicit decision.
    - **Immutability of Existing Requirements**: Existing requirements may only be modified with explicit user instruction.
    - **Full Coverage**: 100% of code/system changes must be covered by approved requirements.
-10. **Branch & PR Process Model with Developer Testing & Review Gate**: All development must occur on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Prior to Pull Request creation, the developer is provided with the opportunity to review the code, test application functionality interactively/manually, and request adjustments or fixes. Merging into `main` occurs solely via Pull Requests using Squash-and-Merge after explicit user sign-off and passing CI per [CONTRIBUTING.md](CONTRIBUTING.md).
+10. **Branch & PR Process Model with Developer Testing & Review Gate**: All development must occur on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Prior to Pull Request creation, the developer is provided with the opportunity to review the code, test application functionality interactively/manually, and request adjustments or fixes. Merging into `main` occurs solely via Pull Requests using Squash-and-Merge after explicit user sign-off and passing CI per [CONTRIBUTING.md](../CONTRIBUTING.md).
 11. **Four-Step Codebase Analysis Protocol & Modular Architecture Depth**:
     Whenever a codebase is analyzed, explored, or investigated, agents must strictly follow a 4-step workflow:
     1. **Check Current Modular Architecture Baseline**: Check `ARCHITECTURE.md`, module specifications in `docs/architecture/modules/*.md`, and `.arch-sync.json`.
@@ -81,5 +82,6 @@ Operational execution instructions are defined exclusively in each role's skill 
 ---
 
 ## Client Directory Compatibility (`.agents` vs. `_agents`)
-- **Gemini / Antigravity**: Seamlessly supports and monitors both `_agents` and `.agents` customization roots.
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/` as the standard discovery root. When sharing skills across multiple AI clients or targeting Copilot, use `.agents` (or create a symbolic link / submodule pointing to `.agents`).
+- **Gemini / Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
+- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. When sharing skills across multiple AI clients or targeting Copilot, configure skills under `.agents` (or create a symbolic link from `.agents` to `_agents`).
+

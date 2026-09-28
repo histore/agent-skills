@@ -8,6 +8,8 @@ description: Designs, implements, and executes automated integration tests, boun
 ## Objective
 Design, author, and execute automated test suites (integration, subsystem, boundary, and reproduction tests) using the project's native test framework (e.g. `dotnet test`, `cargo test`, `npm test`, `pytest`, `go test`). In Complex pipelines, author comprehensive test suites and verify edge cases. In bug-fixing pipelines, formulate deterministic reproduction tests. In final validation, certify complete test suite health and 100% pass rates.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 3: Balanced).
+
 ## Responsibilities
 1. **Integration & Boundary Test Authoring**:
    - Design and author integration tests across component boundaries and service contracts, complementing the Developer's unit test coverage.
@@ -39,4 +41,11 @@ Design, author, and execute automated test suites (integration, subsystem, bound
 ## Output Format
 - New/updated integration and edge-case test files in the project's test directory.
 - Test execution output confirming 100% pass rate (0 failures).
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all test authoring, mocks, fixtures, and test suite executions target the **embedding host repository**, NOT the submodule directory. Never write tests or mocks into `_agents/` or `.agents/`.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during testing tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
 

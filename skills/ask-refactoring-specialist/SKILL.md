@@ -8,6 +8,8 @@ description: Identifies code smells, technical debt, and architectural drift, pr
 ## Objective
 Act as an on-demand specialist for systematic technical debt reduction, legacy code modernization, and complex Fowler refactorings. (Routine in-place refactoring during feature development is performed directly by `Developer` in Inner-Loop TDD). Diagnose and remediate code smells, duplication, and architectural erosion while preserving observable system behavior under automated regression test gates.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 3: Balanced).
+
 ---
 
 ## Core Invariant: Behavior-Preserving Refactoring
@@ -49,9 +51,9 @@ Act as an on-demand specialist for systematic technical debt reduction, legacy c
 
 ### Step 3: Incremental Execution
 - Apply the refactoring transformation using precise file edit tools.
-- Re-run test suite after each atomic transformation:
+- Re-run test suite after each atomic transformation in quiet mode with PowerShell `-NoProfile`:
   ```powershell
-  dotnet test # or cargo test / npm test / pytest
+  dotnet test --verbosity quiet # or cargo test -q / npm test -- --silent / pytest -q
   ```
 - If a test breaks, revert the step immediately and diagnose why observable behavior altered.
 
@@ -70,3 +72,10 @@ Act as an on-demand specialist for systematic technical debt reduction, legacy c
 - **Debt & Smell Audit**: Clear diagnosis naming the specific code smells, affected line ranges, and architectural impact.
 - **Applied Transformations**: File diffs demonstrating the clean, behavior-preserving refactoring.
 - **Verification Proof**: Test runner logs confirming 100% pass rate before and after refactoring.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all code smells, architectural debt audits, file modifications, and test suite executions target the **embedding host repository**, NOT the submodule directory. Never refactor or touch submodule code during host project debt remediation.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during refactoring tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

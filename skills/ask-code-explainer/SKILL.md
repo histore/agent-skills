@@ -10,6 +10,8 @@ Deeply inspect and explain source code, components, control flows, data bindings
 
 In addition to providing clear, didactic explanations to the user in their operating system language (system locale), the Code Explainer enriches targeted source code files directly with high-quality didactic explanatory comments (in English by default, or in a user-specified language upon request), preserving all existing executable code with zero logic alterations.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 1: Deep Reasoning).
+
 ## Language Policy
 - **User Explanations & Walkthrough Reports**: Must match the user's **operating system language** (system locale, e.g., German on German OS, English on English OS, or user-preferred language).
 - **In-Code Explanatory Comments & Documentation**:
@@ -60,5 +62,6 @@ Whenever analyzing or explaining a codebase or component, execute the following 
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Gemini / Antigravity**: Supports both `_agents` and `.agents` customization roots.
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. In multi-tool setups or when using Copilot, configure skills under `.agents/` (or create a symlink from `.agents` to `_agents`).
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all code inspections, architecture cross-references, and didactic comment additions target the **embedding host project** codebase, NOT files within the submodule directory.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal files are never analyzed or annotated as part of user code explanation tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

@@ -33,11 +33,11 @@
     Sets the project-level local git config 'arch-sync.mode' ('internal' or 'external') and exits.
 
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File ./get-arch-diff.ps1
-    powershell -ExecutionPolicy Bypass -File ./get-arch-diff.ps1 -SetDocDir "C:/docs/my-project"
-    powershell -ExecutionPolicy Bypass -File ./get-arch-diff.ps1 -DocDir "D:/custom/path"
-    powershell -ExecutionPolicy Bypass -File ./get-arch-diff.ps1 -Init
-    powershell -ExecutionPolicy Bypass -File ./get-arch-diff.ps1 -UpdateCheckpoint
+    pwsh -NoProfile -ExecutionPolicy Bypass -File ./get-arch-diff.ps1
+    pwsh -NoProfile -ExecutionPolicy Bypass -File ./get-arch-diff.ps1 -SetDocDir "C:/docs/my-project"
+    pwsh -NoProfile -ExecutionPolicy Bypass -File ./get-arch-diff.ps1 -DocDir "D:/custom/path"
+    pwsh -NoProfile -ExecutionPolicy Bypass -File ./get-arch-diff.ps1 -Init
+    pwsh -NoProfile -ExecutionPolicy Bypass -File ./get-arch-diff.ps1 -UpdateCheckpoint
 #>
 
 [CmdletBinding()]
@@ -55,22 +55,51 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 function Get-GitHeadCommit {
-    $commit = git rev-parse HEAD 2>$null
-    if (-not $commit) {
+    param([string]$RepoPath = $null)
+    $gitArgs = if ($RepoPath) { @("-C", $RepoPath, "rev-parse", "HEAD") } else { @("rev-parse", "HEAD") }
+    $commit = git @gitArgs 2>$null
+    if ($commit) {
+        return $commit.Trim()
+    }
+    # Verify if repo itself is valid even if HEAD is unborn (0 commits)
+    $isWorkTree = if ($RepoPath) { git -C $RepoPath rev-parse --is-inside-work-tree 2>$null } else { git rev-parse --is-inside-work-tree 2>$null }
+    if (-not $isWorkTree) {
         throw "Not inside a valid git repository or git is unavailable."
     }
-    return $commit.Trim()
+    return $null
 }
 
-# Handle local git config helper commands
+function Get-GitRepoRoot {
+    # Resolve repository root, accounting for Git submodule embedding (_agents or .agents)
+    $superproject = git rev-parse --show-superproject-working-tree 2>$null
+    if ($superproject) {
+        return $superproject.Trim().Replace('\', '/')
+    }
+    $toplevel = git rev-parse --show-toplevel 2>$null
+    if ($toplevel) {
+        $root = $toplevel.Trim()
+        if ($root -match '[\\/](_agents|\.agents)$') {
+            $root = Split-Path -Parent $root
+        }
+        return $root.Replace('\', '/')
+    }
+    return $null
+}
+
+$repoRoot = Get-GitRepoRoot
+if (-not $repoRoot) {
+    throw "Not inside a valid git repository or git is unavailable."
+}
+
+# Handle local git config helper commands targeting host repository
 if ($SetDocDir) {
-    git config --local arch-sync.doc-dir "$SetDocDir"
+    git -C $repoRoot config --local arch-sync.doc-dir "$SetDocDir"
     Write-Host "[OK] Project-level arch-sync.doc-dir set to: $SetDocDir (stored in .git/config, 0 project footprint)"
     exit 0
 }
 
 if ($SetMode) {
-    git config --local arch-sync.mode "$SetMode"
+    git -C $repoRoot config --local arch-sync.mode "$SetMode"
     Write-Host "[OK] Project-level arch-sync.mode set to: $SetMode (stored in .git/config, 0 project footprint)"
     exit 0
 }
@@ -79,14 +108,11 @@ function Resolve-ArchDocConfig {
     param(
         [string]$CliDocDir,
         [string]$CliMode,
-        [string]$CliStateFile
+        [string]$CliStateFile,
+        [string]$RepoRootPath
     )
 
-    $repoRoot = git rev-parse --show-toplevel 2>$null
-    if (-not $repoRoot) {
-        throw "Not inside a valid git repository or git is unavailable."
-    }
-    $repoRoot = $repoRoot.Trim().Replace('\', '/')
+    $repoRoot = $RepoRootPath
     $repoName = Split-Path -Leaf $repoRoot
 
     $resolvedDocDir = $null
@@ -112,8 +138,8 @@ function Resolve-ArchDocConfig {
     }
     # 3. Project-Level Git Config (git config --local --get arch-sync.doc-dir)
     else {
-        $gitLocalDocDir = git config --local --get arch-sync.doc-dir 2>$null
-        $gitLocalMode = git config --local --get arch-sync.mode 2>$null
+        $gitLocalDocDir = git -C $repoRoot config --local --get arch-sync.doc-dir 2>$null
+        $gitLocalMode = git -C $repoRoot config --local --get arch-sync.mode 2>$null
 
         if ($gitLocalDocDir) {
             $resolvedDocDir = $gitLocalDocDir.Trim()
@@ -159,7 +185,7 @@ function Resolve-ArchDocConfig {
     $stateFilePath = if ($CliStateFile) { 
         [System.IO.Path]::GetFullPath((if ([System.IO.Path]::IsPathRooted($CliStateFile)) { $CliStateFile } else { Join-Path $repoRoot $CliStateFile })).Replace('\', '/')
     } else { 
-        Join-Path $resolvedDocDir ".arch-sync.json" 
+        (Join-Path $resolvedDocDir ".arch-sync.json").Replace('\', '/') 
     }
 
     return [PSCustomObject]@{
@@ -171,11 +197,14 @@ function Resolve-ArchDocConfig {
     }
 }
 
-$cfg = Resolve-ArchDocConfig -CliDocDir $DocDir -CliMode $Mode -CliStateFile $StateFile
-$headCommit = Get-GitHeadCommit
+$cfg = Resolve-ArchDocConfig -CliDocDir $DocDir -CliMode $Mode -CliStateFile $StateFile -RepoRootPath $repoRoot
+$headCommit = Get-GitHeadCommit -RepoPath $cfg.RepoRoot
 
 # Handle checkpoint update request
 if ($UpdateCheckpoint) {
+    if (-not $headCommit) {
+        throw "Cannot update checkpoint: repository has no commits yet (HEAD unborn)."
+    }
     $stateDir = Split-Path -Path $cfg.StateFile -Parent
     if ($stateDir -and -not (Test-Path -Path $stateDir)) {
         New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
@@ -207,10 +236,12 @@ if ($Init) {
         New-Item -ItemType Directory -Path $adrDir -Force | Out-Null
     }
 
-    $overviewPath = Join-Path $cfg.DocDir "overview.md"
-    if (-not (Test-Path -Path $overviewPath)) {
-        $overviewTemplate = @"
-# Architecture Overview
+    # Create ARCHITECTURE.md directly as primary entry point (no duplicate overview.md)
+    if ($cfg.StorageMode -eq "internal") {
+        $rootArchPath = Join-Path $cfg.RepoRoot "ARCHITECTURE.md"
+        if (-not (Test-Path -Path $rootArchPath)) {
+            $rootArchTemplate = @"
+# Architecture Documentation
 
 ## System Purpose & Scope
 High-level description of system capabilities, primary user workflows, and boundaries.
@@ -225,24 +256,34 @@ High-level description of system capabilities, primary user workflows, and bound
 - Performance, concurrency, and security.
 
 ## Modules Index
-Detailed component specifications are maintained incrementally under [modules/](file:///modules/):
+Detailed component specifications are maintained incrementally under [docs/architecture/modules/](docs/architecture/modules/):
 - *List modules here*
 "@
-        [System.IO.File]::WriteAllText($overviewPath, ($overviewTemplate.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
-    }
-
-    # Only create ARCHITECTURE.md in repo root if storage mode is internal (preserve 0 project footprint when external)
-    if ($cfg.StorageMode -eq "internal") {
-        $rootArchPath = Join-Path $cfg.RepoRoot "ARCHITECTURE.md"
-        if (-not (Test-Path -Path $rootArchPath)) {
-            $rootArchTemplate = @"
+            [System.IO.File]::WriteAllText($rootArchPath, ($rootArchTemplate.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
+        }
+    } else {
+        $extArchPath = Join-Path $cfg.DocDir "ARCHITECTURE.md"
+        if (-not (Test-Path -Path $extArchPath)) {
+            $extArchTemplate = @"
 # Architecture Documentation
 
-This project's architecture is maintained under [docs/architecture/](file:///docs/architecture/):
-- **Overview**: [overview.md](file:///docs/architecture/overview.md)
-- **Module Specs**: [modules/](file:///docs/architecture/modules/)
+## System Purpose & Scope
+High-level description of system capabilities, primary user workflows, and boundaries.
+
+## Architecture & Layers
+- **Domain / Models**: Core entities, value objects, and domain logic.
+- **Services / Contracts**: Application interfaces and business operations.
+- **Presentation / UI**: ViewModels and Views.
+
+## Cross-Cutting Concerns
+- Error handling, logging, and localization.
+- Performance, concurrency, and security.
+
+## Modules Index
+Detailed component specifications are maintained incrementally under [modules/](modules/):
+- *List modules here*
 "@
-            [System.IO.File]::WriteAllText($rootArchPath, ($rootArchTemplate.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
+            [System.IO.File]::WriteAllText($extArchPath, ($extArchTemplate.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
         }
     }
 
@@ -304,7 +345,7 @@ if (-not $lastCommit) {
 }
 
 # Verify if last commit exists in history
-git cat-file -e $lastCommit 2>$null
+git -C $cfg.RepoRoot cat-file -e $lastCommit 2>$null
 if ($LASTEXITCODE -ne 0) {
     $missingResult = [PSCustomObject]@{
         has_changes          = $true
@@ -340,7 +381,7 @@ if ($lastCommit -eq $headCommit) {
 }
 
 # Inspect raw changed files
-$rawDiff = git diff --name-status "$lastCommit..$headCommit"
+$rawDiff = git -C $cfg.RepoRoot diff --name-status "$lastCommit..$headCommit"
 if (-not $rawDiff) {
     $noDeltaResult = [PSCustomObject]@{
         has_changes        = $false
@@ -359,7 +400,7 @@ if (-not $rawDiff) {
 
 # Filter architectural files
 $sourceExtensions = @("cs", "rs", "go", "ts", "js", "py", "cpp", "c", "h", "java", "kt", "swift")
-$excludePatterns = @("test", "spec", "mock", "\.g\.cs$", "\.Designer\.cs$", "bin/", "obj/", "node_modules/")
+$excludePatterns = @("test", "spec", "mock", "\.g\.cs$", "\.Designer\.cs$", "bin/", "obj/", "node_modules/", "(^|[\\/])_agents([\\/]|$)", "(^|[\\/])\.agents([\\/]|$)")
 
 $affectedFiles = [System.Collections.Generic.List[PSCustomObject]]::new()
 $ignoredCount = 0

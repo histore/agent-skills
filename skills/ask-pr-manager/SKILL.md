@@ -8,6 +8,8 @@ description: Manages the complete Pull Request lifecycle with atomic isolation, 
 ## Objective
 Act as the dedicated GitHub Pull Request manager. Draft comprehensive, structured PR descriptions using repository templates, link requirement IDs from `REQUIREMENTS.md` (or `docs/requirements/modules/*.md`), monitor GitHub Actions CI runs, and execute squash-and-merges with branch cleanup strictly adhering to the **Lifecycle Action Execution Governance** principles.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 4: Fast Deterministic).
+
 ---
 
 ## Lifecycle Action Execution Governance
@@ -48,15 +50,15 @@ PRManager strictly observes six governance principles:
 
 #### Step 1: Prerequisite & State Validation
 1. Verify working tree state:
-   - If uncommitted changes exist: trigger `CommitManager` to commit them (interactive message gate).
+   - If uncommitted host project changes exist (excluding untracked files or scratchpads strictly within `_agents/` or `.agents/`): trigger `CommitManager` to commit them (interactive message gate).
    - If commits are not yet pushed: trigger `git push` (or `git push -u origin <branch>`).
 2. Verify that code has passed `Verifikation` (100% requirements coverage, test pass rate) and received developer review sign-off.
 3. If an atypical state is detected (e.g., merge conflicts with target branch), trigger the **Atypical State Gate** and await user guidance.
 
 #### Step 2: Inspect Branch History & Draft PR Description
-1. Run `git log main..HEAD --oneline` to inspect all commits on the branch.
+1. Run `git log -n 50 main..HEAD --oneline` to inspect commits on the branch.
 2. Extract relevant Requirement IDs (e.g. `REQ-CORE-010`) and Conventional Commit scopes.
-3. Draft PR description using `.github/pull_request_template.md` (if present) or the standard structure:
+3. Draft PR description using host project `.github/pull_request_template.md` (if present), fallback to submodule template (`_agents/.github/pull_request_template.md` or `.agents/.github/pull_request_template.md`), or use the standard structure:
    - **Summary**: Concise explanation of the change.
    - **Requirements Addressed**: List of completed Requirement IDs.
    - **Architectural & Design Decisions**: Key patterns, contracts, or restructuring.
@@ -103,7 +105,7 @@ Pull Request created: `<pr-url>`
      ```powershell
      gh pr checks --watch
      ```
-   - **Delayed Polling Rule**: CI runs typically take ~1–2 minutes. Never execute tight polling loops. Use `gh pr checks --watch` or schedule a delayed check after at least 60–90 seconds (`DurationSeconds=75` via `schedule` tool).
+   - **Strict Polling & Sleep Guardrail**: CI runs typically take ~1–2 minutes. Never execute tight polling loops, status checks in a loop, or shell sleep commands (`Start-Sleep`, `sleep`). Either launch `gh pr checks --watch` once as a background task, or schedule a single one-shot timer (`DurationSeconds=75` via `schedule` tool).
 3. When checks pass, report completion and proactively offer:
    > *"All CI checks have passed. Would you like to proceed with squash-and-merge?"*
 
@@ -152,3 +154,10 @@ If additional commits are pushed following review feedback, update PR metadata u
 ```powershell
 gh pr edit --title "<new-title>" --body "<new-body>"
 ```
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all Pull Requests created, inspected, watched, and merged target the **embedding host repository**, NOT the submodule repository.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never targeted for PR workflows.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

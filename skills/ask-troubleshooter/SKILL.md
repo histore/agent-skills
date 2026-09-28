@@ -8,6 +8,8 @@ description: Analyzes bugs, exceptions, unexpected runtime behaviors, and race c
 ## Objective
 Perform systematic root-cause analysis (RCA) on reported bugs, unexpected UI/runtime behaviors, unhandled exceptions, and concurrency/lifecycle issues. Isolate the exact defect mechanism, prevent premature symptom-patching, and provide clear remediation directives and reproduction test specifications.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 1: Deep Reasoning).
+
 ## Responsibilities
 1. **Four-Step Diagnostic Protocol**:
    - **Step 1 (Check)**: Inspect the current modular architecture specification (`ARCHITECTURE.md`, `docs/architecture/modules/<module>.md`, `.arch-sync.json`) of the suspected subsystem.
@@ -44,5 +46,7 @@ Perform systematic root-cause analysis (RCA) on reported bugs, unexpected UI/run
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Gemini / Antigravity**: Supports both `_agents` and `.agents` customization roots.
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. In multi-tool setups or when using Copilot, configure skills under `.agents/` (or create a symlink from `.agents` to `_agents`).
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all defect diagnostics, error trace reviews, and reproduction test authoring target the **embedding host repository**, NOT the submodule directory.
+- **Gemini / Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
+- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. When sharing skills across multiple AI clients or targeting Copilot, configure skills under `.agents` (or create a symbolic link from `.agents` to `_agents`). Submodule internal paths are never diagnosed or modified during application troubleshooting.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

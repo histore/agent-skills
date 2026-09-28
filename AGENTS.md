@@ -11,7 +11,7 @@ All skills and rules are designed to be general and reusable across diverse proj
    - Core domain logic and service interfaces must remain strictly agnostic of UI frameworks, databases, and external delivery mechanisms.
 2. **Clean Code & Universal Best Practices**:
    - Adhere to SOLID, DRY, KISS, YAGNI, Boy Scout Rule, and clear, descriptive naming conventions.
-   - Write clean, idiomatic code adhering to the best practices and type-safety mechanisms of the target project's programming language.
+   - Write clean, idiomatic code adhering to the best practices and type-safety mechanisms of the target project's programming language. In Rust codebases, `unsafe` blocks must not be used.
    - All source code comments and docstrings must be written in English.
 3. **Dynamic Tech Stack Specialization**:
    - Skills do not hardcode programming languages (e.g., C#, Rust, Python, TypeScript, Go) or specific frameworks/libraries (e.g., Avalonia, React, Tokio, ASP.NET).
@@ -94,7 +94,7 @@ Operational execution instructions are defined exclusively in each role's skill 
   - Discard obsolete intermediate trial-and-error logs, failed compilation attempts, and transient conversation history, while strictly preserving top-of-context system rules to maximize KV-cache prefix hits.
 
 ## Client Directory Compatibility (`.agents` vs. `_agents`)
-- **Gemini / Antigravity**: Seamlessly supports both `_agents` and `.agents` customization roots.
+- **Gemini / Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
 - **GitHub Copilot & Other Clients**: Specifically expect `.agents/` as the standard discovery root. When sharing skills across multiple AI clients or targeting Copilot, use `.agents` (or create a symbolic link / submodule pointing to `.agents`).
 
 Detailed skill definitions can be found in `skills/` (or `_agents/skills/` / `.agents/skills/` when consumed as a submodule) and rules in `rules/` (or `_agents/rules/` / `.agents/rules/`).

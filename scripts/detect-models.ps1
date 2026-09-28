@@ -16,11 +16,11 @@
 .PARAMETER Force
     Switch to bypass the cache and force an immediate re-probe of the environment.
 .EXAMPLE
-    pwsh -File ./scripts/detect-models.ps1
+    pwsh -NoProfile -File ./scripts/detect-models.ps1
 .EXAMPLE
-    pwsh -File ./scripts/detect-models.ps1 -Force
+    pwsh -NoProfile -File ./scripts/detect-models.ps1 -Force
 .EXAMPLE
-    pwsh -File ./scripts/detect-models.ps1 -MaxAgeHours 12
+    pwsh -NoProfile -File ./scripts/detect-models.ps1 -MaxAgeHours 12
 #>
 [CmdletBinding()]
 param(
@@ -57,7 +57,7 @@ if (-not $Force -and (Test-Path $CachePath)) {
         $cachedRaw = [System.IO.File]::ReadAllText($CachePath, [System.Text.Encoding]::UTF8)
         $cachedObj = $cachedRaw | ConvertFrom-Json
         if ($cachedObj.timestamp) {
-            $cacheTime = [DateTime]::Parse($cachedObj.timestamp, $null, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+            $cacheTime = [DateTime]::Parse($cachedObj.timestamp, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
             $ageHours = ((Get-Date).ToUniversalTime() - $cacheTime).TotalHours
             if ($ageHours -ge 0 -and $ageHours -lt $MaxAgeHours) {
                 # Attach/update cache metadata

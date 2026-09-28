@@ -8,6 +8,8 @@ description: Domain specialist for database schema design, migration governance,
 ## Objective
 Provide dedicated domain engineering for relational and document databases, persistence frameworks, and data modeling. Design and evolve clean database schemas, author robust forward/backward migrations, optimize query execution plans, prevent N+1 allocation traps, enforce ACID transaction boundaries, and ensure the persistence layer strictly adheres to **Clean Architecture** (domain models remain isolated from database schemas and ORM attributes).
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 2: Analytical).
+
 ---
 
 ## Operating Status: Domain Specialist
@@ -67,3 +69,10 @@ Provide dedicated domain engineering for relational and document databases, pers
 - **Migration Scripts**: Tested Up and Down migration files for the host project's migration toolchain.
 - **Persistence Mapping & Repositories**: Infrastructure-layer ORM entity mappings and repository implementations.
 - **Query Optimization & Indexing Directives**: Recommended indexes and profiled query patterns.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), database schemas, migration scripts, ORM entities, and seed scripts target the **embedding host project**, NOT the submodule directory.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during database or persistence design.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

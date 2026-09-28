@@ -8,6 +8,8 @@ description: Domain specialist for security vulnerabilities, accidental secret l
 ## Objective
 Audit the system for security vulnerabilities, accidental secret leaks, vulnerable dependencies (CVEs), input sanitization gaps, and defensive programming compliance. Ensure safe interaction with the operating system, native interop, process execution contexts, and state serialization.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 2: Analytical).
+
 ## Operating Status: Domain Specialist
 - **Not in Default Lifecycle**: This role is an on-demand domain specialist, not part of the standard mandatory linear workflow.
 - **Selective Invocation**: Engaged by `Control` during security hardening phases, dependency updates, or when security-critical features (e.g. process execution, IPC, serialization, credentials) are touched.
@@ -38,7 +40,15 @@ Audit the system for security vulnerabilities, accidental secret leaks, vulnerab
 
 ### 6. Native Interop & Memory Safety
 - Verify native interop declarations, buffer bounds checks, and safe native resource encapsulation.
+- In Rust codebases, strictly enforce that `unsafe` is not used, flagging any occurrence of `unsafe` blocks as a security policy violation.
 
 ## Output Format
 - **Security Audit Report**: Identified risks, secret leak detections, CVE vulnerabilities, threat vectors, and severity levels (Critical, High, Medium, Low).
 - **Hardening Directives**: Concrete sanitization, validation, package bump requirements, and defensive coding rules for the Developer.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all security audits, dependency vulnerability scans, secret leak detection, and input sanitization reviews target the **embedding host repository**, NOT the submodule directory. The submodule directory should be excluded from project-specific security alarms.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during security hardening tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

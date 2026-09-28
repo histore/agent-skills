@@ -8,6 +8,8 @@ description: Manages Git commit and push actions with atomic isolation, state-dr
 ## Objective
 Analyze workspace modifications, generate standardized conventional commit messages, stage changes, execute atomic Git commits, and push to remote branches strictly according to the **Lifecycle Action Execution Governance** principles.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 4: Fast Deterministic).
+
 ---
 
 ## Lifecycle Action Execution Governance
@@ -45,8 +47,8 @@ CommitManager strictly observes six governance principles:
 ### Workflow A: User Requests `commit`
 
 #### Step 1: Inspect Status & Safety Check
-- Run `git status` and `git diff`.
-- Verify working tree is not in an atypical state (detached HEAD, merge conflict, or sensitive untracked files). If atypical, trigger the **Atypical State & Safety Confirmation Gate**, pause, and suggest delegating to `GitTroubleshooter`.
+- Run `git status -s` and `git diff --stat` (use targeted `git diff -- <file>` only for specific files to avoid token bloat).
+- Verify working tree is not in an atypical state (detached HEAD, merge conflict, sensitive untracked files, or unexpected submodule modifications in `_agents` / `.agents`). If a submodule is modified (`Subproject commit <hash>`), verify whether the submodule pointer update is part of the task before staging. If atypical, trigger the **Atypical State & Safety Confirmation Gate**, pause, and suggest delegating to `GitTroubleshooter`.
 - If there are no changes to commit, inform the user: *"Working tree clean, nothing to commit."*
 
 #### Step 2: Draft Standardized Conventional Commit Message
@@ -58,7 +60,7 @@ Generate a clean commit message in English following the Conventional Commits sp
 #### Step 3: Confirmation Gate & Adaptive Resolution
 - **Direct Execution Check**: If the user prompt directly instructed or requested committing the changes (and changes are strictly within scope of the current task with no atypical repository state), skip interactive waiting and proceed immediately to Step 4. Display the applied commit message and hash in the completion report.
 - **Otherwise (or if scope exceeded / anomaly detected)**: Display the proposed commit message and affected files clearly to the user:
-```markdown
+````markdown
 ### Proposed Commit
 **Branch**: `<branch-name>`
 **Affected Files**:
@@ -74,12 +76,13 @@ Generate a clean commit message in English following the Conventional Commits sp
 ```
 
 **[Action Required]**: Please confirm if this commit message should be applied.
-```
+````
 - **WAIT** for user feedback or approval if presented. Update the message if adjustments are requested. *(Note: Skip this wait if an explicit auto-approve/override instruction was provided.)*
 
 #### Step 4: Stage & Commit (Atomic Scope - No Push)
 Once confirmed or resolved via Adaptive Gate:
-1. Stage changes: `git add <files>` (or `git add -A` as appropriate).
+1. Stage changes: `git add <files>` using explicit paths of affected host project files.
+   - **Submodule Isolation Guardrail**: Never include `_agents/` or `.agents/` submodule changes in host feature commits. If `git status` reveals modified submodule pointers (`Subproject commit <hash>`) or untracked changes within the submodule directory, unstage them (`git reset HEAD _agents .agents` or `git checkout -- _agents .agents`) before committing. Never execute `git add .` or `git add -A` blindly.
 2. Commit: `git commit -m "<approved-message>"`.
 3. Verify commit with `git log -1 --oneline`.
 
@@ -97,8 +100,8 @@ Commit `<hash>` applied successfully on branch `<branch-name>`.
 
 #### Step 1: Evaluate Repository State & Prerequisites
 - Run `git status --porcelain` and `git branch -vv`.
-- **Case 1 (Uncommitted changes exist in workspace)**:
-  - Prerequisite required: Workspace has uncommitted changes that must be committed before pushing.
+- **Case 1 (Uncommitted changes exist in host workspace)**:
+  - Prerequisite required: Workspace has uncommitted host project changes (ignoring dirty or untracked files strictly inside `_agents/` or `.agents/` unless a submodule update was explicitly requested) that must be committed before pushing.
   - Automatically invoke **Workflow A (Steps 1–4)** to stage and commit changes (including the interactive message approval gate).
   - Once committed, proceed to Step 2 (Push).
 - **Case 2 (Working tree clean, commits exist ahead of upstream)**:
@@ -125,3 +128,10 @@ Branch `<branch-name>` pushed to `origin/<branch-name>` successfully.
 - Execute Workflow A (Steps 1–3) to draft and confirm the commit message.
 - Upon user confirmation, execute `git add`, `git commit`, and immediately execute `git push`.
 - Report completion and offer handover to `PRManager`.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all Git staging, commits, and pushes target the **embedding host repository**, NOT the submodule repository.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule pointer commits (`Subproject commit <hash>`) should only be committed when updating the skills submodule is an explicit objective.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

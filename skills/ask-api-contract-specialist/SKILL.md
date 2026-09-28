@@ -8,6 +8,8 @@ description: Domain specialist for API-first design, OpenAPI/Swagger specificati
 ## Objective
 Design, specify, validate, and govern public and internal API contracts across modern protocol paradigms (REST/HTTP, gRPC/Protobuf, GraphQL, WebSockets). Enforce an **API-First** methodology, uniform resource modeling, semantic HTTP verbs and status codes, standardized error responses (**RFC 7807 Problem Details**), idempotency patterns, and strict backward-compatibility rules to prevent breaking downstream consumers.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 2: Analytical).
+
 ---
 
 ## Operating Status: Domain Specialist
@@ -80,3 +82,10 @@ Design, specify, validate, and govern public and internal API contracts across m
 - **Formal API Specification**: Validated OpenAPI 3.x YAML, Protobuf `.proto`, or GraphQL SDL file.
 - **Contract Diff & Compatibility Report**: Audit confirming zero breaking changes or detailing migration paths.
 - **DTO & Adapter Snippets**: Concrete request/response model definitions and controller contracts for the Developer.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), API specifications (OpenAPI, Protobuf, GraphQL schemas), controller contracts, and DTOs target the **embedding host project**, not the submodule directory.
+- **Client Standards**: Gemini/Antigravity discovers skills under `_agents/skills/`, while GitHub Copilot and other clients expect `.agents/skills/`. Submodule internal paths are never modified during API contract design.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

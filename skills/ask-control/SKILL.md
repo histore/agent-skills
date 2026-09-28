@@ -85,18 +85,28 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 ---
 
 ## Dynamic Model & Reasoning Allocation
-Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json). Control dynamically allocates models in multi-agent environments or modulates reasoning depth in sequential environments based on this configuration.
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 1: Deep Reasoning). Control dynamically allocates models in multi-agent environments or modulates reasoning depth in sequential environments based on this configuration.
 
 ---
 
 ## Environment Adaptation & Universal Execution Strategy
 
-Detailed tier mappings and platform preferences are declaratively specified in [`rules/model-tiers.json`](rules/model-tiers.json).
+Detailed tier mappings and platform preferences are declaratively specified in [`rules/model-tiers.json`](../../rules/model-tiers.json).
 
 ### 1. Pre-Flight Runtime Detection & 24h Persistent Caching (Zero-Token Probe)
 Prior to dispatching tasks or starting complex workflows, optionally determine the active runtime platform and model capabilities:
-- **Windows**: `powershell -ExecutionPolicy Bypass -File ./scripts/detect-models.ps1` (or `./_agents/scripts/detect-models.ps1` / `./.agents/scripts/detect-models.ps1`)
-- **macOS / Linux**: `bash ./scripts/detect-models.sh` (or `./_agents/scripts/detect-models.sh` / `./.agents/scripts/detect-models.sh`)
+- **Windows**:
+  ```powershell
+  $script = @("./_agents/scripts/detect-models.ps1", "./.agents/scripts/detect-models.ps1", "./scripts/detect-models.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $script
+  ```
+- **macOS / Linux**:
+  ```bash
+  for p in ./_agents/scripts/detect-models.sh ./.agents/scripts/detect-models.sh ./scripts/detect-models.sh; do
+    [ -f "$p" ] && SCRIPT_PATH="$p" && break
+  done
+  bash "$SCRIPT_PATH"
+  ```
 - **24-Hour Cross-Session Cache**: Results are automatically persisted across all skills and chat sessions with a 24-hour TTL (`%LOCALAPPDATA%/agent-skills/model-cache.json` or `~/.cache/agent-skills/model-cache.json`). Cached invocations return in < 50ms with `"cached": true` and zero subprocess overhead.
 - **On-Demand Cache Refresh**: Force an immediate re-probe at any time using `-Force` (PowerShell) or `--force` (Bash).
 
@@ -120,9 +130,11 @@ Prior to dispatching tasks or starting complex workflows, optionally determine t
 ### 3. Model Evolution & Deprecation
 Roles evaluate cognitive capability by **Tier criteria** rather than hardcoded model string dependencies, ensuring full forward-compatibility with future model releases.
 
-### 4. Tooling & Directory Compatibility (`.agents` vs. `_agents`)
-- **Gemini / Antigravity**: Seamlessly supports both `_agents` and `.agents` customization directories.
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. When orchestrating tasks across different assistant tools, ensure paths point to `.agents` (or provide a symlink from `.agents` to `_agents`).
+### 4. Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all workflow orchestration, tech stack discovery, code modifications, testing, and lifecycle actions target the **embedding host repository** (the parent project root), NOT the submodule directory.
+- **Gemini / Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
+- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. When sharing skills across multiple AI clients or targeting Copilot, configure skills under `.agents` (or create a symbolic link from `.agents` to `_agents`). Submodule internal paths are never modified during host project tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
 
 ---
 

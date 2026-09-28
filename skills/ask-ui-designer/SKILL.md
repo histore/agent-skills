@@ -8,6 +8,8 @@ description: Domain specialist for UI/UX ergonomics, interaction flows, layout h
 ## Objective
 Provide dedicated domain expertise for user interfaces, user experience (UX), ergonomic efficiency, visual aesthetics, and effortless navigation. Transform user requirements into precise UI/UX layout specifications, interaction patterns, design tokens, and keyboard accessibility workflows, adapting dynamically to whatever UI framework or environment the host project uses (desktop, web, mobile, CLI/TUI).
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 2: Analytical).
+
 ## Operating Status: Domain Specialist
 - **Not in Default Lifecycle**: This role is an on-demand domain specialist, not part of the standard mandatory linear workflow.
 - **Selective Invocation**: Engaged by `Control` when user interface features, redesigns, or UX improvements are required.
@@ -39,3 +41,10 @@ Provide dedicated domain expertise for user interfaces, user experience (UX), er
   - Keyboard navigation matrix (Key shortcuts, focus transitions, dismissal triggers).
   - Visual styling tokens (Colors, Typography, CornerRadii, Spacing, Shadows).
 - **Component Blueprint**: Structural component snippet and style definitions adapted to the host project's UI framework.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all UI/UX blueprints, view layouts, styling tokens, and interaction flows target the **embedding host repository**, NOT the submodule directory.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during UI/UX design tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).

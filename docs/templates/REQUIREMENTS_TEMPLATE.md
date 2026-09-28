@@ -17,7 +17,7 @@ Projects dynamically choose between two operational structures based on size and
      - Global Non-Functional Requirements (NFRs: security baseline, performance budgets, clean architecture invariants).
      - Module Registry & Cross-Module Index linking to per-module files (`docs/requirements/modules/<module>.md`).
      - Conflict resolution log.
-   - Individual module requirement files use the template defined in `docs/templates/REQUIREMENTS_MODULE_TEMPLATE.md`.
+   - Individual module requirement files use the template defined in `_agents/docs/templates/REQUIREMENTS_MODULE_TEMPLATE.md` (or `.agents/docs/templates/REQUIREMENTS_MODULE_TEMPLATE.md`).
 
 ---
 
@@ -99,9 +99,9 @@ When operating in Modular Mode, register all per-module requirement files here:
 
 | Module / Scope | Scope Prefix | Specification File | Architecture Specification | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| Authentication | `AUTH` | [`docs/requirements/modules/auth.md`](docs/requirements/modules/auth.md) | `docs/architecture/modules/auth.md` | Active |
-| Core Engine | `CORE` | [`docs/requirements/modules/core.md`](docs/requirements/modules/core.md) | `docs/architecture/modules/core.md` | Active |
-| UI & Presentation | `UI` | [`docs/requirements/modules/ui.md`](docs/requirements/modules/ui.md) | `docs/architecture/modules/ui.md` | Active |
+| Authentication | `AUTH` | `docs/requirements/modules/auth.md` | `docs/architecture/modules/auth.md` | Active |
+| Core Engine | `CORE` | `docs/requirements/modules/core.md` | `docs/architecture/modules/core.md` | Active |
+| UI & Presentation | `UI` | `docs/requirements/modules/ui.md` | `docs/architecture/modules/ui.md` | Active |
 
 ---
 

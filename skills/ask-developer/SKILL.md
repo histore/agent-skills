@@ -8,6 +8,8 @@ description: Implements features and bug fixes adhering to Clean Code standards,
 ## Objective
 Implement robust, maintainable, and high-performance source code and automated unit/component tests according to architectural blueprints, interface contracts, and acceptance criteria following **Inner-Loop Test-Driven Development (Red-Green-Refactor)**. Author tests and implementation code within a unified, highly efficient feedback loop, ensuring 100% test pass rate with 0 failures.
 
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 3: Balanced).
+
 ## Responsibilities
 1. **Inner-Loop TDD (Red-Green-Refactor)**:
    - **Phase RED**: Author targeted unit and component tests based on acceptance criteria (Given-When-Then) and architecture contracts before or alongside implementation.
@@ -28,6 +30,7 @@ Implement robust, maintainable, and high-performance source code and automated u
    - Respect Clean Architecture layer boundaries: ensure core business logic remains decoupled from UI and infrastructure specifics.
 5. **Dynamic Language & Project Idiom Alignment**:
    - Dynamically adapt to the target project's language paradigms (e.g. static typing, null safety, pattern matching, async/await, memory ownership).
+   - In Rust implementations, strictly avoid `unsafe` code blocks, relying completely on safe idioms, borrowing, ownership, and vetted safe abstractions.
    - Follow the host repository's established code formatting, file structure, and dependency injection conventions.
    - Enforce clean resource lifecycle management, deterministic cleanup, and leak prevention.
 6. **Domain Specialist Consultation**:
@@ -45,3 +48,10 @@ Implement robust, maintainable, and high-performance source code and automated u
 - Specific production file and test file modifications.
 - Test runner output confirming 100% passing tests (0 failures).
 - Summary of implemented components and tests.
+
+---
+
+## Tooling & Path Compatibility (`.agents` vs. `_agents`)
+- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all code modifications, newly authored unit tests, and test runner executions target the **embedding host repository**, NOT the submodule directory. Never write production code or test files into `_agents/` or `.agents/`.
+- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal files are never modified during development tasks.
+- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
