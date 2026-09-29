@@ -41,10 +41,10 @@ if [ -f "$MODEL_TIERS_FILE" ]; then
         if jq empty "$MODEL_TIERS_FILE" 2>/dev/null; then
             assert_condition 0 "model-tiers.json is valid JSON" "model-tiers.json has invalid JSON syntax"
             ROLE_COUNT=$(jq '.execution_modes.multi_agent.tier_dispatch | [.[].roles[]] | length' "$MODEL_TIERS_FILE")
-            if [ "$ROLE_COUNT" -eq 22 ]; then
-                assert_condition 0 "All 22 roles are registered in model-tiers.json" "Expected 22 roles, found $ROLE_COUNT"
+            if [ "$ROLE_COUNT" -eq 23 ]; then
+                assert_condition 0 "All 23 roles are registered in model-tiers.json" "Expected 23 roles, found $ROLE_COUNT"
             else
-                assert_condition 1 "All 22 roles are registered in model-tiers.json" "Expected 22 roles, found $ROLE_COUNT"
+                assert_condition 1 "All 23 roles are registered in model-tiers.json" "Expected 23 roles, found $ROLE_COUNT"
             fi
         else
             assert_condition 1 "model-tiers.json is valid JSON" "model-tiers.json failed jq parsing"
@@ -57,10 +57,10 @@ fi
 # 2. Validate skills directory
 echo -e "\n\033[33m2. Validating skills directory structure and frontmatter...\033[0m"
 SKILL_COUNT=$(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l)
-if [ "$SKILL_COUNT" -eq 22 ]; then
-    assert_condition 0 "Exactly 22 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 22 directories"
+if [ "$SKILL_COUNT" -eq 23 ]; then
+    assert_condition 0 "Exactly 23 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 23 directories"
 else
-    assert_condition 1 "Exactly 22 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 22 skill directories, found $SKILL_COUNT"
+    assert_condition 1 "Exactly 23 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 23 skill directories, found $SKILL_COUNT"
 fi
 
 for skill_path in "$SKILLS_DIR"/*; do
@@ -222,8 +222,8 @@ else
     assert_condition 1 "get-arch-diff.sh regex correctly matches and excludes _agents and .agents submodules" "get-arch-diff.sh missing or flawed exclusions"
 fi
 
-# 9. Validate model tier references in all 22 skills
-echo -e "\n\033[33m9. Validating model tier references in all 22 skills...\033[0m"
+# 9. Validate model tier references in all 23 skills
+echo -e "\n\033[33m9. Validate model tier references in all 23 skills...\033[0m"
 MISSING_TIER_REF=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
     skill_name=$(basename "$skill_dir")
@@ -236,12 +236,12 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_TIER_REF[@]} -eq 0 ]; then
-    assert_condition 0 "All 22 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference"
+    assert_condition 0 "All 23 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference"
 else
-    assert_condition 1 "All 22 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json: ${MISSING_TIER_REF[*]}"
+    assert_condition 1 "All 23 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json: ${MISSING_TIER_REF[*]}"
 fi
 
-# 10. Validate Tooling & Path Compatibility and host project orientation in all 22 skills
+# 10. Validate Tooling & Path Compatibility and host project orientation in all 23 skills
 echo -e "\n\033[33m10. Validating Tooling & Path Compatibility and host project orientation...\033[0m"
 MISSING_PATH_COMPAT=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
@@ -257,13 +257,13 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_PATH_COMPAT[@]} -eq 0 ]; then
-    assert_condition 0 "All 22 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation"
+    assert_condition 0 "All 23 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation"
 else
-    assert_condition 1 "All 22 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: ${MISSING_PATH_COMPAT[*]}"
+    assert_condition 1 "All 23 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: ${MISSING_PATH_COMPAT[*]}"
 fi
 
-# 11. Validate Submodule Asset Resolution in all 22 skills
-echo -e "\n\033[33m11. Validating Submodule Asset Resolution in all 22 skills...\033[0m"
+# 11. Validate Submodule Asset Resolution in all 23 skills
+echo -e "\n\033[33m11. Validating Submodule Asset Resolution in all 23 skills...\033[0m"
 MISSING_ASSET_RES=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
     skill_name=$(basename "$skill_dir")
@@ -276,9 +276,9 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_ASSET_RES[@]} -eq 0 ]; then
-    assert_condition 0 "All 22 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution"
+    assert_condition 0 "All 23 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution"
 else
-    assert_condition 1 "All 22 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: ${MISSING_ASSET_RES[*]}"
+    assert_condition 1 "All 23 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: ${MISSING_ASSET_RES[*]}"
 fi
 
 # 12. Validate deterministic script lookups in ask-architecture-sync (No recursive disk scans)

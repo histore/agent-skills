@@ -27,7 +27,7 @@
         "tier_2_analytical": {
           "model_class": "flash",
           "reasoning_budget": "high",
-          "roles": ["Architekt", "RequirementEngineer", "Verifikation", "UIDesigner", "PerformanceOptimizer", "SecurityAuditor", "DatabaseSpecialist", "ApiContractSpecialist"]
+          "roles": ["Architekt", "RequirementEngineer", "Verifikation", "UIDesigner", "PerformanceOptimizer", "SecurityAuditor", "DatabaseSpecialist", "ApiContractSpecialist", "CodeReviewer"]
         },
         "tier_3_balanced": {
           "model_class": "flash",

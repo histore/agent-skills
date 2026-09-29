@@ -18,10 +18,10 @@ All skills and rules are designed to be general and reusable across diverse proj
    - Agents dynamically detect the project stack by inspecting build configurations, package manifests (e.g., `Directory.Build.props`, `Cargo.toml`, `package.json`, `pyproject.toml`, `go.mod`), and the architecture baseline (`ARCHITECTURE.md`).
 4. **Core Workflow vs. Domain & Lifecycle Specialists**:
    - **Core Lifecycle Roles** handle the general development lifecycle: `Control`, `RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`.
-   - **Lifecycle & Domain Specialists** (e.g., `Troubleshooter`, `GitTroubleshooter`, `RefactoringSpecialist`, `ArchitectureSync`, `DocumentationSpecialist`, `DevOpsEngineer`, `UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`) are engaged **on-demand**.
+   - **Lifecycle & Domain Specialists** (e.g., `Troubleshooter`, `GitTroubleshooter`, `RefactoringSpecialist`, `ArchitectureSync`, `DocumentationSpecialist`, `DevOpsEngineer`, `CodeReviewer`, `UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`) are engaged **on-demand**.
    - **On-Demand Specialist Invocation**: Specialists are **NOT** mandatory serial steps on every commit. They are engaged selectively:
-     - `Control` includes them when the feature or task explicitly involves that specific domain (e.g., UI layout changes, database migrations, dedicated technical debt audits, changelog releases, architectural drift sync).
-     - Other roles (such as `Developer`, `Architekt`, or `Troubleshooter`) can consult or delegate to these specialists to clarify domain-specific nuances, edge cases, and technical constraints.
+     - `Control` includes them when the feature or task explicitly involves that specific domain (e.g., UI layout changes, database migrations, dedicated technical debt audits, changelog releases, architectural drift sync, deep adversarial code review via `CodeReviewer`).
+     - Other roles (such as `Developer`, `Architekt`, `Verifikation`, or `Troubleshooter`) can consult or delegate to these specialists to clarify domain-specific nuances, edge cases, and technical constraints.
 5. **Automated Testing, Quality & Inner-Loop TDD**:
    - Development follows **Inner-Loop Test-Driven Development (TDD)** (Red-Green-Refactor) adapted to task complexity:
      - **Profile A (Fast-Track - Bugs, Tweaks, Small Features)**: Developer authors targeted unit tests and implementation code directly in a single, fast red-green-refactor loop (saving 70–80% latency and token cost).
@@ -30,7 +30,7 @@ All skills and rules are designed to be general and reusable across diverse proj
    - **Targeted Test Execution**: During inner loops, test runners must target only the affected test file or class (`dotnet test --filter`, `cargo test <name>`, `npm test -- <path>`, `pytest <path>`), executing the full test suite once during final verification to avoid full-suite build thrashing.
    - **Two-Stage Quality Gate (Shift-Left Validation)**:
      - **Stage 1 (Deterministic Fast-Gate - Zero Tokens)**: Native build (`dotnet build`, `cargo check`), project linter, and quiet native test runner (0 errors, 100% pass). If failing, immediately return for remediation without consuming LLM tokens on semantic analysis.
-     - **Stage 2 (Concise Traceability Gate)**: `Verifikation` audits acceptance criteria fulfillment and Clean Architecture boundaries.
+     - **Stage 2 (Concise Traceability Gate)**: `Verifikation` audits acceptance criteria fulfillment, Clean Architecture boundaries, and logical correctness (with optional deep adversarial inspection via `CodeReviewer`).
    - **Test Integrity Guardrail**: Replaces rigid test immutability. The Developer is empowered to adjust and refine test fixtures, signatures, and assertions to match real contracts and idiomatic types. Weakening, bypassing, or deleting assertions to fake passing tests is strictly forbidden.
    - **Circuit Breaker**: The `Developer`'s targeted test-fix feedback loop is capped at a maximum of 3 iterations before escalating.
    - **Comprehensive Scenario Coverage**: Unit and integration tests follow the Arrange-Act-Assert (AAA) pattern.
@@ -77,9 +77,9 @@ All skills and rules are designed to be general and reusable across diverse proj
       - **Prototype**: Focuses on speed (MVP). Architecture documentation and TDD are strictly optional.
 
 ## Subagent Roles & Governance Mappings
-All 22 specialized subagent roles, their cognitive tiers, reference models, and thinking budgets are declaratively maintained in the Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json).
+All 23 specialized subagent roles, their cognitive tiers, reference models, and thinking budgets are declaratively maintained in the Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json).
 - **Core Lifecycle Roles**: `Control`, `RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`.
-- **Lifecycle Specialists (On-Demand)**: `Troubleshooter`, `GitTroubleshooter`, `CodeExplainer`, `RefactoringSpecialist`, `DocumentationSpecialist`, `ArchitectureSync`, `DevOpsEngineer`, `ReleaseManager`.
+- **Lifecycle Specialists (On-Demand)**: `Troubleshooter`, `GitTroubleshooter`, `CodeExplainer`, `RefactoringSpecialist`, `DocumentationSpecialist`, `ArchitectureSync`, `DevOpsEngineer`, `ReleaseManager`, `CodeReviewer`.
 - **Domain Specialists (On-Demand)**: `UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`.
 
 Operational execution instructions are defined exclusively in each role's skill specification in [`skills/`](skills/).

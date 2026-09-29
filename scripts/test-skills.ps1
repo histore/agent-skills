@@ -59,16 +59,16 @@ if ($modelTiersExist) {
             $tierDispatch.tier_3_balanced.roles +
             $tierDispatch.tier_4_fast_deterministic.roles
         )
-        Assert-Condition ($registeredRoles.Count -eq 22) "All 22 roles are registered in model-tiers.json (Found $($registeredRoles.Count))" "Expected 22 roles in model-tiers.json, but found $($registeredRoles.Count)"
+        Assert-Condition ($registeredRoles.Count -eq 23) "All 23 roles are registered in model-tiers.json (Found $($registeredRoles.Count))" "Expected 23 roles in model-tiers.json, but found $($registeredRoles.Count)"
     } catch {
         Assert-Condition $false "model-tiers.json parses as valid JSON" "Failed to parse model-tiers.json: $_"
     }
 }
 
-# 2. Validate all 22 skills in skills/ directory
+# 2. Validate all 23 skills in skills/ directory
 Write-Host "`n2. Validating skills directory structure and frontmatter..." -ForegroundColor Yellow
 $skillDirs = Get-ChildItem -Path $skillsDir -Directory | Sort-Object Name
-Assert-Condition ($skillDirs.Count -eq 22) "Exactly 22 skill directories found in skills/ (Found $($skillDirs.Count))" "Expected 22 skill directories, but found $($skillDirs.Count)"
+Assert-Condition ($skillDirs.Count -eq 23) "Exactly 23 skill directories found in skills/ (Found $($skillDirs.Count))" "Expected 23 skill directories, but found $($skillDirs.Count)"
 
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -217,8 +217,8 @@ if (Test-Path $archDiffSh) {
 }
 Assert-Condition $hasShExclusion "get-arch-diff.sh excludes _agents and .agents submodules" "get-arch-diff.sh missing _agents or .agents exclusion"
 
-# 9. Validate model tier references in all 22 skills
-Write-Host "`n9. Validating model tier references in all 22 skills..." -ForegroundColor Yellow
+# 9. Validate model tier references in all 23 skills
+Write-Host "`n9. Validating model tier references in all 23 skills..." -ForegroundColor Yellow
 $missingTierRef = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -229,9 +229,9 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingTierRef.Count -eq 0) "All 22 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference: $($missingTierRef -join ', ')"
+Assert-Condition ($missingTierRef.Count -eq 0) "All 23 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference: $($missingTierRef -join ', ')"
 
-# 10. Validate Tooling & Path Compatibility and host project orientation in all 22 skills
+# 10. Validate Tooling & Path Compatibility and host project orientation in all 23 skills
 Write-Host "`n10. Validating Tooling & Path Compatibility and host project orientation..." -ForegroundColor Yellow
 $missingPathCompat = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
@@ -245,10 +245,10 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingPathCompat.Count -eq 0) "All 22 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: $($missingPathCompat -join ', ')"
+Assert-Condition ($missingPathCompat.Count -eq 0) "All 23 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: $($missingPathCompat -join ', ')"
 
-# 11. Validate Submodule Asset Resolution in all 22 skills
-Write-Host "`n11. Validating Submodule Asset Resolution in all 22 skills..." -ForegroundColor Yellow
+# 11. Validate Submodule Asset Resolution in all 23 skills
+Write-Host "`n11. Validating Submodule Asset Resolution in all 23 skills..." -ForegroundColor Yellow
 $missingAssetRes = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -259,7 +259,7 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingAssetRes.Count -eq 0) "All 22 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: $($missingAssetRes -join ', ')"
+Assert-Condition ($missingAssetRes.Count -eq 0) "All 23 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: $($missingAssetRes -join ', ')"
 
 # 12. Validate deterministic script lookups in ask-architecture-sync (No recursive disk scans)
 Write-Host "`n12. Validating deterministic script lookups in ask-architecture-sync..." -ForegroundColor Yellow
