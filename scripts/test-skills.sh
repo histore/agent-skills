@@ -237,7 +237,7 @@ else
     assert_condition 1 "get-arch-diff.ps1 excludes _agents and .agents submodules" "get-arch-diff.ps1 missing exclusions"
 fi
 
-if [ -f "$ARCH_DIFF_SH" ] && grep -q -- '(\^|/)_agents(/|\$)' "$ARCH_DIFF_SH" && grep -q -- '(\^|/)\.agents(/|\$)' "$ARCH_DIFF_SH"; then
+if [ -f "$ARCH_DIFF_SH" ] && grep -F -q '(^|/)_agents(/|$)' "$ARCH_DIFF_SH" && grep -F -q '(^|/)\.agents(/|$)' "$ARCH_DIFF_SH"; then
     assert_condition 0 "get-arch-diff.sh regex correctly matches and excludes _agents and .agents submodules" "get-arch-diff.sh missing or flawed exclusions"
 else
     assert_condition 1 "get-arch-diff.sh regex correctly matches and excludes _agents and .agents submodules" "get-arch-diff.sh missing or flawed exclusions"
