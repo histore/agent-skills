@@ -46,6 +46,27 @@ if [ -f "$MODEL_TIERS_FILE" ]; then
             else
                 assert_condition 1 "All 23 roles are registered in model-tiers.json" "Expected 23 roles, found $ROLE_COUNT"
             fi
+
+            # Validate Cost-Efficiency Policy
+            HAS_COST_POLICY=$(jq '.cost_efficiency_policy.default_to_cost_efficient // false' "$MODEL_TIERS_FILE")
+            if [ "$HAS_COST_POLICY" = "true" ]; then
+                assert_condition 0 "Cost-efficiency policy is defined and enforces cost-efficient defaults" "cost_efficiency_policy missing or not true"
+            else
+                assert_condition 1 "Cost-efficiency policy is defined and enforces cost-efficient defaults" "cost_efficiency_policy missing or not true"
+            fi
+            HAS_PRO_DEFAULT=$(jq '.execution_modes.multi_agent.tier_dispatch | [.[].model_class] | any(. == "pro")' "$MODEL_TIERS_FILE")
+            if [ "$HAS_PRO_DEFAULT" = "false" ]; then
+                assert_condition 0 "No tier dispatches to high-cost 'pro' model class by default" "Found tier with 'pro' default model class"
+            else
+                assert_condition 1 "No tier dispatches to high-cost 'pro' model class by default" "Found tier with 'pro' default model class"
+            fi
+
+            HAS_REASONING_RULE=$(jq '.cost_efficiency_policy.high_reasoning_requires_cost_advantage // false' "$MODEL_TIERS_FILE")
+            if [ "$HAS_REASONING_RULE" = "true" ]; then
+                assert_condition 0 "Cost-efficiency policy restricts high reasoning levels to when cost-efficient" "high_reasoning_requires_cost_advantage missing or not true"
+            else
+                assert_condition 1 "Cost-efficiency policy restricts high reasoning levels to when cost-efficient" "high_reasoning_requires_cost_advantage missing or not true"
+            fi
         else
             assert_condition 1 "model-tiers.json is valid JSON" "model-tiers.json failed jq parsing"
         fi
@@ -216,7 +237,7 @@ else
     assert_condition 1 "get-arch-diff.ps1 excludes _agents and .agents submodules" "get-arch-diff.ps1 missing exclusions"
 fi
 
-if [ -f "$ARCH_DIFF_SH" ] && grep -q -- '(\^|/)_agents(/|\$)' "$ARCH_DIFF_SH" && grep -q -- '(\^|/)\.agents(/|\$)' "$ARCH_DIFF_SH"; then
+if [ -f "$ARCH_DIFF_SH" ] && grep -F -q '(^|/)_agents(/|$)' "$ARCH_DIFF_SH" && grep -F -q '(^|/)\.agents(/|$)' "$ARCH_DIFF_SH"; then
     assert_condition 0 "get-arch-diff.sh regex correctly matches and excludes _agents and .agents submodules" "get-arch-diff.sh missing or flawed exclusions"
 else
     assert_condition 1 "get-arch-diff.sh regex correctly matches and excludes _agents and .agents submodules" "get-arch-diff.sh missing or flawed exclusions"

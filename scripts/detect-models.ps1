@@ -92,6 +92,7 @@ $result = [ordered]@{
     cache_file         = $CachePath
     platform           = "generic"
     execution_mode     = "sequential_persona"
+    cost_efficiency    = $true
     supports_subagents = $false
     detected_models    = @()
     recommended_tiers  = [ordered]@{}
@@ -126,7 +127,7 @@ if ($agyCmd) {
     }
 
     $result.recommended_tiers = [ordered]@{
-        tier_1 = [ordered]@{ model_class = "pro"; reasoning_effort = "high" }
+        tier_1 = [ordered]@{ model_class = "flash"; exception_model_class = "pro"; reasoning_effort = "high_extended" }
         tier_2 = [ordered]@{ model_class = "flash"; reasoning_effort = "high" }
         tier_3 = [ordered]@{ model_class = "flash"; reasoning_effort = "medium" }
         tier_4 = [ordered]@{ model_class = "flash_lite"; fallback = "flash"; reasoning_effort = "low" }

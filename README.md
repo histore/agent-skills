@@ -51,13 +51,13 @@ agent-skills/
 8. **PRManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages the Pull Request lifecycle (`gh pr create`, delayed-polling CI checks, squash-merge, and proactive next steps) strictly on-demand after developer approval.
 
 ### General Support Roles (Lifecycle Specialists)
-9. **Troubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses bugs, analyzes call stacks and event hierarchies, identifies root causes, and specifies minimal failing reproduction tests for Inner-Loop or Tester TDD handoffs.
+9. **Troubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Flash (Extended Thinking)`): Diagnoses bugs, analyzes call stacks and event hierarchies, identifies root causes, and specifies minimal failing reproduction tests for Inner-Loop or Tester TDD handoffs.
 10. **RefactoringSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): On-demand specialist auditing code smells and technical debt, designing and executing safe, test-backed Fowler refactorings.
 11. **DocumentationSpecialist** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): On-demand specialist authoring API doc comments, user manuals, CHANGELOG.md, and in-app help guides in English.
 12. **ReleaseManager** (`Tier 4 | Low/Fast Reasoning` - Ref: `Gemini 3.8 Flash`): Manages deployment pipelines, packaging, SemVer tag calculation, branch/sync prerequisite validation, and tag creation & push upon user approval.
-13. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting didactic comments directly into code files (in English by default, or in a user-specified language).
+13. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Flash (Extended Thinking)`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting didactic comments directly into code files (in English by default, or in a user-specified language).
 14. **ArchitectureSync** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts (`get-arch-diff`) to eliminate context bloat.
-15. **GitTroubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Pro`): Diagnoses repository anomalies, resolves complex three-way merge, rebase, and cherry-pick conflicts, safely recovers lost commits or detached states via reflog, and enforces a strict zero-data-loss safety protocol (backup snapshots, automated build & test gates).
+15. **GitTroubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Gemini 3.8 Flash (Extended Thinking)`): Diagnoses repository anomalies, resolves complex three-way merge, rebase, and cherry-pick conflicts, safely recovers lost commits or detached states via reflog, and enforces a strict zero-data-loss safety protocol (backup snapshots, automated build & test gates).
 16. **DevOpsEngineer** (`Tier 3 | Medium Reasoning` - Ref: `Gemini 3.8 Flash`): Authors and maintains CI/CD automation workflows (GitHub Actions), multi-stage Dockerfiles, compose environments, build matrices, and deployment configurations.
 17. **CodeReviewer** (`Tier 2 | High Reasoning` - Ref: `Gemini 3.8 Flash`): Adversarial static code reviewer specialized in hunting subtle bugs, edge-case regressions, logic flaws, race conditions, resource leaks, and unhandled boundary states in diffs, PRs, or target source files.
 
@@ -86,6 +86,9 @@ Whenever an agent explores, analyzes, or debugs a codebase, it must strictly pro
 ## Universal Model Tiering & Compound Execution Strategy
 
 This repository supports cross-platform execution across **Google Antigravity**, **GitHub Copilot**, **Cursor**, and standalone LLM environments. Detailed tier mappings, thinking budgets, and platform preferences are specified in [`rules/model-tiers.json`](rules/model-tiers.json).
+
+> [!TIP]
+> **Cost-Efficiency Policy**: As a general rule, high-end and high-cost models (e.g. Pro, Opus, o1, flagship tiers) are not used. Exclusively cost-efficient models (e.g. Flash, Flash-Lite, Haiku, Mini tiers) are utilized by default. High reasoning levels (Thinking Effort: High/Extended) must only be used if they are more cost-efficient than switching models. High-end models are strictly reserved for exceptional cases where the nature or scope of the task genuinely requires them or when switching models is more cost-effective than generating high thinking token volumes.
 
 ### Execution Strategy & Modes
 1. **Compound Phased Execution (Default & Recommended)**:

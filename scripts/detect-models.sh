@@ -97,10 +97,11 @@ if command -v agy &>/dev/null; then
   "cache_file": "$cache_path",
   "platform": "$platform",
   "execution_mode": "$execution_mode",
+  "cost_efficiency": true,
   "supports_subagents": $supports_subagents,
   "detected_models": $models_json,
   "recommended_tiers": {
-    "tier_1": { "model_class": "pro", "reasoning_effort": "high" },
+    "tier_1": { "model_class": "flash", "exception_model_class": "pro", "reasoning_effort": "high_extended" },
     "tier_2": { "model_class": "flash", "reasoning_effort": "high" },
     "tier_3": { "model_class": "flash", "reasoning_effort": "medium" },
     "tier_4": { "model_class": "flash_lite", "fallback": "flash", "reasoning_effort": "low" }
