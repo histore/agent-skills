@@ -2,6 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "version": "1.0.0",
   "description": "Universal model tier, reasoning budget, and execution mode mapping across Antigravity, GitHub Copilot, Cursor, and custom LLM environments.",
+  "cost_efficiency_policy": {
+    "enforce_cost_efficiency": true,
+    "default_to_cost_efficient": true,
+    "high_cost_models_allowed_by_exception_only": true,
+    "high_reasoning_requires_cost_advantage": true,
+    "clause": "High-end and high-cost models (e.g. Pro, Opus, o1, flagship tiers) shall not be used as a rule. Workflows, agents, and subagents must default exclusively to cost-efficient models (e.g. Flash, Flash-Lite, Haiku, Mini tiers). High reasoning levels (extended/high thinking effort) must only be used if they are more cost-efficient than a model switch. High-end/high-cost models are permitted solely as an exception when the specific nature or extraordinary scope of the task genuinely requires it (e.g. extreme architectural restructuring, complex multi-component deadlock diagnosis, or explicit user instruction) or when a direct model call is demonstrably more cost-efficient than generating excessive reasoning token volumes."
+  },
   "execution_modes": {
     "compound_execution": {
       "description": "Default primary execution strategy: Single-context continuous execution with phased persona switching (Plan -> Inner-Loop TDD -> Verify -> Commit). Maximizes prompt caching / KV-cache reuse (75-90% token discount) and eliminates multi-agent serialization latency.",
@@ -20,7 +27,8 @@
       "client_support": ["antigravity"],
       "tier_dispatch": {
         "tier_1_deep_reasoning": {
-          "model_class": "pro",
+          "model_class": "flash",
+          "exception_model_class": "pro",
           "reasoning_budget": "high_extended",
           "roles": ["Control", "Troubleshooter", "CodeExplainer", "GitTroubleshooter"]
         },
@@ -67,21 +75,24 @@
   },
   "platform_preferences": {
     "antigravity": {
-      "tier_1": ["gemini-3.8-pro-high", "gemini-3.1-pro-high", "claude-opus-4-6-thinking", "claude-sonnet-4-6"],
+      "tier_1": ["gemini-3.8-flash-high", "gemini-3.7-flash-high"],
+      "tier_1_exception": ["gemini-3.8-pro-high", "claude-opus-4-6-thinking"],
       "tier_2": ["gemini-3.8-flash-high", "gemini-3.7-flash-high"],
       "tier_3": ["gemini-3.8-flash-medium", "gemini-3.7-flash-medium"],
       "tier_4": ["gemini-3.8-flash-low", "gemini-3.7-flash-low"]
     },
     "copilot": {
-      "tier_1": ["claude-3.7-sonnet-thinking", "o3-mini", "o1"],
-      "tier_2": ["claude-3.7-sonnet", "gpt-4o"],
-      "tier_3": ["claude-3.5-sonnet", "gpt-4o"],
+      "tier_1": ["o3-mini", "claude-3.5-haiku", "gpt-4o-mini"],
+      "tier_1_exception": ["claude-3.7-sonnet-thinking", "o1"],
+      "tier_2": ["o3-mini", "gpt-4o-mini", "claude-3.5-haiku"],
+      "tier_3": ["gpt-4o-mini", "claude-3.5-haiku"],
       "tier_4": ["gpt-4o-mini", "claude-3.5-haiku"]
     },
     "generic": {
-      "tier_1": ["deep-reasoning-flagship"],
-      "tier_2": ["fast-analytical-flagship"],
-      "tier_3": ["balanced-coder-flagship"],
+      "tier_1": ["deep-reasoning-efficient-mini"],
+      "tier_1_exception": ["deep-reasoning-flagship"],
+      "tier_2": ["fast-analytical-efficient-mini"],
+      "tier_3": ["balanced-coder-efficient-mini"],
       "tier_4": ["ultra-fast-mini"]
     }
   }

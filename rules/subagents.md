@@ -9,6 +9,7 @@
    - Isolates exploratory search noise from the primary thread, returning concise executive summaries.
 3. **Universal Model Tiering & Execution Modes**:
    - Tier mappings and budgets defined in [`rules/model-tiers.json`](model-tiers.json).
+   - **Cost-Efficiency Policy (Cost-Efficient by Default, High-End by Exception Only)**: In general, high-end and high-cost flagship models (`Pro`, `Opus`, `o1`) shall not be used. By default, only cost-efficient models (`Flash`, `Flash-Lite`, `Haiku`, `Mini-Tiers`) are utilized. High reasoning levels (Thinking Effort: High/Extended) must only be used if they are more cost-efficient than a model switch. High-end models are permitted solely as an exception when the nature or exceptional scope of the task unambiguously requires it or when a direct model call is more cost-effective than generating excessive reasoning tokens.
    - Reasoning budgets are throttled to `low/minimal` during implementation and test execution, relying on compiler and testrunner feedback as ground truth rather than burning speculative reasoning tokens.
    - **Terminal & Context Hygiene**: All PowerShell commands must use `-NoProfile`. Testrunners must run in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `pytest -q`) to stop log spam from bloating the context window.
 4. **Clean Architecture & Clean Code Enforcement**:

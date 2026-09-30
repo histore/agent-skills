@@ -60,6 +60,16 @@ if ($modelTiersExist) {
             $tierDispatch.tier_4_fast_deterministic.roles
         )
         Assert-Condition ($registeredRoles.Count -eq 23) "All 23 roles are registered in model-tiers.json (Found $($registeredRoles.Count))" "Expected 23 roles in model-tiers.json, but found $($registeredRoles.Count)"
+
+        # Validate Cost-Efficiency Policy
+        $hasCostEfficiency = ($null -ne $modelTiersData.cost_efficiency_policy -and $modelTiersData.cost_efficiency_policy.default_to_cost_efficient -eq $true)
+        Assert-Condition $hasCostEfficiency "Cost-efficiency policy is defined and enforces cost-efficient defaults" "model-tiers.json lacks cost_efficiency_policy or default_to_cost_efficient is false"
+
+        $hasProModelClassDefault = ($tierDispatch.PSObject.Properties | Where-Object { $_.Value.model_class -eq "pro" }).Count -gt 0
+        Assert-Condition (-not $hasProModelClassDefault) "No tier dispatches to high-cost 'pro' model class by default" "Found tier dispatch configured with 'pro' as default model class"
+
+        $hasReasoningCostRule = ($null -ne $modelTiersData.cost_efficiency_policy -and $modelTiersData.cost_efficiency_policy.high_reasoning_requires_cost_advantage -eq $true)
+        Assert-Condition $hasReasoningCostRule "Cost-efficiency policy restricts high reasoning levels to when cost-efficient" "model-tiers.json lacks high_reasoning_requires_cost_advantage"
     } catch {
         Assert-Condition $false "model-tiers.json parses as valid JSON" "Failed to parse model-tiers.json: $_"
     }

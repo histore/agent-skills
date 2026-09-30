@@ -50,7 +50,8 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 
 4. **Dynamic Model & Reasoning Allocation**:
    - Assign capability tiers (Tier 1 to Tier 4) and reasoning depth (Thinking Budget: High/Extended, Medium, Low/Fast) based on cognitive complexity.
-   - Gracefully adapt to the user's active environment: in multi-model environments, allocate specialized models; in single-model environments, vary the reasoning/thinking budget.
+   - **Cost-Efficiency Policy**: As a general rule, high-end and high-cost models (e.g. Pro, Opus, o1) are not used. Workflows and roles default exclusively to cost-efficient models (e.g. Flash, Flash-Lite, Haiku, Mini tiers). High reasoning levels (Thinking Effort: High/Extended) must only be used if they are more cost-efficient than a model switch. High-end models are permitted solely when the nature or exceptional scope of the task genuinely requires it or when a direct model call is more cost-effective than generating excessive reasoning tokens.
+   - Gracefully adapt to the user's active environment: in multi-model environments, allocate cost-efficient models; in single-model environments, vary the reasoning/thinking budget.
 
 5. **Context Minimization, Isolation & Active Compaction**:
    - Filter context for downstream agents to only what is strictly necessary.
@@ -79,14 +80,14 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 8. **Loop Detection, Deadlock Resolution & Escalation Hierarchy (Circuit Breaking)**:
    - Continuously monitor execution trajectories for repetitive loops, build thrashing, oscillation, or resource deadlocks:
      - **Level 1 (Strategic Pivot)**: Re-diagnose root causes from first principles, formulate an alternative technical strategy.
-     - **Level 2 (Model Upgrade)**: Escalate the failing role to Tier 1 High-Capacity Reasoning (`Gemini 3.8 Pro` / Claude 3.7 Sonnet Thinking / o3) with an expanded thinking budget.
+     - **Level 2 (Reasoning & Model Escalation)**: Evaluate cost-efficiency trade-offs: escalate reasoning budget on the cost-efficient model (e.g. Gemini Flash with high/extended reasoning effort, o3-mini) strictly if cheaper than a model switch. If the complexity, nature, or scope of the task strictly warrants an exception, or if excessive reasoning token volume makes a direct model switch more cost-effective, escalate to a Tier 1 High-Capacity model (`Gemini Pro` / Claude Sonnet Thinking / o3).
      - **Level 3 (Context Purge)**: Discard cyclical intermediate discussion history; reconstruct a pristine minimal context containing only active requirements, current code state, and failure logs.
      - **Level 4 (User Escalation)**: If an impasse persists after 3 iterations, stop tool calls and present a structured diagnostic report with actionable alternatives to the user.
 
 ---
 
 ## Dynamic Model & Reasoning Allocation
-Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 1: Deep Reasoning). Control dynamically allocates models in multi-agent environments or modulates reasoning depth in sequential environments based on this configuration.
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 1: Deep Reasoning via Cost-Efficient Models + Extended Thinking; High-End models by exception only). High-end/high-cost models are not used as a rule, unless the nature or scope of the task strictly requires an exception. High reasoning levels are applied only when more cost-efficient than switching models. Control dynamically allocates models in multi-agent environments or modulates reasoning depth in sequential environments based on this configuration.
 
 ---
 
