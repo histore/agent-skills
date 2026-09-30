@@ -21,7 +21,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
    - Use clear naming conventions reflecting the scenario and expectation: `UnitOfWork_StateUnderTest_ExpectedBehavior`.
    - Maintain fast, isolated, independent test cases with no order-dependent side effects.
 4. **Targeted vs. Full Suite Execution & Quiet Output**:
-   - During test authoring, execute only targeted test filters (`--filter`, file path) in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `pytest -q`) with PowerShell `-NoProfile` to eliminate context noise.
+   - During test authoring, execute only targeted test filters (`--filter`, file path) in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`) with PowerShell `-NoProfile` to eliminate context noise.
    - Guard against confirmation bias: author tests objectively against requirements and architectural contracts.
 5. **Integration & Mock Testing**:
    - Use lightweight test doubles (fakes, stubs, mocks) for external dependencies, file systems, network, and process lifecycles.

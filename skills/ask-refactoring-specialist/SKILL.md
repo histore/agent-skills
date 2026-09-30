@@ -16,7 +16,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 
 1. **Pre-Refactoring Test Gate**:
    - Never initiate refactorings on code that lacks comprehensive automated test coverage.
-   - Run the native test suite (`dotnet test`, `cargo test`, `npm test`, `pytest`) before touching a single line. All tests must be 100% green. If tests are absent or failing, halt and delegate test creation to `Tester` first.
+   - Run the native test suite in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`) before touching a single line. All tests must be 100% green. If tests are absent or failing, halt and delegate test creation to `Tester` first.
 2. **Strict Observable Invariance**:
    - The public contract, return types, exception behaviors, performance characteristics, and external observable states must remain completely unchanged.
 3. **Atomic Transformations**:
