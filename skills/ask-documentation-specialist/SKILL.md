@@ -73,6 +73,8 @@ Adhere strictly to the project's native documentation conventions:
 * Maintain `CHANGELOG.md` strictly formatted according to the **Keep a Changelog** standard and **SemVer**:
   - `## [Unreleased]` for work currently in development.
   - Standard categories: `Added` (new features), `Changed` (existing functionality modifications), `Deprecated` (soon-to-be removed), `Removed` (removed features), `Fixed` (bug fixes), `Security` (vulnerabilities addressed).
+* Generate or update `CHANGELOG.md` deterministically from git commits via `generate-changelog.ps1` (or `generate-changelog.sh`):
+  `pwsh -NoProfile -File ./scripts/generate-changelog.ps1 -OutputFile CHANGELOG.md -Prepend`
 * Keep entries concise, user-focused, and linked to relevant issue or PR numbers.
 
 ### 3. User Manuals, Guides & README Maintenance

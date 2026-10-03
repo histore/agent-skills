@@ -535,6 +535,14 @@ else
     assert_condition 1 "lint-clean-architecture scripts exist (.ps1 and .sh)" "lint-clean-architecture scripts missing"
 fi
 
+# 32. Validate changelog generator scripts
+echo -e "\n\033[33m32. Validating changelog generator scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/generate-changelog.ps1" ] && [ -f "$REPO_ROOT/scripts/generate-changelog.sh" ]; then
+    assert_condition 0 "generate-changelog scripts exist (.ps1 and .sh)" "generate-changelog scripts missing"
+else
+    assert_condition 1 "generate-changelog scripts exist (.ps1 and .sh)" "generate-changelog scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

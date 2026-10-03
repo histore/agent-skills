@@ -562,6 +562,23 @@ if (Test-Path $cleanArchPs1) {
     }
 }
 
+# 32. Validate changelog generator scripts
+Write-Host "`n32. Validating changelog generator scripts..." -ForegroundColor Yellow
+$changelogPs1 = Join-Path $repoRoot "scripts\generate-changelog.ps1"
+$changelogSh = Join-Path $repoRoot "scripts\generate-changelog.sh"
+
+Assert-Condition (Test-Path $changelogPs1) "scripts/generate-changelog.ps1 exists" "scripts/generate-changelog.ps1 not found"
+Assert-Condition (Test-Path $changelogSh) "scripts/generate-changelog.sh exists" "scripts/generate-changelog.sh not found"
+
+if (Test-Path $changelogPs1) {
+    try {
+        $clOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($null -ne $clOut.version -and $null -ne $clOut.markdown) "generate-changelog.ps1 outputs valid JSON with markdown ($($clOut.version))" "generate-changelog.ps1 invalid output"
+    } catch {
+        Assert-Condition $false "generate-changelog.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
