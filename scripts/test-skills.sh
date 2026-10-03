@@ -452,6 +452,20 @@ else
     assert_condition 1 "Control documents run-evals benchmark integration" "Control missing run-evals documentation"
 fi
 
+# 23. Validate tech stack detection and fast-gate scripts
+echo -e "\n\033[33m23. Validating tech stack detection and fast-gate scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/detect-tech-stack.ps1" ] && [ -f "$REPO_ROOT/scripts/detect-tech-stack.sh" ]; then
+    assert_condition 0 "detect-tech-stack scripts exist (.ps1 and .sh)" "detect-tech-stack scripts missing"
+else
+    assert_condition 1 "detect-tech-stack scripts exist (.ps1 and .sh)" "detect-tech-stack scripts missing"
+fi
+
+if [ -f "$REPO_ROOT/scripts/run-fast-gate.ps1" ] && [ -f "$REPO_ROOT/scripts/run-fast-gate.sh" ]; then
+    assert_condition 0 "run-fast-gate scripts exist (.ps1 and .sh)" "run-fast-gate scripts missing"
+else
+    assert_condition 1 "run-fast-gate scripts exist (.ps1 and .sh)" "run-fast-gate scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

@@ -76,7 +76,7 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 
 6. **Two-Stage Quality Gating, Developer Review & Result Aggregation**:
    - **Two-Stage Quality Gate (Shift-Left Validation)**:
-     - *Stage 1 (Deterministic Fast-Gate - Zero Tokens)*: Compiler/build, linter, and quiet native test runner (0 errors, 100% pass). If failed, route back to Developer immediately without spending LLM tokens on semantic analysis. Only triggered when executable production code was modified.
+     - *Stage 1 (Deterministic Fast-Gate - Zero Tokens)*: Compiler/build, linter, and quiet native test runner (0 errors, 100% pass) executed deterministically via `run-fast-gate.ps1` (or `run-fast-gate.sh`). If failed, compacted error logs are routed back to Developer immediately without spending LLM tokens on semantic analysis. Only triggered when executable production code was modified.
      - *Stage 2 (Concise Traceability Gate)*: `Verifikation` performs targeted audit against acceptance criteria and architecture boundaries.
    - Provide the developer/user with summary diffs, launch instructions, and test guidance for manual testing & review before PR creation.
    - Route developer feedback or correction requests back to Developer/Tester/Architect for fast pre-PR resolution.

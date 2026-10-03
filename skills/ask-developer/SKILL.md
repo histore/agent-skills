@@ -16,6 +16,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
    - **Phase GREEN**: Implement business logic, algorithms, and handlers to turn failing tests green.
    - **Phase REFACTOR**: Clean up, modularize, and polish code in-place immediately while preserving green test status (Boy Scout Rule, DRY, SOLID).
 2. **Local Feedback Loop, Circuit Breaker & Quiet Targeted Execution**:
+   - Resolve the project tech stack and test commands deterministically via `detect-tech-stack.ps1` (or `detect-tech-stack.sh`), or validate Stage-1 fast-gates via `run-fast-gate.ps1` (or `run-fast-gate.sh`).
    - Execute the project's native test runner locally in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`), targeting only the affected test file or class (e.g. `--filter`, path argument) to prevent full-suite build thrashing and avoid context window pollution. In PowerShell, run commands with `-NoProfile`.
    - Rely on compiler and testrunner output as the ground truth rather than burning speculative reasoning/thinking tokens.
    - Adhere to the **3-Cycle Iteration Limit**: Conduct a maximum of 3 test-fix feedback cycles (`Modify Code` -> `Run Targeted Tests` -> `Analyze Errors`). If tests still fail after 3 attempts, halt immediately and escalate with an error trace to `Control` or the user.

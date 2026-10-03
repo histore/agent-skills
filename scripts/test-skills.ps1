@@ -401,6 +401,36 @@ Assert-Condition $controlHasTelemetry "Control documents record-telemetry and sh
 $controlHasEvals = ($controlContent -match 'run-evals')
 Assert-Condition $controlHasEvals "Control documents run-evals benchmark integration" "Control missing run-evals documentation"
 
+# 23. Validate tech stack detection and fast-gate scripts
+Write-Host "`n23. Validating tech stack detection and fast-gate scripts..." -ForegroundColor Yellow
+$detectStackPs1 = Join-Path $repoRoot "scripts\detect-tech-stack.ps1"
+$detectStackSh = Join-Path $repoRoot "scripts\detect-tech-stack.sh"
+$runFastGatePs1 = Join-Path $repoRoot "scripts\run-fast-gate.ps1"
+$runFastGateSh = Join-Path $repoRoot "scripts\run-fast-gate.sh"
+
+Assert-Condition (Test-Path $detectStackPs1) "scripts/detect-tech-stack.ps1 exists" "scripts/detect-tech-stack.ps1 not found"
+Assert-Condition (Test-Path $detectStackSh) "scripts/detect-tech-stack.sh exists" "scripts/detect-tech-stack.sh not found"
+Assert-Condition (Test-Path $runFastGatePs1) "scripts/run-fast-gate.ps1 exists" "scripts/run-fast-gate.ps1 not found"
+Assert-Condition (Test-Path $runFastGateSh) "scripts/run-fast-gate.sh exists" "scripts/run-fast-gate.sh not found"
+
+if (Test-Path $detectStackPs1) {
+    try {
+        $stackOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($null -ne $stackOut.stack) "detect-tech-stack.ps1 outputs valid JSON object with stack field" "detect-tech-stack.ps1 invalid output"
+    } catch {
+        Assert-Condition $false "detect-tech-stack.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+if (Test-Path $runFastGatePs1) {
+    try {
+        $gateOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $runFastGatePs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($gateOut.status -eq "pass") "run-fast-gate.ps1 passes or gracefully bypasses on non-executable repo" "run-fast-gate.ps1 returned failure"
+    } catch {
+        Assert-Condition $false "run-fast-gate.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
