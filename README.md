@@ -10,14 +10,16 @@ All skills and rules are designed to be general and reusable across diverse soft
 agent-skills/
 ├── AGENTS.md               # Master guidelines and subagent governance rules
 ├── rules/
+│   ├── clean-architecture.json # Declarative Clean Architecture layer rules and metric thresholds
 │   ├── model-tiers.json    # Universal model tier mapping and thinking budgets
 │   └── subagents.md        # Architectural rules and context-isolation protocol
-├── scripts/                # Zero-token runtime capability detection scripts
-└── skills/                 # 22 specialized subagent skills
+├── scripts/                # Zero-token deterministic automation, linting, and verification scripts
+└── skills/                 # 23 specialized subagent skills
     ├── ask-api-contract-specialist/
     ├── ask-architect/
     ├── ask-architecture-sync/
     ├── ask-code-explainer/
+    ├── ask-code-reviewer/
     ├── ask-commit-manager/
     ├── ask-control/
     ├── ask-database-specialist/
@@ -118,6 +120,36 @@ bash ./_agents/scripts/detect-models.sh
 # Force on-demand re-probe
 bash ./_agents/scripts/detect-models.sh --force
 ```
+
+### Deterministic Automation & Zero-Token Script Toolkit (`scripts/`)
+
+To minimize LLM token consumption, eliminate non-deterministic hallucinations, and protect the context window from massive terminal log dumps, repetitive operational checks are offloaded to high-performance local scripts (PowerShell & Bash parity):
+
+| Script | Relevant Role(s) | Functionality |
+| :--- | :--- | :--- |
+| `detect-models.ps1/.sh` | `Control` | Probes active environment and models with 24-hour persistent local disk caching. |
+| `detect-tech-stack.ps1/.sh` | `Control`, `Developer` | Auto-detects programming languages, build systems, package managers, and test runners. |
+| `run-fast-gate.ps1/.sh` | `Verifikation`, `Developer` | Stage 1 Zero-Token compiler, linter, and quiet test suite fast gate. |
+| `lint-clean-architecture.ps1/.sh` | `CodeReviewer`, `Verifikation` | Evaluates declarative layer import boundaries ([`rules/clean-architecture.json`](rules/clean-architecture.json)) and code metric limits. |
+| `scan-guardrails.ps1/.sh` | `SecurityAuditor`, `CommitManager` | Pre-commit scanner enforcing Safe Rust (0 `unsafe`), secret leak prevention, and terminal hygiene. |
+| `lint-requirements.ps1/.sh` | `RequirementEngineer` | Validates requirement formatting, duplicate detection, and allocates scoped IDs (`REQ-<SCOPE>-XXX`). |
+| `calculate-semver.ps1/.sh` | `ReleaseManager` | Parses Conventional Commits to deterministically calculate next SemVer tag (`major`, `minor`, `patch`). |
+| `generate-changelog.ps1/.sh` | `ReleaseManager`, `DocumentationSpecialist` | Generates Keep-a-Changelog compatible release notes from git commits since last tag. |
+| `audit-i18n.ps1/.sh` | `LocalizationSpecialist` | Verifies key parity between German (`de`) and English (`en`) localization resource files. |
+| `generate-pr-summary.ps1/.sh` | `PRManager` | Generates structured PR descriptions, commit listings, and test evidence summaries. |
+| `diagnose-git-state.ps1/.sh` | `GitTroubleshooter` | Analyzes branch state, dirty working tree, diverged commits, and merge/rebase status. |
+| `run-security-audit.ps1/.sh` | `SecurityAuditor`, `DevOpsEngineer` | Universal dependency CVE audit runner (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`). |
+| `check-test-coverage.ps1/.sh` | `Tester`, `Verifikation` | Parses Cobertura XML, LCOV, and coverage JSON to assert coverage threshold compliance. |
+| `lint-db-migrations.ps1/.sh` | `DatabaseSpecialist` | Lints database migrations for versioning, `.up.sql`/`.down.sql` symmetry, and destructive DDL statements. |
+| `lint-api-contracts.ps1/.sh` | `ApiContractSpecialist` | Validates OpenAPI schema structure, internal `$ref` pointers, Protobuf tags, and GraphQL schemas. |
+| `find-orphaned-assets.ps1/.sh` | `RefactoringSpecialist`, `DocumentationSpecialist` | Detects unreferenced media files and unindexed modular documentation files. |
+| `lint-ci-workflows.ps1/.sh` | `DevOpsEngineer` | Lints GitHub Actions workflows for syntax, least-privilege `permissions:`, and `-NoProfile` hygiene. |
+| `lint-docs.ps1/.sh` | `DocumentationSpecialist` | Validates relative markdown links and local file references. |
+| `get-arch-diff.ps1/.sh` | `ArchitectureSync` | Identifies modified host files since last sync commit, strictly excluding submodules. |
+| `record-telemetry.ps1/.sh` | `Control` | Zero-overhead lifecycle event and duration recorder. |
+| `show-telemetry.ps1/.sh` | `Control` | Formats local telemetry run history. |
+| `run-evals.ps1/.sh` | `Control` | Runs synthetic evaluation cases ([`evals/eval-cases.json`](evals/eval-cases.json)) against governance invariants. |
+| `test-skills.ps1/.sh` | CI / Quality Gate | Comprehensive 38-step test harness validating all skills, scripts, links, and line endings. |
 
 ## Lifecycle Action Execution Governance
 
