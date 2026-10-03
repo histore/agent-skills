@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "Universal, language-agnostic Clean Architecture layer boundaries and Clean Code metrics.",
+  "metrics": {
+    "max_file_lines": 500,
+    "max_function_lines": 60,
+    "max_nesting_depth": 4
+  },
+  "layer_boundaries": [
+    {
+      "layer": "domain",
+      "path_pattern": "(?i)(^|[\\\\/])(domain|entities|core)[\\\\/]",
+      "forbidden_imports": [
+        "infrastructure",
+        "infra",
+        "database",
+        "sql",
+        "repository\\.impl",
+        "ui",
+        "views",
+        "controllers",
+        "presentation",
+        "web",
+        "http",
+        "actix",
+        "axum",
+        "express"
+      ],
+      "message": "Domain layer must remain strictly decoupled from Infrastructure, Database, and UI delivery mechanisms."
+    },
+    {
+      "layer": "application",
+      "path_pattern": "(?i)(^|[\\\\/])(application|usecases)[\\\\/]",
+      "forbidden_imports": [
+        "ui",
+        "views",
+        "presentation",
+        "react",
+        "vue",
+        "avalonia",
+        "wpf"
+      ],
+      "message": "Application / Use Cases layer must remain UI- and presenter-agnostic."
+    }
+  ]
+}

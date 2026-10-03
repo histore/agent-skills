@@ -543,6 +543,25 @@ if (Test-Path $lintDocsPs1) {
     }
 }
 
+# 31. Validate Clean Architecture rules and linter scripts
+Write-Host "`n31. Validating Clean Architecture rules and linter scripts..." -ForegroundColor Yellow
+$cleanArchRulesFile = Join-Path $repoRoot "rules\clean-architecture.json"
+$cleanArchPs1 = Join-Path $repoRoot "scripts\lint-clean-architecture.ps1"
+$cleanArchSh = Join-Path $repoRoot "scripts\lint-clean-architecture.sh"
+
+Assert-Condition (Test-Path $cleanArchRulesFile) "rules/clean-architecture.json exists" "rules/clean-architecture.json not found"
+Assert-Condition (Test-Path $cleanArchPs1) "scripts/lint-clean-architecture.ps1 exists" "scripts/lint-clean-architecture.ps1 not found"
+Assert-Condition (Test-Path $cleanArchSh) "scripts/lint-clean-architecture.sh exists" "scripts/lint-clean-architecture.sh not found"
+
+if (Test-Path $cleanArchPs1) {
+    try {
+        $archOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $cleanArchPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($archOut.status -eq "pass") "lint-clean-architecture.ps1 passes on repository files (0 errors)" "lint-clean-architecture.ps1 detected $($archOut.error_count) errors"
+    } catch {
+        Assert-Condition $false "lint-clean-architecture.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
