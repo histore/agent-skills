@@ -17,6 +17,7 @@ Prior to any LLM-based semantic review, execute native project validation tools:
 1. **Compilation / Build Check**: Run project build in quiet mode (`dotnet build -v q`, `cargo check -q`, `npm run build`). Must produce 0 errors and 0 fatal warnings.
 2. **Linter Check**: Run project linter in quiet mode (`cargo clippy -q`, `npm run lint`).
 3. **Automated Test Suite**: Run native test runner in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`).
+4. **Test Coverage Threshold**: When test coverage reports are generated, verify coverage deterministically via `check-test-coverage.ps1` (or `check-test-coverage.sh`): `pwsh -NoProfile -File ./scripts/check-test-coverage.ps1 -Threshold 80 -JsonOutput`.
 - **Immediate Rejection**: If Stage 1 fails (exit code != 0 or failures > 0), halt immediately and return `REVISION_REQUIRED` with the exact compiler/test error output. Do NOT consume LLM tokens performing semantic code review on broken builds or failing tests.
 
 ### Stage 2: Traceability & Quality Gate (Concise Verification)

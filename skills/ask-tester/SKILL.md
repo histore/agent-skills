@@ -31,6 +31,9 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 7. **Final Test Suite Validation**:
    - Execute the complete test suite against production code in quiet mode, reporting concise summary metrics (passed/failed counts) without log dumping.
    - Verify 100% pass rate with 0 failures before verification sign-off.
+8. **Automated Coverage Threshold Gate**:
+   - Verify line and branch test coverage deterministically via `check-test-coverage.ps1` (or `check-test-coverage.sh`):
+     `pwsh -NoProfile -File ./scripts/check-test-coverage.ps1 -Threshold 80 -JsonOutput`
 
 ## Input
 - Functional requirements and acceptance criteria from `RequirementEngineer`.

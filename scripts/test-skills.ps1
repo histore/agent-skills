@@ -596,6 +596,23 @@ if (Test-Path $secAuditPs1) {
     }
 }
 
+# 34. Validate test coverage parser scripts
+Write-Host "`n34. Validating test coverage parser scripts..." -ForegroundColor Yellow
+$coveragePs1 = Join-Path $repoRoot "scripts\check-test-coverage.ps1"
+$coverageSh = Join-Path $repoRoot "scripts\check-test-coverage.sh"
+
+Assert-Condition (Test-Path $coveragePs1) "scripts/check-test-coverage.ps1 exists" "scripts/check-test-coverage.ps1 not found"
+Assert-Condition (Test-Path $coverageSh) "scripts/check-test-coverage.sh exists" "scripts/check-test-coverage.sh not found"
+
+if (Test-Path $coveragePs1) {
+    try {
+        $covOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $coveragePs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($covOut.status -eq "pass") "check-test-coverage.ps1 executes cleanly and returns pass ($($covOut.status))" "check-test-coverage.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "check-test-coverage.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

@@ -550,6 +550,13 @@ if [ -f "$REPO_ROOT/scripts/run-security-audit.ps1" ] && [ -f "$REPO_ROOT/script
 else
     assert_condition 1 "run-security-audit scripts exist (.ps1 and .sh)" "run-security-audit scripts missing"
 fi
+# 34. Validate test coverage parser scripts
+echo -e "\n\033[33m34. Validating test coverage parser scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/check-test-coverage.ps1" ] && [ -f "$REPO_ROOT/scripts/check-test-coverage.sh" ]; then
+    assert_condition 0 "check-test-coverage scripts exist (.ps1 and .sh)" "check-test-coverage scripts missing"
+else
+    assert_condition 1 "check-test-coverage scripts exist (.ps1 and .sh)" "check-test-coverage scripts missing"
+fi
 
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
