@@ -521,6 +521,19 @@ if [ -f "$REPO_ROOT/scripts/lint-docs.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-do
 else
     assert_condition 1 "lint-docs scripts exist (.ps1 and .sh)" "lint-docs scripts missing"
 fi
+# 31. Validate Clean Architecture rules and linter scripts
+echo -e "\n\033[33m31. Validating Clean Architecture rules and linter scripts...\033[0m"
+if [ -f "$REPO_ROOT/rules/clean-architecture.json" ]; then
+    assert_condition 0 "rules/clean-architecture.json exists" "rules/clean-architecture.json not found"
+else
+    assert_condition 1 "rules/clean-architecture.json exists" "rules/clean-architecture.json not found"
+fi
+
+if [ -f "$REPO_ROOT/scripts/lint-clean-architecture.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-clean-architecture.sh" ]; then
+    assert_condition 0 "lint-clean-architecture scripts exist (.ps1 and .sh)" "lint-clean-architecture scripts missing"
+else
+    assert_condition 1 "lint-clean-architecture scripts exist (.ps1 and .sh)" "lint-clean-architecture scripts missing"
+fi
 
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
