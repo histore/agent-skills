@@ -60,6 +60,8 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ### Step 4: Verification & Boy Scout Cleanup
 - Confirm all tests pass with 0 failures.
 - Verify formatting, doc comments (in English), and LF line endings.
+- Audit workspace for unreferenced images, media, or unindexed modular documentation files via `find-orphaned-assets.ps1` (or `find-orphaned-assets.sh`):
+  `pwsh -NoProfile -File ./scripts/find-orphaned-assets.ps1 -JsonOutput`
 
 ---
 

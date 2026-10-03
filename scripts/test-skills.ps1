@@ -647,6 +647,40 @@ if (Test-Path $apiContractPs1) {
     }
 }
 
+# 37. Validate orphaned assets detector scripts
+Write-Host "`n37. Validating orphaned assets detector scripts..." -ForegroundColor Yellow
+$orphansPs1 = Join-Path $repoRoot "scripts\find-orphaned-assets.ps1"
+$orphansSh = Join-Path $repoRoot "scripts\find-orphaned-assets.sh"
+
+Assert-Condition (Test-Path $orphansPs1) "scripts/find-orphaned-assets.ps1 exists" "scripts/find-orphaned-assets.ps1 not found"
+Assert-Condition (Test-Path $orphansSh) "scripts/find-orphaned-assets.sh exists" "scripts/find-orphaned-assets.sh not found"
+
+if (Test-Path $orphansPs1) {
+    try {
+        $orphOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $orphansPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($orphOut.status -eq "pass") "find-orphaned-assets.ps1 executes cleanly and returns pass ($($orphOut.status))" "find-orphaned-assets.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "find-orphaned-assets.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+# 38. Validate CI workflow linter scripts
+Write-Host "`n38. Validating CI workflow linter scripts..." -ForegroundColor Yellow
+$ciLintPs1 = Join-Path $repoRoot "scripts\lint-ci-workflows.ps1"
+$ciLintSh = Join-Path $repoRoot "scripts\lint-ci-workflows.sh"
+
+Assert-Condition (Test-Path $ciLintPs1) "scripts/lint-ci-workflows.ps1 exists" "scripts/lint-ci-workflows.ps1 not found"
+Assert-Condition (Test-Path $ciLintSh) "scripts/lint-ci-workflows.sh exists" "scripts/lint-ci-workflows.sh not found"
+
+if (Test-Path $ciLintPs1) {
+    try {
+        $ciOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $ciLintPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($ciOut.status -eq "pass") "lint-ci-workflows.ps1 executes cleanly and returns pass ($($ciOut.status))" "lint-ci-workflows.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "lint-ci-workflows.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

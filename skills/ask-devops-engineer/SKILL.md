@@ -39,6 +39,9 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 * **Continuous Security & Vulnerability Auditing**:
   - Integrate deterministic dependency vulnerability checks into CI jobs via `run-security-audit.ps1` (or `run-security-audit.sh`):
     `pwsh -NoProfile -File ./scripts/run-security-audit.ps1 -Strict`
+* **Automated CI Workflow Linter**:
+  - Validate GitHub Actions workflow syntax, mandatory fields, permissions, and PowerShell `-NoProfile` hygiene via `lint-ci-workflows.ps1` (or `lint-ci-workflows.sh`):
+    `pwsh -NoProfile -File ./scripts/lint-ci-workflows.ps1 -JsonOutput`
 
 ### 2. Multi-Stage Docker & Container Architecture
 * **Lean Runtime Images**:
