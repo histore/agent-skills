@@ -498,6 +498,30 @@ else
     assert_condition 1 "audit-i18n scripts exist (.ps1 and .sh)" "audit-i18n scripts missing"
 fi
 
+# 28. Validate PR summary generator scripts
+echo -e "\n\033[33m28. Validating PR summary generator scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/generate-pr-summary.ps1" ] && [ -f "$REPO_ROOT/scripts/generate-pr-summary.sh" ]; then
+    assert_condition 0 "generate-pr-summary scripts exist (.ps1 and .sh)" "generate-pr-summary scripts missing"
+else
+    assert_condition 1 "generate-pr-summary scripts exist (.ps1 and .sh)" "generate-pr-summary scripts missing"
+fi
+
+# 29. Validate Git state diagnostic scripts
+echo -e "\n\033[33m29. Validating Git state diagnostic scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/diagnose-git-state.ps1" ] && [ -f "$REPO_ROOT/scripts/diagnose-git-state.sh" ]; then
+    assert_condition 0 "diagnose-git-state scripts exist (.ps1 and .sh)" "diagnose-git-state scripts missing"
+else
+    assert_condition 1 "diagnose-git-state scripts exist (.ps1 and .sh)" "diagnose-git-state scripts missing"
+fi
+
+# 30. Validate documentation link linter scripts
+echo -e "\n\033[33m30. Validating documentation link linter scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/lint-docs.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-docs.sh" ]; then
+    assert_condition 0 "lint-docs scripts exist (.ps1 and .sh)" "lint-docs scripts missing"
+else
+    assert_condition 1 "lint-docs scripts exist (.ps1 and .sh)" "lint-docs scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

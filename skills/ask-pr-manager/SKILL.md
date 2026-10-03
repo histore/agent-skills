@@ -56,9 +56,14 @@ PRManager strictly observes six governance principles:
 3. If an atypical state is detected (e.g., merge conflicts with target branch), trigger the **Atypical State Gate** and await user guidance.
 
 #### Step 2: Inspect Branch History & Draft PR Description
-1. Run `git log -n 50 main..HEAD --oneline` to inspect commits on the branch.
-2. Extract relevant Requirement IDs (e.g. `REQ-CORE-010`) and Conventional Commit scopes.
-3. Draft PR description using host project `.github/pull_request_template.md` (if present), fallback to submodule template (`_agents/.github/pull_request_template.md` or `.agents/.github/pull_request_template.md`), or use the standard structure:
+1. Generate structured PR description and requirement summaries deterministically via `generate-pr-summary.ps1` (or `generate-pr-summary.sh`):
+   ```powershell
+   $prSummaryScript = @("./_agents/scripts/generate-pr-summary.ps1", "./.agents/scripts/generate-pr-summary.ps1", "./scripts/generate-pr-summary.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+   pwsh -NoProfile -ExecutionPolicy Bypass -File $prSummaryScript
+   ```
+2. Run `git log -n 50 main..HEAD --oneline` to inspect commits on the branch.
+3. Extract relevant Requirement IDs (e.g. `REQ-CORE-010`) and Conventional Commit scopes.
+4. Draft PR description using host project `.github/pull_request_template.md` (if present), fallback to submodule template (`_agents/.github/pull_request_template.md` or `.agents/.github/pull_request_template.md`), or use the standard structure:
    - **Summary**: Concise explanation of the change.
    - **Requirements Addressed**: List of completed Requirement IDs.
    - **Architectural & Design Decisions**: Key patterns, contracts, or restructuring.

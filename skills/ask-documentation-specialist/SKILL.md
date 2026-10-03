@@ -80,6 +80,7 @@ Adhere strictly to the project's native documentation conventions:
   - Concise value proposition, architecture overview, and quick-start instructions.
   - Tabulated command cheat sheets, configuration options, and environment variables.
   - Clickable markdown links to local files (`[file](file:///path)`).
+* Validate documentation integrity, internal links, and architecture parity via `lint-docs.ps1` (or `lint-docs.sh`): `pwsh -NoProfile -File ./scripts/lint-docs.ps1`.
 * Verify code snippets in documentation compile or execute accurately.
 
 ### 4. Non-Destructive Code Annotation

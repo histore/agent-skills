@@ -495,6 +495,54 @@ if (Test-Path $auditI18nPs1) {
     }
 }
 
+# 28. Validate PR summary generator scripts
+Write-Host "`n28. Validating PR summary generator scripts..." -ForegroundColor Yellow
+$genPrPs1 = Join-Path $repoRoot "scripts\generate-pr-summary.ps1"
+$genPrSh = Join-Path $repoRoot "scripts\generate-pr-summary.sh"
+Assert-Condition (Test-Path $genPrPs1) "scripts/generate-pr-summary.ps1 exists" "scripts/generate-pr-summary.ps1 not found"
+Assert-Condition (Test-Path $genPrSh) "scripts/generate-pr-summary.sh exists" "scripts/generate-pr-summary.sh not found"
+
+if (Test-Path $genPrPs1) {
+    try {
+        $prOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $genPrPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($null -ne $prOut.suggested_title) "generate-pr-summary.ps1 outputs valid JSON with title" "generate-pr-summary.ps1 invalid output"
+    } catch {
+        Assert-Condition $false "generate-pr-summary.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+# 29. Validate Git state diagnostic scripts
+Write-Host "`n29. Validating Git state diagnostic scripts..." -ForegroundColor Yellow
+$diagGitPs1 = Join-Path $repoRoot "scripts\diagnose-git-state.ps1"
+$diagGitSh = Join-Path $repoRoot "scripts\diagnose-git-state.sh"
+Assert-Condition (Test-Path $diagGitPs1) "scripts/diagnose-git-state.ps1 exists" "scripts/diagnose-git-state.ps1 not found"
+Assert-Condition (Test-Path $diagGitSh) "scripts/diagnose-git-state.sh exists" "scripts/diagnose-git-state.sh not found"
+
+if (Test-Path $diagGitPs1) {
+    try {
+        $diagOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $diagGitPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($null -ne $diagOut.state) "diagnose-git-state.ps1 outputs valid state object ($($diagOut.state))" "diagnose-git-state.ps1 invalid output"
+    } catch {
+        Assert-Condition $false "diagnose-git-state.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+# 30. Validate documentation link linter scripts
+Write-Host "`n30. Validating documentation link linter scripts..." -ForegroundColor Yellow
+$lintDocsPs1 = Join-Path $repoRoot "scripts\lint-docs.ps1"
+$lintDocsSh = Join-Path $repoRoot "scripts\lint-docs.sh"
+Assert-Condition (Test-Path $lintDocsPs1) "scripts/lint-docs.ps1 exists" "scripts/lint-docs.ps1 not found"
+Assert-Condition (Test-Path $lintDocsSh) "scripts/lint-docs.sh exists" "scripts/lint-docs.sh not found"
+
+if (Test-Path $lintDocsPs1) {
+    try {
+        $docsOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $lintDocsPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($docsOut.status -eq "pass") "lint-docs.ps1 passes on repository files (0 broken links)" "lint-docs.ps1 found broken links: $($docsOut.broken_links_count)"
+    } catch {
+        Assert-Condition $false "lint-docs.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
