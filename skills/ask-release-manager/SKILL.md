@@ -112,15 +112,20 @@ Releases must only be tagged on the production `main` branch.
 
 ### Step 4: Tag Creation & Push (Post-Confirmation)
 Once confirmed or resolved via Adaptive Gate:
-1. Create the annotated Git tag with the `v` prefix:
+1. Generate or update `CHANGELOG.md` deterministically via `generate-changelog.ps1` (or `generate-changelog.sh`):
+   ```powershell
+   $changelogScript = @("./_agents/scripts/generate-changelog.ps1", "./.agents/scripts/generate-changelog.ps1", "./scripts/generate-changelog.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+   pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript -Version "v<Version>" -OutputFile CHANGELOG.md -Prepend
+   ```
+2. Create the annotated Git tag with the `v` prefix:
    ```powershell
    git tag -a v<Version> -m "Release v<Version>"
    ```
-2. Push the tag to the remote repository:
+3. Push the tag to the remote repository:
    ```powershell
    git push origin v<Version>
    ```
-3. Output confirmation with `git tag -l -n1 v<Version>`.
+4. Output confirmation with `git tag -l -n1 v<Version>`.
 
 ### Step 5: Proactive Next-Step Recommendation
 Report success and offer logical next steps:
