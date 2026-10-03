@@ -431,6 +431,38 @@ if (Test-Path $runFastGatePs1) {
     }
 }
 
+# 24. Validate guardrails scanner scripts
+Write-Host "`n24. Validating guardrails scanner scripts..." -ForegroundColor Yellow
+$scanGuardPs1 = Join-Path $repoRoot "scripts\scan-guardrails.ps1"
+$scanGuardSh = Join-Path $repoRoot "scripts\scan-guardrails.sh"
+Assert-Condition (Test-Path $scanGuardPs1) "scripts/scan-guardrails.ps1 exists" "scripts/scan-guardrails.ps1 not found"
+Assert-Condition (Test-Path $scanGuardSh) "scripts/scan-guardrails.sh exists" "scripts/scan-guardrails.sh not found"
+
+if (Test-Path $scanGuardPs1) {
+    try {
+        $guardOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($guardOut.status -eq "pass") "scan-guardrails.ps1 passes on repository files (0 violations)" "scan-guardrails.ps1 detected $($guardOut.violations_count) violations"
+    } catch {
+        Assert-Condition $false "scan-guardrails.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+# 25. Validate requirements linter scripts
+Write-Host "`n25. Validating requirements linter scripts..." -ForegroundColor Yellow
+$lintReqPs1 = Join-Path $repoRoot "scripts\lint-requirements.ps1"
+$lintReqSh = Join-Path $repoRoot "scripts\lint-requirements.sh"
+Assert-Condition (Test-Path $lintReqPs1) "scripts/lint-requirements.ps1 exists" "scripts/lint-requirements.ps1 not found"
+Assert-Condition (Test-Path $lintReqSh) "scripts/lint-requirements.sh exists" "scripts/lint-requirements.sh not found"
+
+if (Test-Path $lintReqPs1) {
+    try {
+        $nextIdOut = (pwsh -NoProfile -ExecutionPolicy Bypass -File $lintReqPs1 -NextId -Scope "AUTH").Trim()
+        Assert-Condition ($nextIdOut -match '^REQ-AUTH-[0-9]{3}$') "lint-requirements.ps1 allocates valid scoped next ID ($nextIdOut)" "lint-requirements.ps1 invalid next ID output: $nextIdOut"
+    } catch {
+        Assert-Condition $false "lint-requirements.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

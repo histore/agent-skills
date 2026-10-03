@@ -48,6 +48,7 @@ CommitManager strictly observes six governance principles:
 
 #### Step 1: Inspect Status & Safety Check
 - Run `git status -s` and `git diff --stat` (use targeted `git diff -- <file>` only for specific files to avoid token bloat).
+- Run deterministic pre-commit guardrail verification via `scan-guardrails.ps1` (or `scan-guardrails.sh`): `pwsh -NoProfile -File ./scripts/scan-guardrails.ps1 -StagedOnly` to catch secrets, CRLF line endings, and submodule boundary leaks before committing.
 - Verify working tree is not in an atypical state (detached HEAD, merge conflict, sensitive untracked files, or unexpected submodule modifications in `_agents` / `.agents`). If a submodule is modified (`Subproject commit <hash>`), verify whether the submodule pointer update is part of the task before staging. If atypical, trigger the **Atypical State & Safety Confirmation Gate**, pause, and suggest delegating to `GitTroubleshooter`.
 - If there are no changes to commit, inform the user: *"Working tree clean, nothing to commit."*
 

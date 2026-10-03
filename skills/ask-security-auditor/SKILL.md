@@ -18,6 +18,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ## Responsibilities
 
 ### 1. Secret & Credential Leak Prevention (Zero Secret Leak Policy)
+- Execute deterministic pre-commit scans via `scan-guardrails.ps1` (or `scan-guardrails.sh`): `pwsh -NoProfile -File ./scripts/scan-guardrails.ps1 -StagedOnly`.
 - Audit git diffs, staged files, app configs, log statements, and test fixtures for accidental secrets.
 - Detect high-entropy strings, API keys, Personal Access Tokens (PAT), private SSH keys (`-----BEGIN ... PRIVATE KEY-----`), passwords, and connection strings.
 - Verify that `.gitignore` prevents tracking of sensitive files (`*.env`, `*.key`, `*.pfx`, credentials).

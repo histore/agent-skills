@@ -466,6 +466,22 @@ else
     assert_condition 1 "run-fast-gate scripts exist (.ps1 and .sh)" "run-fast-gate scripts missing"
 fi
 
+# 24. Validate guardrails scanner scripts
+echo -e "\n\033[33m24. Validating guardrails scanner scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/scan-guardrails.ps1" ] && [ -f "$REPO_ROOT/scripts/scan-guardrails.sh" ]; then
+    assert_condition 0 "scan-guardrails scripts exist (.ps1 and .sh)" "scan-guardrails scripts missing"
+else
+    assert_condition 1 "scan-guardrails scripts exist (.ps1 and .sh)" "scan-guardrails scripts missing"
+fi
+
+# 25. Validate requirements linter scripts
+echo -e "\n\033[33m25. Validating requirements linter scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/lint-requirements.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-requirements.sh" ]; then
+    assert_condition 0 "lint-requirements scripts exist (.ps1 and .sh)" "lint-requirements scripts missing"
+else
+    assert_condition 1 "lint-requirements scripts exist (.ps1 and .sh)" "lint-requirements scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

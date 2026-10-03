@@ -19,8 +19,9 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
    - **Hub Role**: The root `REQUIREMENTS.md` remains the central registry, housing cross-cutting non-functional requirements (NFRs), global constraints, and an index linking to all module requirement files.
    - **Template References**: When establishing or modularizing requirements in the target project, reference the standard templates provided in the submodule: resolve from `./_agents/docs/templates/` (Antigravity/Gemini), `./.agents/docs/templates/` (Copilot/standards), or `./docs/templates/` (standalone): `REQUIREMENTS_TEMPLATE.md` and `REQUIREMENTS_MODULE_TEMPLATE.md`. Never edit templates within the submodule; always author project requirements in the host project root or `docs/requirements/modules/`.
    - **Proactive Modularization Advice**: When a monolithic `REQUIREMENTS.md` crosses scaling thresholds or causes cognitive/token bloat, proactively propose splitting into module-specific files to the user.
-3. **Namespaced Requirement IDs**:
+3. **Namespaced Requirement IDs & Deterministic Allocation**:
    - All requirement IDs must follow the scoped pattern `REQ-<SCOPE>-XXX` (e.g. `REQ-AUTH-001`, `REQ-CORE-002`, `REQ-UI-005`, `REQ-NFR-001`).
+   - Validate uniqueness or allocate the next sequential ID with zero token overhead via `lint-requirements.ps1` (or `lint-requirements.sh`): `pwsh -NoProfile -File ./scripts/lint-requirements.ps1 -NextId -Scope "<SCOPE>"`.
 4. **Lifecycle State Tracking**:
    - Requirements must define an explicit state: `PROPOSED` | `APPROVED` | `IN_PROGRESS` | `IMPLEMENTED` | `VERIFIED` | `DEPRECATED`.
 5. **Conflict & Duplicate Resolution**:
