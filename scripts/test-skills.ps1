@@ -613,6 +613,40 @@ if (Test-Path $coveragePs1) {
     }
 }
 
+# 35. Validate database migration linter scripts
+Write-Host "`n35. Validating database migration linter scripts..." -ForegroundColor Yellow
+$dbMigPs1 = Join-Path $repoRoot "scripts\lint-db-migrations.ps1"
+$dbMigSh = Join-Path $repoRoot "scripts\lint-db-migrations.sh"
+
+Assert-Condition (Test-Path $dbMigPs1) "scripts/lint-db-migrations.ps1 exists" "scripts/lint-db-migrations.ps1 not found"
+Assert-Condition (Test-Path $dbMigSh) "scripts/lint-db-migrations.sh exists" "scripts/lint-db-migrations.sh not found"
+
+if (Test-Path $dbMigPs1) {
+    try {
+        $dbOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $dbMigPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($dbOut.status -eq "pass") "lint-db-migrations.ps1 executes cleanly and returns pass ($($dbOut.status))" "lint-db-migrations.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "lint-db-migrations.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+# 36. Validate API contract linter scripts
+Write-Host "`n36. Validating API contract linter scripts..." -ForegroundColor Yellow
+$apiContractPs1 = Join-Path $repoRoot "scripts\lint-api-contracts.ps1"
+$apiContractSh = Join-Path $repoRoot "scripts\lint-api-contracts.sh"
+
+Assert-Condition (Test-Path $apiContractPs1) "scripts/lint-api-contracts.ps1 exists" "scripts/lint-api-contracts.ps1 not found"
+Assert-Condition (Test-Path $apiContractSh) "scripts/lint-api-contracts.sh exists" "scripts/lint-api-contracts.sh not found"
+
+if (Test-Path $apiContractPs1) {
+    try {
+        $apiOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $apiContractPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($apiOut.status -eq "pass") "lint-api-contracts.ps1 executes cleanly and returns pass ($($apiOut.status))" "lint-api-contracts.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "lint-api-contracts.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

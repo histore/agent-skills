@@ -42,6 +42,9 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - TypeScript / Node: Prisma (`prisma migrate`) / Drizzle / TypeORM
   - Python: Alembic (`alembic revision --autogenerate`)
   - Go: Goose / Golang-Migrate
+* **Deterministic Migration Linter**:
+  - Audit migration naming, ordering, duplicate versions, rollback symmetry, and dangerous DDL operations via `lint-db-migrations.ps1` (or `lint-db-migrations.sh`):
+    `pwsh -NoProfile -File ./scripts/lint-db-migrations.ps1 -JsonOutput`
 
 ### 4. Query Performance & Hotspot Remediation
 * **Eliminate N+1 Queries**: Detect and resolve lazy-loading traps in ORM queries using explicit eager loading (e.g. `Include()` in EF Core, `select_related()` / `prefetch_related()` in Python, join fetches in SQL).

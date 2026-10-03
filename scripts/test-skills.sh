@@ -557,6 +557,21 @@ if [ -f "$REPO_ROOT/scripts/check-test-coverage.ps1" ] && [ -f "$REPO_ROOT/scrip
 else
     assert_condition 1 "check-test-coverage scripts exist (.ps1 and .sh)" "check-test-coverage scripts missing"
 fi
+# 35. Validate database migration linter scripts
+echo -e "\n\033[33m35. Validating database migration linter scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/lint-db-migrations.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-db-migrations.sh" ]; then
+    assert_condition 0 "lint-db-migrations scripts exist (.ps1 and .sh)" "lint-db-migrations scripts missing"
+else
+    assert_condition 1 "lint-db-migrations scripts exist (.ps1 and .sh)" "lint-db-migrations scripts missing"
+fi
+
+# 36. Validate API contract linter scripts
+echo -e "\n\033[33m36. Validating API contract linter scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/lint-api-contracts.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-api-contracts.sh" ]; then
+    assert_condition 0 "lint-api-contracts scripts exist (.ps1 and .sh)" "lint-api-contracts scripts missing"
+else
+    assert_condition 1 "lint-api-contracts scripts exist (.ps1 and .sh)" "lint-api-contracts scripts missing"
+fi
 
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
