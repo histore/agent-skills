@@ -543,6 +543,14 @@ else
     assert_condition 1 "generate-changelog scripts exist (.ps1 and .sh)" "generate-changelog scripts missing"
 fi
 
+# 33. Validate security audit scripts
+echo -e "\n\033[33m33. Validating security audit scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/run-security-audit.ps1" ] && [ -f "$REPO_ROOT/scripts/run-security-audit.sh" ]; then
+    assert_condition 0 "run-security-audit scripts exist (.ps1 and .sh)" "run-security-audit scripts missing"
+else
+    assert_condition 1 "run-security-audit scripts exist (.ps1 and .sh)" "run-security-audit scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

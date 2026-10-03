@@ -36,6 +36,9 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
       contents: read
     ```
   - Never print secrets or raw tokens in build logs; reference credentials strictly via `${{ secrets.MY_SECRET }}`.
+* **Continuous Security & Vulnerability Auditing**:
+  - Integrate deterministic dependency vulnerability checks into CI jobs via `run-security-audit.ps1` (or `run-security-audit.sh`):
+    `pwsh -NoProfile -File ./scripts/run-security-audit.ps1 -Strict`
 
 ### 2. Multi-Stage Docker & Container Architecture
 * **Lean Runtime Images**:
