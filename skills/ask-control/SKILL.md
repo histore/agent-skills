@@ -62,6 +62,17 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
      - At phase transitions (e.g. from Architecture/Contracts to `Developer` TDD) and between consecutive user tasks in the same session, condense intermediate history into a compact **State Checkpoint** (Active Goal, Touched Files, Architectural Facts, Immediate Next Step).
      - Discard verbose compiler/terminal outputs, abandoned code drafts, and conversational chatter.
      - Keep top-level system rules intact at the start of context to retain prompt caching (KV-cache) while eliminating trailing historical noise.
+     - **Observability & Telemetry Hook**: Record structured phase events and durations locally without token overhead:
+       - Windows:
+         ```powershell
+         $telemetryScript = @("./_agents/scripts/record-telemetry.ps1", "./.agents/scripts/record-telemetry.ps1", "./scripts/record-telemetry.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+         if ($telemetryScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $telemetryScript -Phase "<PhaseName>" -Event "phase_end" -Status "success" -DurationMs <Ms> -Profile "<Profile>" }
+         ```
+       - macOS / Linux:
+         ```bash
+         for p in ./_agents/scripts/record-telemetry.sh ./.agents/scripts/record-telemetry.sh ./scripts/record-telemetry.sh; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
+         [ -n "$SCRIPT_PATH" ] && bash "$SCRIPT_PATH" --phase "<PhaseName>" --event "phase_end" --status "success" --duration-ms <Ms> --profile "<Profile>"
+         ```
 
 6. **Two-Stage Quality Gating, Developer Review & Result Aggregation**:
    - **Two-Stage Quality Gate (Shift-Left Validation)**:
@@ -140,6 +151,18 @@ Roles evaluate cognitive capability by **Tier criteria** rather than hardcoded m
 - **Gemini / Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
 - **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. When sharing skills across multiple AI clients or targeting Copilot, configure skills under `.agents` (or create a symbolic link from `.agents` to `_agents`). Submodule internal paths are never modified during host project tasks.
 - **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
+
+### 5. Evaluation Benchmarks & Lifecycle Telemetry
+- **Eval Benchmark Suite**: Validate governance rules, anti-ceremony invariants, safe-Rust policies, and circuit breaker behavior via `run-evals.ps1` (or `run-evals.sh`):
+  ```powershell
+  $evalScript = @("./_agents/scripts/run-evals.ps1", "./.agents/scripts/run-evals.ps1", "./scripts/run-evals.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $evalScript
+  ```
+- **Lifecycle Telemetry Dashboard**: Inspect phase durations, execution counts, and profile metrics across sessions via `show-telemetry.ps1` (or `show-telemetry.sh`):
+  ```powershell
+  $showScript = @("./_agents/scripts/show-telemetry.ps1", "./.agents/scripts/show-telemetry.ps1", "./scripts/show-telemetry.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $showScript
+  ```
 
 ---
 

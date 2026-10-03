@@ -351,6 +351,56 @@ $controlContent = Get-Content -Path $controlSkill -Raw -Encoding UTF8
 $hasDeterministicDetect = ($controlContent -match 'Where-Object \{ Test-Path \$_ \}')
 Assert-Condition $hasDeterministicDetect "Control includes deterministic detect-models path resolution" "Control lacks deterministic detect-models path resolution"
 
+# 20. Validate evals dataset and runner integrity
+Write-Host "`n20. Validating evals dataset and runner integrity..." -ForegroundColor Yellow
+$evalsJsonFile = Join-Path $repoRoot "evals\eval-cases.json"
+$evalsExist = Test-Path $evalsJsonFile
+Assert-Condition $evalsExist "evals/eval-cases.json exists" "evals/eval-cases.json not found"
+
+if ($evalsExist) {
+    try {
+        $rawEvals = Get-Content -Path $evalsJsonFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        $hasCases = ($null -ne $rawEvals.eval_cases -and $rawEvals.eval_cases.Count -ge 5)
+        Assert-Condition $hasCases "evals/eval-cases.json contains at least 5 benchmark test cases (Found $($rawEvals.eval_cases.Count))" "evals/eval-cases.json has fewer than 5 cases"
+    } catch {
+        Assert-Condition $false "evals/eval-cases.json parses as valid JSON" "Failed to parse evals/eval-cases.json: $_"
+    }
+}
+
+$runEvalsPs1 = Join-Path $repoRoot "scripts\run-evals.ps1"
+$runEvalsSh = Join-Path $repoRoot "scripts\run-evals.sh"
+Assert-Condition (Test-Path $runEvalsPs1) "scripts/run-evals.ps1 exists" "scripts/run-evals.ps1 not found"
+Assert-Condition (Test-Path $runEvalsSh) "scripts/run-evals.sh exists" "scripts/run-evals.sh not found"
+
+if (Test-Path $runEvalsPs1) {
+    try {
+        $evalOutput = pwsh -NoProfile -ExecutionPolicy Bypass -File $runEvalsPs1 -JsonOutput | ConvertFrom-Json
+        $evalPass = ($evalOutput.failed -eq 0 -and $evalOutput.passed -ge 5)
+        Assert-Condition $evalPass "run-evals.ps1 benchmark passes 100% (Passed: $($evalOutput.passed)/$($evalOutput.total))" "run-evals.ps1 failed benchmarks: $($evalOutput.failed) failures"
+    } catch {
+        Assert-Condition $false "run-evals.ps1 executes successfully" "Execution error running run-evals.ps1: $_"
+    }
+}
+
+# 21. Validate telemetry logging and dashboard scripts
+Write-Host "`n21. Validating telemetry logging and dashboard scripts..." -ForegroundColor Yellow
+$recordTelPs1 = Join-Path $repoRoot "scripts\record-telemetry.ps1"
+$recordTelSh = Join-Path $repoRoot "scripts\record-telemetry.sh"
+$showTelPs1 = Join-Path $repoRoot "scripts\show-telemetry.ps1"
+$showTelSh = Join-Path $repoRoot "scripts\show-telemetry.sh"
+
+Assert-Condition (Test-Path $recordTelPs1) "scripts/record-telemetry.ps1 exists" "scripts/record-telemetry.ps1 not found"
+Assert-Condition (Test-Path $recordTelSh) "scripts/record-telemetry.sh exists" "scripts/record-telemetry.sh not found"
+Assert-Condition (Test-Path $showTelPs1) "scripts/show-telemetry.ps1 exists" "scripts/show-telemetry.ps1 not found"
+Assert-Condition (Test-Path $showTelSh) "scripts/show-telemetry.sh exists" "scripts/show-telemetry.sh not found"
+
+# 22. Validate ask-control telemetry hook and eval integration
+Write-Host "`n22. Validating ask-control telemetry hook and eval integration..." -ForegroundColor Yellow
+$controlHasTelemetry = ($controlContent -match 'record-telemetry' -and $controlContent -match 'show-telemetry')
+Assert-Condition $controlHasTelemetry "Control documents record-telemetry and show-telemetry hooks" "Control missing telemetry hook documentation"
+$controlHasEvals = ($controlContent -match 'run-evals')
+Assert-Condition $controlHasEvals "Control documents run-evals benchmark integration" "Control missing run-evals documentation"
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

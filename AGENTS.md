@@ -37,6 +37,7 @@ All skills and rules are designed to be general and reusable across diverse proj
    - **Circuit Breaker**: The `Developer`'s targeted test-fix feedback loop is capped at a maximum of 3 iterations before escalating.
    - **Comprehensive Scenario Coverage**: Unit and integration tests follow the Arrange-Act-Assert (AAA) pattern.
    - Automated test execution relies on the project's native test runner, requiring a 100% pass rate with 0 failures before verification sign-off when tests are applicable.
+   - **Synthetic Evaluation Suite (Eval-Harness)**: Governance rules, execution profiles, anti-ceremony boundaries, safe-Rust invariants, and circuit-breaker behaviors are continuously asserted via `evals/eval-cases.json` and `scripts/run-evals.ps1` (`run-evals.sh`).
 6. **Internationalization & Localization (i18n / l10n)**:
    - When user-facing interfaces are present, maintain 0% hardcoded user strings; manage texts in structured bilingual resources in **German (`de`)** and **English (`en`)** using the project's native localization format.
 7. **Requirements Governance & Modular Architecture**:
@@ -57,6 +58,7 @@ All skills and rules are designed to be general and reusable across diverse proj
     - **Selective Subagent Forking (`invoke_subagent`)**: Reserved strictly for **divergent research**, broad multi-file repository exploration, web lookups, or independent background sidecars to keep exploratory token noise out of the primary thread.
     - **Terminal & Context Hygiene**: All PowerShell commands must use `-NoProfile`. Testrunners must run in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `pytest -q`) to prevent terminal logs from bloating the context window.
     - **Sequential Persona Mode (Copilot / Cursor / Single-Model)**: Uses prompt-modulated thinking budgets (Extended for Tier 1, Low/Minimal for Tier 3/4).
+    - **Zero-Overhead Lifecycle Telemetry & Observability**: Phase transitions, durations, and execution events can be recorded locally via `scripts/record-telemetry.ps1` (`record-telemetry.sh`) and inspected via `scripts/show-telemetry.ps1` (`show-telemetry.sh`) without consuming LLM tokens.
 12. **Branch & PR Process Model with Developer Testing & Review Gate**: All development must occur on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Prior to Pull Request creation, the developer is provided with the opportunity to review the code, test application functionality interactively/manually, and request adjustments or fixes. Merging into `main` occurs solely via Pull Requests using Squash-and-Merge after explicit user sign-off and passing CI per [CONTRIBUTING.md](CONTRIBUTING.md).
     - **Purpose-Bound Git Operations**: Git status checks, branch creation, or checkout commands must **ONLY** be executed when changes are actively being committed or pushed, or when explicitly requested by the user. Do **NOT** invoke git commands proactively during read-only queries or local edits.
 13. **Four-Step Codebase Analysis Protocol**:

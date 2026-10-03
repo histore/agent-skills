@@ -409,6 +409,49 @@ else
     assert_condition 1 "Control includes deterministic detect-models path resolution" "Control lacks deterministic detect-models path resolution"
 fi
 
+# 20. Validate evals dataset and runner integrity
+echo -e "\n\033[33m20. Validating evals dataset and runner integrity...\033[0m"
+EVALS_JSON_FILE="$REPO_ROOT/evals/eval-cases.json"
+if [ -f "$EVALS_JSON_FILE" ]; then
+    assert_condition 0 "evals/eval-cases.json exists" "evals/eval-cases.json not found"
+else
+    assert_condition 1 "evals/eval-cases.json exists" "evals/eval-cases.json not found"
+fi
+
+if [ -f "$REPO_ROOT/scripts/run-evals.ps1" ] && [ -f "$REPO_ROOT/scripts/run-evals.sh" ]; then
+    assert_condition 0 "run-evals scripts exist (.ps1 and .sh)" "run-evals scripts missing"
+else
+    assert_condition 1 "run-evals scripts exist (.ps1 and .sh)" "run-evals scripts missing"
+fi
+
+# 21. Validate telemetry logging and dashboard scripts
+echo -e "\n\033[33m21. Validating telemetry logging and dashboard scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/record-telemetry.ps1" ] && [ -f "$REPO_ROOT/scripts/record-telemetry.sh" ]; then
+    assert_condition 0 "record-telemetry scripts exist (.ps1 and .sh)" "record-telemetry scripts missing"
+else
+    assert_condition 1 "record-telemetry scripts exist (.ps1 and .sh)" "record-telemetry scripts missing"
+fi
+
+if [ -f "$REPO_ROOT/scripts/show-telemetry.ps1" ] && [ -f "$REPO_ROOT/scripts/show-telemetry.sh" ]; then
+    assert_condition 0 "show-telemetry scripts exist (.ps1 and .sh)" "show-telemetry scripts missing"
+else
+    assert_condition 1 "show-telemetry scripts exist (.ps1 and .sh)" "show-telemetry scripts missing"
+fi
+
+# 22. Validate ask-control telemetry hook and eval integration
+echo -e "\n\033[33m22. Validating ask-control telemetry hook and eval integration...\033[0m"
+if grep -q 'record-telemetry' "$CONTROL_FILE" && grep -q 'show-telemetry' "$CONTROL_FILE"; then
+    assert_condition 0 "Control documents record-telemetry and show-telemetry hooks" "Control missing telemetry hook documentation"
+else
+    assert_condition 1 "Control documents record-telemetry and show-telemetry hooks" "Control missing telemetry hook documentation"
+fi
+
+if grep -q 'run-evals' "$CONTROL_FILE"; then
+    assert_condition 0 "Control documents run-evals benchmark integration" "Control missing run-evals documentation"
+else
+    assert_condition 1 "Control documents run-evals benchmark integration" "Control missing run-evals documentation"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

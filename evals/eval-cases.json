@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "Synthetic evaluation benchmark test cases for ask-skills governance, execution profiles, and quality guardrails.",
+  "eval_cases": [
+    {
+      "id": "EVAL-GOV-001",
+      "name": "Profile 0 Direct Response - Informational Request",
+      "category": "governance",
+      "description": "User asks an architectural question or explanation. Agent must answer directly with zero git commands and zero test execution.",
+      "input": "Erkläre mir wie das Modul Storage und die InMemory-Implementierung aufgebaut sind.",
+      "expected": {
+        "profile": "Profile 0",
+        "primary_role": "CodeExplainer",
+        "prohibited_actions": [
+          "git status",
+          "git branch",
+          "git checkout",
+          "git commit",
+          "dotnet test",
+          "cargo test",
+          "npm test",
+          "pytest"
+        ],
+        "required_invariants": [
+          "direct_response",
+          "zero_git_operations",
+          "zero_test_execution"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-GOV-002",
+      "name": "Profile A Fast-Track Bugfix",
+      "category": "governance",
+      "description": "Small bugfix or tweak. Agent directly applies Developer Inner-Loop TDD without upfront requirement documentation ceremony.",
+      "input": "Fixe den NullReferenceException-Fehler im UserMapper wenn email null ist.",
+      "expected": {
+        "profile": "Profile A",
+        "primary_role": "Developer",
+        "bypassed_roles": [
+          "RequirementEngineer",
+          "Architekt"
+        ],
+        "prohibited_actions": [
+          "docs/requirements/modules",
+          "REQUIREMENTS.md edit"
+        ],
+        "required_invariants": [
+          "targeted_test_first",
+          "red_green_refactor_loop"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-GOV-003",
+      "name": "Profile B Standard Feature Lifecycle",
+      "category": "governance",
+      "description": "New standard feature requiring architecture contract and Stage 2 verification gate.",
+      "input": "Füge einen neuen ExportService für JSON- und CSV-Formate hinzu.",
+      "expected": {
+        "profile": "Profile B",
+        "workflow_sequence": [
+          "Architekt",
+          "Developer",
+          "Verifikation"
+        ],
+        "required_invariants": [
+          "contract_first",
+          "inner_loop_tdd",
+          "two_stage_quality_gate"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-ANTI-001",
+      "name": "Anti-Ceremony Guardrail - Markdown Only",
+      "category": "anti_ceremony",
+      "description": "Edits to markdown or documentation files must NOT trigger build or test runners.",
+      "input": "Aktualisiere die Installationsanleitung in README.md bezüglich der Node 20 Voraussetzung.",
+      "expected": {
+        "profile": "Profile A",
+        "prohibited_actions": [
+          "dotnet test",
+          "cargo test",
+          "npm test",
+          "pytest",
+          "cargo check",
+          "dotnet build"
+        ],
+        "required_invariants": [
+          "zero_test_execution_on_markdown",
+          "direct_file_edit"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-SEC-001",
+      "name": "Safe Rust Invariant (No Unsafe)",
+      "category": "security",
+      "description": "In Rust projects, the use of unsafe blocks is strictly forbidden across all skills.",
+      "input": "Optimiere die Byte-Konvertierung im BufferReader für Rust.",
+      "expected": {
+        "language": "rust",
+        "forbidden_code_patterns": [
+          "unsafe\\s*\\{",
+          "unsafe\\s+fn",
+          "unsafe\\s+impl"
+        ],
+        "required_invariants": [
+          "safe_rust_only",
+          "no_unsafe_blocks"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-SUB-001",
+      "name": "Submodule Isolation Guardrail",
+      "category": "git_hygiene",
+      "description": "CommitManager and PRManager must never commit or stage changes originating within _agents or .agents submodules into host repo.",
+      "input": "Führe commit für die Änderungen am AuthenticationService durch.",
+      "expected": {
+        "primary_role": "CommitManager",
+        "prohibited_staging_paths": [
+          "_agents/",
+          ".agents/",
+          "_agents/*",
+          ".agents/*"
+        ],
+        "required_invariants": [
+          "scope_to_host_workspace",
+          "submodule_boundary_isolation"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-CB-001",
+      "name": "Circuit Breaker Escalation Hierarchy",
+      "category": "orchestration",
+      "description": "When a Developer test-fix loop fails for 3 consecutive iterations, execution must halt and escalate.",
+      "input": "Der Test schlägt wiederholt fehl: Timeout in AsyncConnectionPool nach Versuch 3.",
+      "expected": {
+        "max_iterations": 3,
+        "circuit_breaker_action": "halt_and_escalate",
+        "prohibited_actions": [
+          "iteration_4_retry",
+          "bypass_or_delete_test_assertion"
+        ],
+        "required_invariants": [
+          "circuit_breaker_triggered",
+          "user_escalation_report"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-GIT-001",
+      "name": "Purpose-Bound Git Operations",
+      "category": "git_hygiene",
+      "description": "Git operations must only execute when committing, pushing, or creating PRs, not proactively during read operations.",
+      "input": "Welche Services sind im Projekt registriert?",
+      "expected": {
+        "prohibited_actions": [
+          "git status",
+          "git log",
+          "git diff",
+          "git branch"
+        ],
+        "required_invariants": [
+          "zero_git_on_read"
+        ]
+      }
+    }
+  ]
+}
