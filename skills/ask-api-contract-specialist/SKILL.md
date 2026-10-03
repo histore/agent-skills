@@ -28,6 +28,9 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - Author idiomatic `.proto` files (`syntax = "proto3";`) with explicit field numbering, package scoping, and service RPC declarations.
 * **GraphQL**:
   - Design clean Schema Definition Language (SDL) schemas separating Queries, Mutations, and Subscriptions with strongly-typed input objects.
+* **Deterministic Contract Linter**:
+  - Validate OpenAPI schema syntax, broken `$ref` pointers, Protobuf syntax, and duplicate field tags via `lint-api-contracts.ps1` (or `lint-api-contracts.sh`):
+    `pwsh -NoProfile -File ./scripts/lint-api-contracts.ps1 -JsonOutput`
 
 ### 2. RESTful Resource Modeling & Semantics
 * **Resource-Oriented URIs**:
