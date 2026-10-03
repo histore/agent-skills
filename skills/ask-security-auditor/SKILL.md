@@ -24,7 +24,8 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - Verify that `.gitignore` prevents tracking of sensitive files (`*.env`, `*.key`, `*.pfx`, credentials).
 
 ### 2. Dependency & CVE Vulnerability Auditing (Supply Chain Security)
-- Audit third-party packages and transitive dependencies for known CVEs using the ecosystem's native auditing tool (e.g. `dotnet list package --vulnerable --include-transitive`, `cargo audit`, `npm audit`, `pip-audit`).
+- Execute deterministic dependency security audits via `run-security-audit.ps1` (or `run-security-audit.sh`): `pwsh -NoProfile -File ./scripts/run-security-audit.ps1 -JsonOutput`.
+- Audit third-party packages and transitive dependencies for known CVEs using the ecosystem's native auditing tool (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`, `govulncheck`).
 - Ensure project configurations enforce automated dependency vulnerability auditing where supported.
 - Prescribe immediate package upgrades or safe alternatives when vulnerabilities are identified.
 

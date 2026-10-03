@@ -579,6 +579,23 @@ if (Test-Path $changelogPs1) {
     }
 }
 
+# 33. Validate security audit scripts
+Write-Host "`n33. Validating security audit scripts..." -ForegroundColor Yellow
+$secAuditPs1 = Join-Path $repoRoot "scripts\run-security-audit.ps1"
+$secAuditSh = Join-Path $repoRoot "scripts\run-security-audit.sh"
+
+Assert-Condition (Test-Path $secAuditPs1) "scripts/run-security-audit.ps1 exists" "scripts/run-security-audit.ps1 not found"
+Assert-Condition (Test-Path $secAuditSh) "scripts/run-security-audit.sh exists" "scripts/run-security-audit.sh not found"
+
+if (Test-Path $secAuditPs1) {
+    try {
+        $secOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $secAuditPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($secOut.status -eq "pass") "run-security-audit.ps1 executes cleanly and returns pass ($($secOut.status))" "run-security-audit.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "run-security-audit.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
