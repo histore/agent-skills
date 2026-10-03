@@ -572,6 +572,21 @@ if [ -f "$REPO_ROOT/scripts/lint-api-contracts.ps1" ] && [ -f "$REPO_ROOT/script
 else
     assert_condition 1 "lint-api-contracts scripts exist (.ps1 and .sh)" "lint-api-contracts scripts missing"
 fi
+# 37. Validate orphaned assets detector scripts
+echo -e "\n\033[33m37. Validating orphaned assets detector scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/find-orphaned-assets.ps1" ] && [ -f "$REPO_ROOT/scripts/find-orphaned-assets.sh" ]; then
+    assert_condition 0 "find-orphaned-assets scripts exist (.ps1 and .sh)" "find-orphaned-assets scripts missing"
+else
+    assert_condition 1 "find-orphaned-assets scripts exist (.ps1 and .sh)" "find-orphaned-assets scripts missing"
+fi
+
+# 38. Validate CI workflow linter scripts
+echo -e "\n\033[33m38. Validating CI workflow linter scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/lint-ci-workflows.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-ci-workflows.sh" ]; then
+    assert_condition 0 "lint-ci-workflows scripts exist (.ps1 and .sh)" "lint-ci-workflows scripts missing"
+else
+    assert_condition 1 "lint-ci-workflows scripts exist (.ps1 and .sh)" "lint-ci-workflows scripts missing"
+fi
 
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
