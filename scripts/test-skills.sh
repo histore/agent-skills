@@ -482,6 +482,22 @@ else
     assert_condition 1 "lint-requirements scripts exist (.ps1 and .sh)" "lint-requirements scripts missing"
 fi
 
+# 26. Validate SemVer calculator scripts
+echo -e "\n\033[33m26. Validating SemVer calculator scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/calculate-semver.ps1" ] && [ -f "$REPO_ROOT/scripts/calculate-semver.sh" ]; then
+    assert_condition 0 "calculate-semver scripts exist (.ps1 and .sh)" "calculate-semver scripts missing"
+else
+    assert_condition 1 "calculate-semver scripts exist (.ps1 and .sh)" "calculate-semver scripts missing"
+fi
+
+# 27. Validate i18n key audit scripts
+echo -e "\n\033[33m27. Validating i18n key audit scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/audit-i18n.ps1" ] && [ -f "$REPO_ROOT/scripts/audit-i18n.sh" ]; then
+    assert_condition 0 "audit-i18n scripts exist (.ps1 and .sh)" "audit-i18n scripts missing"
+else
+    assert_condition 1 "audit-i18n scripts exist (.ps1 and .sh)" "audit-i18n scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

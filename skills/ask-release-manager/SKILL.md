@@ -84,9 +84,10 @@ Releases must only be tagged on the production `main` branch.
      - `minor` → `vX.(Y+1).0`
      - `patch` → `vX.Y.(Z+1)`
 2. **Automatic Proposal (No Parameter Provided)**:
-   - Query all unreleased commits since the last tag:
+   - Calculate SemVer bump and draft changelog deterministically via `calculate-semver.ps1` (or `calculate-semver.sh`):
      ```powershell
-     git log -n 100 <last-tag>..HEAD --oneline
+     $semverScript = @("./_agents/scripts/calculate-semver.ps1", "./.agents/scripts/calculate-semver.ps1", "./scripts/calculate-semver.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+     pwsh -NoProfile -ExecutionPolicy Bypass -File $semverScript
      ```
    - Analyze commit messages according to Conventional Commits:
      - Contains `BREAKING CHANGE` or `<type>!:` → Propose **`major`** (`v(X+1).0.0`)

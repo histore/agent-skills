@@ -463,6 +463,38 @@ if (Test-Path $lintReqPs1) {
     }
 }
 
+# 26. Validate SemVer calculator scripts
+Write-Host "`n26. Validating SemVer calculator scripts..." -ForegroundColor Yellow
+$calcSemverPs1 = Join-Path $repoRoot "scripts\calculate-semver.ps1"
+$calcSemverSh = Join-Path $repoRoot "scripts\calculate-semver.sh"
+Assert-Condition (Test-Path $calcSemverPs1) "scripts/calculate-semver.ps1 exists" "scripts/calculate-semver.ps1 not found"
+Assert-Condition (Test-Path $calcSemverSh) "scripts/calculate-semver.sh exists" "scripts/calculate-semver.sh not found"
+
+if (Test-Path $calcSemverPs1) {
+    try {
+        $semverOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $calcSemverPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($semverOut.next_version -match '^v[0-9]+\.[0-9]+\.[0-9]+$') "calculate-semver.ps1 calculates valid SemVer tag ($($semverOut.next_version))" "calculate-semver.ps1 invalid output"
+    } catch {
+        Assert-Condition $false "calculate-semver.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+# 27. Validate i18n key audit scripts
+Write-Host "`n27. Validating i18n key audit scripts..." -ForegroundColor Yellow
+$auditI18nPs1 = Join-Path $repoRoot "scripts\audit-i18n.ps1"
+$auditI18nSh = Join-Path $repoRoot "scripts\audit-i18n.sh"
+Assert-Condition (Test-Path $auditI18nPs1) "scripts/audit-i18n.ps1 exists" "scripts/audit-i18n.ps1 not found"
+Assert-Condition (Test-Path $auditI18nSh) "scripts/audit-i18n.sh exists" "scripts/audit-i18n.sh not found"
+
+if (Test-Path $auditI18nPs1) {
+    try {
+        $i18nOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $auditI18nPs1 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($i18nOut.status -eq "pass") "audit-i18n.ps1 passes on repository files" "audit-i18n.ps1 returned failure"
+    } catch {
+        Assert-Condition $false "audit-i18n.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
