@@ -30,7 +30,10 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - Design clean Schema Definition Language (SDL) schemas separating Queries, Mutations, and Subscriptions with strongly-typed input objects.
 * **Deterministic Contract Linter**:
   - Validate OpenAPI schema syntax, broken `$ref` pointers, Protobuf syntax, and duplicate field tags via `lint-api-contracts.ps1` (or `lint-api-contracts.sh`):
-    `pwsh -NoProfile -File ./scripts/lint-api-contracts.ps1 -JsonOutput`
+    ```powershell
+    $apiScript = @("./_agents/scripts/lint-api-contracts.ps1", "./.agents/scripts/lint-api-contracts.ps1", "./scripts/lint-api-contracts.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    pwsh -NoProfile -ExecutionPolicy Bypass -File $apiScript -JsonOutput
+    ```
 
 ### 2. RESTful Resource Modeling & Semantics
 * **Resource-Oriented URIs**:

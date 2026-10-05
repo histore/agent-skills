@@ -61,7 +61,10 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - Confirm all tests pass with 0 failures.
 - Verify formatting, doc comments (in English), and LF line endings.
 - Audit workspace for unreferenced images, media, or unindexed modular documentation files via `find-orphaned-assets.ps1` (or `find-orphaned-assets.sh`):
-  `pwsh -NoProfile -File ./scripts/find-orphaned-assets.ps1 -JsonOutput`
+  ```powershell
+  $orphanScript = @("./_agents/scripts/find-orphaned-assets.ps1", "./.agents/scripts/find-orphaned-assets.ps1", "./scripts/find-orphaned-assets.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $orphanScript -JsonOutput
+  ```
 
 ---
 

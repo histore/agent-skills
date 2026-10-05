@@ -44,7 +44,10 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - Go: Goose / Golang-Migrate
 * **Deterministic Migration Linter**:
   - Audit migration naming, ordering, duplicate versions, rollback symmetry, and dangerous DDL operations via `lint-db-migrations.ps1` (or `lint-db-migrations.sh`):
-    `pwsh -NoProfile -File ./scripts/lint-db-migrations.ps1 -JsonOutput`
+    ```powershell
+    $dbScript = @("./_agents/scripts/lint-db-migrations.ps1", "./.agents/scripts/lint-db-migrations.ps1", "./scripts/lint-db-migrations.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    pwsh -NoProfile -ExecutionPolicy Bypass -File $dbScript -JsonOutput
+    ```
 
 ### 4. Query Performance & Hotspot Remediation
 * **Eliminate N+1 Queries**: Detect and resolve lazy-loading traps in ORM queries using explicit eager loading (e.g. `Include()` in EF Core, `select_related()` / `prefetch_related()` in Python, join fetches in SQL).

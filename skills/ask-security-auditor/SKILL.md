@@ -18,13 +18,21 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ## Responsibilities
 
 ### 1. Secret & Credential Leak Prevention (Zero Secret Leak Policy)
-- Execute deterministic pre-commit scans via `scan-guardrails.ps1` (or `scan-guardrails.sh`): `pwsh -NoProfile -File ./scripts/scan-guardrails.ps1 -StagedOnly`.
+- Execute deterministic pre-commit scans via `scan-guardrails.ps1` (or `scan-guardrails.sh`):
+  ```powershell
+  $scanScript = @("./_agents/scripts/scan-guardrails.ps1", "./.agents/scripts/scan-guardrails.ps1", "./scripts/scan-guardrails.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $scanScript -StagedOnly
+  ```
 - Audit git diffs, staged files, app configs, log statements, and test fixtures for accidental secrets.
 - Detect high-entropy strings, API keys, Personal Access Tokens (PAT), private SSH keys (`-----BEGIN ... PRIVATE KEY-----`), passwords, and connection strings.
 - Verify that `.gitignore` prevents tracking of sensitive files (`*.env`, `*.key`, `*.pfx`, credentials).
 
 ### 2. Dependency & CVE Vulnerability Auditing (Supply Chain Security)
-- Execute deterministic dependency security audits via `run-security-audit.ps1` (or `run-security-audit.sh`): `pwsh -NoProfile -File ./scripts/run-security-audit.ps1 -JsonOutput`.
+- Execute deterministic dependency security audits via `run-security-audit.ps1` (or `run-security-audit.sh`):
+  ```powershell
+  $auditScript = @("./_agents/scripts/run-security-audit.ps1", "./.agents/scripts/run-security-audit.ps1", "./scripts/run-security-audit.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $auditScript -JsonOutput
+  ```
 - Audit third-party packages and transitive dependencies for known CVEs using the ecosystem's native auditing tool (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`, `govulncheck`).
 - Ensure project configurations enforce automated dependency vulnerability auditing where supported.
 - Prescribe immediate package upgrades or safe alternatives when vulnerabilities are identified.

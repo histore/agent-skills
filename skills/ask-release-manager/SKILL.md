@@ -77,19 +77,18 @@ Releases must only be tagged on the production `main` branch.
 2. Extract the highest SemVer tag matching `vX.Y.Z` (e.g. `v0.1.1`).
    - If no Git tags exist, check version declarations in project configuration files (e.g., `package.json`, `Cargo.toml`, `pyproject.toml`, `Directory.Build.props`, `*.csproj`), or default to `v0.0.0`.
 
-### Step 2: Calculate New Version Number
-1. **Explicit Parameter Provided (`major` | `minor` | `patch` | `vX.Y.Z`)**:
-   - Parse `vX.Y.Z` into components $(X, Y, Z)$:
-     - `major` → `v(X+1).0.0`
-     - `minor` → `vX.(Y+1).0`
-     - `patch` → `vX.Y.(Z+1)`
-2. **Automatic Proposal (No Parameter Provided)**:
-   - Calculate SemVer bump and draft changelog deterministically via `calculate-semver.ps1` (or `calculate-semver.sh`):
-     ```powershell
-     $semverScript = @("./_agents/scripts/calculate-semver.ps1", "./.agents/scripts/calculate-semver.ps1", "./scripts/calculate-semver.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-     pwsh -NoProfile -ExecutionPolicy Bypass -File $semverScript
-     ```
-   - Analyze commit messages according to Conventional Commits:
+### Step 2: Calculate New Version Number & Validate History
+1. **Mandatory SemVer Calculation & History Audit**:
+   Execute `calculate-semver.ps1` (or `calculate-semver.sh`) to deterministically analyze unreleased commits and detect any breaking changes:
+   ```powershell
+   $semverScript = @("./_agents/scripts/calculate-semver.ps1", "./.agents/scripts/calculate-semver.ps1", "./scripts/calculate-semver.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+   pwsh -NoProfile -ExecutionPolicy Bypass -File $semverScript
+   ```
+2. **Version Resolution**:
+   - **Explicit Parameter Provided (`major` | `minor` | `patch` | `vX.Y.Z`)**:
+     Apply the requested bump to the current highest tag ($vX.Y.Z$), but verify that no contradiction exists (e.g. prompt requests `patch` but unreleased commits contain breaking changes; if so, trigger SemVer Discrepancy Gate in Step 3).
+   - **Automatic Proposal (No Parameter Provided)**:
+     Use the bump proposed by `calculate-semver.ps1` based on Conventional Commits:
      - Contains `BREAKING CHANGE` or `<type>!:` → Propose **`major`** (`v(X+1).0.0`)
      - Contains `feat:` or `feat(...):` → Propose **`minor`** (`vX.(Y+1).0`)
      - Contains `fix:`, `perf:`, `refactor:`, `docs:`, `chore:` → Propose **`patch`** (`vX.Y.(Z+1)`)
@@ -112,10 +111,19 @@ Releases must only be tagged on the production `main` branch.
 
 ### Step 4: Tag Creation & Push (Post-Confirmation)
 Once confirmed or resolved via Adaptive Gate:
-1. Generate or update `CHANGELOG.md` deterministically via `generate-changelog.ps1` (or `generate-changelog.sh`):
+1. **Mandatory Changelog Generation**:
+   Always generate or update `CHANGELOG.md` deterministically via `generate-changelog.ps1` (or `generate-changelog.sh`). If `CHANGELOG.md` does not exist yet, the script creates it with the current release notes:
    ```powershell
    $changelogScript = @("./_agents/scripts/generate-changelog.ps1", "./.agents/scripts/generate-changelog.ps1", "./scripts/generate-changelog.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
    pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript -Version "v<Version>" -OutputFile CHANGELOG.md -Prepend
+   ```
+   If `CHANGELOG.md` was created or modified, commit and push it to `main` before tagging:
+   ```powershell
+   if ((git status --porcelain CHANGELOG.md).Trim()) {
+       git add CHANGELOG.md
+       git commit -m "docs(changelog): release v<Version>"
+       git push origin main
+   }
    ```
 2. Create the annotated Git tag with the `v` prefix:
    ```powershell

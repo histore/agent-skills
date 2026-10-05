@@ -38,10 +38,16 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - Never print secrets or raw tokens in build logs; reference credentials strictly via `${{ secrets.MY_SECRET }}`.
 * **Continuous Security & Vulnerability Auditing**:
   - Integrate deterministic dependency vulnerability checks into CI jobs via `run-security-audit.ps1` (or `run-security-audit.sh`):
-    `pwsh -NoProfile -File ./scripts/run-security-audit.ps1 -Strict`
+    ```powershell
+    $secScript = @("./_agents/scripts/run-security-audit.ps1", "./.agents/scripts/run-security-audit.ps1", "./scripts/run-security-audit.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    pwsh -NoProfile -ExecutionPolicy Bypass -File $secScript -Strict
+    ```
 * **Automated CI Workflow Linter**:
   - Validate GitHub Actions workflow syntax, mandatory fields, permissions, and PowerShell `-NoProfile` hygiene via `lint-ci-workflows.ps1` (or `lint-ci-workflows.sh`):
-    `pwsh -NoProfile -File ./scripts/lint-ci-workflows.ps1 -JsonOutput`
+    ```powershell
+    $wfScript = @("./_agents/scripts/lint-ci-workflows.ps1", "./.agents/scripts/lint-ci-workflows.ps1", "./scripts/lint-ci-workflows.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    pwsh -NoProfile -ExecutionPolicy Bypass -File $wfScript -JsonOutput
+    ```
 
 ### 2. Multi-Stage Docker & Container Architecture
 * **Lean Runtime Images**:

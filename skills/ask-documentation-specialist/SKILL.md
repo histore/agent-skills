@@ -74,7 +74,10 @@ Adhere strictly to the project's native documentation conventions:
   - `## [Unreleased]` for work currently in development.
   - Standard categories: `Added` (new features), `Changed` (existing functionality modifications), `Deprecated` (soon-to-be removed), `Removed` (removed features), `Fixed` (bug fixes), `Security` (vulnerabilities addressed).
 * Generate or update `CHANGELOG.md` deterministically from git commits via `generate-changelog.ps1` (or `generate-changelog.sh`):
-  `pwsh -NoProfile -File ./scripts/generate-changelog.ps1 -OutputFile CHANGELOG.md -Prepend`
+  ```powershell
+  $changelogScript = @("./_agents/scripts/generate-changelog.ps1", "./.agents/scripts/generate-changelog.ps1", "./scripts/generate-changelog.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript -OutputFile CHANGELOG.md -Prepend
+  ```
 * Keep entries concise, user-focused, and linked to relevant issue or PR numbers.
 
 ### 3. User Manuals, Guides & README Maintenance
@@ -82,7 +85,11 @@ Adhere strictly to the project's native documentation conventions:
   - Concise value proposition, architecture overview, and quick-start instructions.
   - Tabulated command cheat sheets, configuration options, and environment variables.
   - Clickable markdown links to local files (`[file](file:///path)`).
-* Validate documentation integrity, internal links, and architecture parity via `lint-docs.ps1` (or `lint-docs.sh`): `pwsh -NoProfile -File ./scripts/lint-docs.ps1`.
+* Validate documentation integrity, internal links, and architecture parity via `lint-docs.ps1` (or `lint-docs.sh`):
+  ```powershell
+  $docsScript = @("./_agents/scripts/lint-docs.ps1", "./.agents/scripts/lint-docs.ps1", "./scripts/lint-docs.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $docsScript
+  ```
 * Verify code snippets in documentation compile or execute accurately.
 
 ### 4. Non-Destructive Code Annotation

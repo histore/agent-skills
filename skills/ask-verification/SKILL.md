@@ -13,18 +13,29 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ## Two-Stage Quality Gate Protocol
 
 ### Stage 1: Deterministic Fast-Gate (Zero Token Cost)
-Prior to any LLM-based semantic review, execute native project validation tools:
-1. **Compilation / Build Check**: Run project build in quiet mode (`dotnet build -v q`, `cargo check -q`, `npm run build`). Must produce 0 errors and 0 fatal warnings.
-2. **Linter Check**: Run project linter in quiet mode (`cargo clippy -q`, `npm run lint`).
-3. **Automated Test Suite**: Run native test runner in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`).
-4. **Test Coverage Threshold**: When test coverage reports are generated, verify coverage deterministically via `check-test-coverage.ps1` (or `check-test-coverage.sh`): `pwsh -NoProfile -File ./scripts/check-test-coverage.ps1 -Threshold 80 -JsonOutput`.
+Prior to any LLM-based semantic review, execute the deterministic Fast-Gate via `run-fast-gate.ps1` (or `run-fast-gate.sh`):
+```powershell
+$fastGate = @("./_agents/scripts/run-fast-gate.ps1", "./.agents/scripts/run-fast-gate.ps1", "./scripts/run-fast-gate.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+pwsh -NoProfile -ExecutionPolicy Bypass -File $fastGate
+```
+This automatically inspects the project tech stack, executes compilation, quiet testrunner, and project linter, and outputs a zero-token confirmation on pass or compacted errors on failure.
+When test coverage reports are generated, verify coverage deterministically via `check-test-coverage.ps1` (or `check-test-coverage.sh`):
+```powershell
+$covScript = @("./_agents/scripts/check-test-coverage.ps1", "./.agents/scripts/check-test-coverage.ps1", "./scripts/check-test-coverage.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+pwsh -NoProfile -ExecutionPolicy Bypass -File $covScript -Threshold 80 -JsonOutput
+```
 - **Immediate Rejection**: If Stage 1 fails (exit code != 0 or failures > 0), halt immediately and return `REVISION_REQUIRED` with the exact compiler/test error output. Do NOT consume LLM tokens performing semantic code review on broken builds or failing tests.
 
 ### Stage 2: Traceability & Quality Gate (Concise Verification)
 Only executed once Stage 1 passes with 100% success (0 failures). **IMPORTANT: Adapt your audit based on the active `Strictness Level` (Enterprise, Legacy, Prototype):**
 1. **Requirements Coverage Audit**: Confirm all changes map to an approved Requirement ID in `REQUIREMENTS.md` (or the relevant module specification in `docs/requirements/modules/<module>.md`). (Bypass this check if level is Legacy/Prototype).
 2. **Acceptance Criteria Verification**: Validate every Given-When-Then statement defined by `RequirementEngineer`.
-3. **Clean Architecture & Clean Code Audit**: Confirm inward dependency flow, separation of concerns, SOLID principles, and English code comments. Validate layer boundaries deterministically via `lint-clean-architecture.ps1` (or `lint-clean-architecture.sh`): `pwsh -NoProfile -File ./scripts/lint-clean-architecture.ps1 -StagedOnly`. For Rust codebases, verify 0 occurrences of `unsafe` via `scan-guardrails.ps1`. **If Strictness Level is Legacy or Prototype, DO NOT REJECT the code for Clean Architecture or TDD violations.**
+3. **Clean Architecture & Clean Code Audit**: Confirm inward dependency flow, separation of concerns, SOLID principles, and English code comments. Validate layer boundaries deterministically via `lint-clean-architecture.ps1` (or `lint-clean-architecture.sh`):
+   ```powershell
+   $archScript = @("./_agents/scripts/lint-clean-architecture.ps1", "./.agents/scripts/lint-clean-architecture.ps1", "./scripts/lint-clean-architecture.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+   pwsh -NoProfile -ExecutionPolicy Bypass -File $archScript -StagedOnly
+   ```
+   For Rust codebases, verify 0 occurrences of `unsafe` via `scan-guardrails.ps1`. **If Strictness Level is Legacy or Prototype, DO NOT REJECT the code for Clean Architecture or TDD violations.**
 4. **Logical Correctness & Error Path Audit**: Audit the code changes for semantic sanity, correct conditional branching, proper error propagation, and avoidance of obvious unhandled edge cases or resource leaks.
    - **Adversarial Scrutiny via `CodeReviewer`**: If changes involve complex algorithms, intricate asynchronous state handling, high concurrency, or extensive diffs, `Verifikation` can consult `CodeReviewer` (or indicate to `Control` that a dedicated `CodeReviewer` pass is required) for deep adversarial bug hunting.
 5. **Internationalization (i18n) & UI/UX Audit** (if applicable): Confirm 0% hardcoded user strings (bilingual `de`/`en` resources) and keyboard/visual ergonomics.

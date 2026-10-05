@@ -47,8 +47,11 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - Verify proper deterministic resource cleanup (file descriptors, sockets, streams, database connections, locks) using idiomatic mechanisms (`using`, `try-with-resources`, `defer`, `Drop`).
 - Spot unintentional reference retention, growing caches without eviction policies, and listener/event subscription leaks.
 
-### 6. Clean Architecture & Code Metrics Audit
-- Execute deterministic architectural boundary and code metrics verification via `lint-clean-architecture.ps1` (or `lint-clean-architecture.sh`): `pwsh -NoProfile -File ./scripts/lint-clean-architecture.ps1 -StagedOnly`.
+- Execute deterministic architectural boundary and code metrics verification via `lint-clean-architecture.ps1` (or `lint-clean-architecture.sh`):
+  ```powershell
+  $archScript = @("./_agents/scripts/lint-clean-architecture.ps1", "./.agents/scripts/lint-clean-architecture.ps1", "./scripts/lint-clean-architecture.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  pwsh -NoProfile -ExecutionPolicy Bypass -File $archScript -StagedOnly
+  ```
 - Verify that Domain entities and application services do not import infrastructure, delivery mechanisms, or UI frameworks.
 - Audit complexity metrics (functions > 60 lines, excessive nesting depth > 4 levels).
 

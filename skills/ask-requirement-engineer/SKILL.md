@@ -20,8 +20,11 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
    - **Template References**: When establishing or modularizing requirements in the target project, reference the standard templates provided in the submodule: resolve from `./_agents/docs/templates/` (Antigravity/Gemini), `./.agents/docs/templates/` (Copilot/standards), or `./docs/templates/` (standalone): `REQUIREMENTS_TEMPLATE.md` and `REQUIREMENTS_MODULE_TEMPLATE.md`. Never edit templates within the submodule; always author project requirements in the host project root or `docs/requirements/modules/`.
    - **Proactive Modularization Advice**: When a monolithic `REQUIREMENTS.md` crosses scaling thresholds or causes cognitive/token bloat, proactively propose splitting into module-specific files to the user.
 3. **Namespaced Requirement IDs & Deterministic Allocation**:
-   - All requirement IDs must follow the scoped pattern `REQ-<SCOPE>-XXX` (e.g. `REQ-AUTH-001`, `REQ-CORE-002`, `REQ-UI-005`, `REQ-NFR-001`).
-   - Validate uniqueness or allocate the next sequential ID with zero token overhead via `lint-requirements.ps1` (or `lint-requirements.sh`): `pwsh -NoProfile -File ./scripts/lint-requirements.ps1 -NextId -Scope "<SCOPE>"`.
+   - Validate uniqueness or allocate the next sequential ID with zero token overhead via `lint-requirements.ps1` (or `lint-requirements.sh`):
+     ```powershell
+     $reqScript = @("./_agents/scripts/lint-requirements.ps1", "./.agents/scripts/lint-requirements.ps1", "./scripts/lint-requirements.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+     pwsh -NoProfile -ExecutionPolicy Bypass -File $reqScript -NextId -Scope "<SCOPE>"
+     ```
 4. **Lifecycle State Tracking**:
    - Requirements must define an explicit state: `PROPOSED` | `APPROVED` | `IN_PROGRESS` | `IMPLEMENTED` | `VERIFIED` | `DEPRECATED`.
 5. **Conflict & Duplicate Resolution**:

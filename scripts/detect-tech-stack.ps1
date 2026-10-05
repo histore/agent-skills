@@ -53,7 +53,18 @@ elseif ((Test-Path (Join-Path $ProjectRoot "Directory.Build.props")) -or (Get-Ch
     $detected.build_cmd = "dotnet build -v quiet"
     $detected.test_cmd = "dotnet test --verbosity quiet"
     $detected.test_filter_syntax = "dotnet test --verbosity quiet --filter {filter}"
-    $detected.lint_cmd = "dotnet format --verify-no-changes"
+    $slnFile = (Get-ChildItem -Path $ProjectRoot -Filter "*.sln" -File -Depth 1 | Select-Object -First 1)
+    if ($slnFile) {
+        $detected.lint_cmd = "dotnet format `"$($slnFile.Name)`" --verify-no-changes"
+    } else {
+        $projFile = (Get-ChildItem -Path $ProjectRoot -Filter "*.*proj" -File -Depth 2 | Select-Object -First 1)
+        if ($projFile) {
+            $relProj = (Resolve-Path -Relative -Path $projFile.FullName).Replace('\', '/')
+            $detected.lint_cmd = "dotnet format `"$relProj`" --verify-no-changes"
+        } else {
+            $detected.lint_cmd = "dotnet format --verify-no-changes"
+        }
+    }
     $detected.manifest_file = "Directory.Build.props / *.csproj / *.sln"
 }
 # 3. Node.js / TypeScript (package.json)

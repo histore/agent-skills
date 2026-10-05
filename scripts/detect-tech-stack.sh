@@ -35,7 +35,12 @@ elif [[ -f "${PROJECT_ROOT}/Directory.Build.props" ]] || compgen -G "${PROJECT_R
   BUILD_CMD="dotnet build -v quiet"
   TEST_CMD="dotnet test --verbosity quiet"
   FILTER_SYNTAX="dotnet test --verbosity quiet --filter {filter}"
-  LINT_CMD="dotnet format --verify-no-changes"
+  SLN_FILE=$(compgen -G "${PROJECT_ROOT}/*.sln" | head -n 1)
+  if [[ -n "$SLN_FILE" ]]; then
+    LINT_CMD="dotnet format \"$(basename "$SLN_FILE")\" --verify-no-changes"
+  else
+    LINT_CMD="dotnet format --verify-no-changes"
+  fi
   MANIFEST="Directory.Build.props / *.csproj / *.sln"
 elif [[ -f "${PROJECT_ROOT}/package.json" ]]; then
   STACK="node"

@@ -33,7 +33,10 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
    - Verify 100% pass rate with 0 failures before verification sign-off.
 8. **Automated Coverage Threshold Gate**:
    - Verify line and branch test coverage deterministically via `check-test-coverage.ps1` (or `check-test-coverage.sh`):
-     `pwsh -NoProfile -File ./scripts/check-test-coverage.ps1 -Threshold 80 -JsonOutput`
+     ```powershell
+     $covScript = @("./_agents/scripts/check-test-coverage.ps1", "./.agents/scripts/check-test-coverage.ps1", "./scripts/check-test-coverage.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+     pwsh -NoProfile -ExecutionPolicy Bypass -File $covScript -Threshold 80 -JsonOutput
+     ```
 
 ## Input
 - Functional requirements and acceptance criteria from `RequirementEngineer`.

@@ -19,8 +19,11 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 1. **Hardcoded String Audit**:
    - Scan all view templates, UI components, and code files for hardcoded UI text, button labels, titles, placeholders, tooltips, and modal messages.
    - Ensure 0% hardcoded user-facing strings remain in layout or business logic.
-2. **Resource Architecture & Management**:
-   - Audit translation key parity between German (`de`) and English (`en`) resource files deterministically via `audit-i18n.ps1` (or `audit-i18n.sh`): `pwsh -NoProfile -File ./scripts/audit-i18n.ps1`.
+   - Audit translation key parity between German (`de`) and English (`en`) resource files deterministically via `audit-i18n.ps1` (or `audit-i18n.sh`):
+     ```powershell
+     $i18nScript = @("./_agents/scripts/audit-i18n.ps1", "./.agents/scripts/audit-i18n.ps1", "./scripts/audit-i18n.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+     pwsh -NoProfile -ExecutionPolicy Bypass -File $i18nScript
+     ```
    - Organize resource keys following a clear naming taxonomy:
      - `Scope.Component.Element` (e.g. `MainWindow.Header.Title`, `Settings.Theme.Mode`, `Errors.Network.Timeout`).
    - Maintain synchronized, complete bilingual resource files (`de` and `en`) adhering to the project's localization format (e.g., JSON, YAML, RESX, PO, Fluent).
