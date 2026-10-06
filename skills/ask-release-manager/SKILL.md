@@ -14,7 +14,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 
 ## Lifecycle Action Execution Governance
 
-ReleaseManager strictly observes six governance principles:
+ReleaseManager strictly observes seven governance principles:
 
 1. **Strict Action Execution (Atomic Scope)**:
    - When the user requests **`release`**, execute version determination, user confirmation gate, tag creation, and tag push. Do not trigger external deployments or other actions unsolicited.
@@ -36,6 +36,10 @@ ReleaseManager strictly observes six governance principles:
      - Local `main` and `origin/main` have diverged with conflicting histories.
      - Unreleased commits contain non-conventional commit messages or failed CI checks.
      - A major version bump is detected with breaking changes that were not explicitly flagged by the user.
+7. **Clean Release Tagging Invariant (No Synthetic Commits on `main`)**:
+   - Release tags (`vX.Y.Z`) are placed directly on the active HEAD commit on `main`.
+   - Standalone metadata commits (such as `docs(changelog): release v<Version>`) directly on `main` during release tagging are strictly prohibited.
+   - Release notes generated from commits belong in the annotated Git tag message (`git tag -a v<Version> -m ...`) or GitHub Releases (`gh release create`), preserving an uncluttered Git commit history on `main` focused on actual functional changes.
 
 ---
 
@@ -111,29 +115,23 @@ Releases must only be tagged on the production `main` branch.
 
 ### Step 4: Tag Creation & Push (Post-Confirmation)
 Once confirmed or resolved via Adaptive Gate:
-1. **Mandatory Changelog Generation**:
-   Always generate or update `CHANGELOG.md` deterministically via `generate-changelog.ps1` (or `generate-changelog.sh`). If `CHANGELOG.md` does not exist yet, the script creates it with the current release notes:
+1. **Clean Release Tagging (Direct HEAD Tagging)**:
+   Release tags are applied directly to the active HEAD commit on `main`. Standalone metadata commits (such as `docs(changelog)`) directly on `main` during release tagging are strictly prohibited.
+2. **Optional Release Notes Extraction**:
+   Changelog / release notes can be generated deterministically via `generate-changelog.ps1` (or `generate-changelog.sh`) for tag annotations or GitHub Releases:
    ```powershell
    $changelogScript = @("./_agents/scripts/generate-changelog.ps1", "./.agents/scripts/generate-changelog.ps1", "./scripts/generate-changelog.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-   pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript -Version "v<Version>" -OutputFile CHANGELOG.md -Prepend
+   $notes = if ($changelogScript) { (pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript -Version "v<Version>" -JsonOutput | ConvertFrom-Json).markdown } else { "Release v<Version>" }
    ```
-   If `CHANGELOG.md` was created or modified, commit and push it to `main` before tagging:
-   ```powershell
-   if ((git status --porcelain CHANGELOG.md).Trim()) {
-       git add CHANGELOG.md
-       git commit -m "docs(changelog): release v<Version>"
-       git push origin main
-   }
-   ```
-2. Create the annotated Git tag with the `v` prefix:
+3. Create the annotated Git tag with the `v` prefix directly on the current HEAD commit:
    ```powershell
    git tag -a v<Version> -m "Release v<Version>"
    ```
-3. Push the tag to the remote repository:
+4. Push the tag to the remote repository:
    ```powershell
    git push origin v<Version>
    ```
-4. Output confirmation with `git tag -l -n1 v<Version>`.
+5. Output confirmation with `git tag -l -n1 v<Version>`.
 
 ### Step 5: Proactive Next-Step Recommendation
 Report success and offer logical next steps:

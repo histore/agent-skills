@@ -440,7 +440,7 @@ Assert-Condition (Test-Path $scanGuardSh) "scripts/scan-guardrails.sh exists" "s
 
 if (Test-Path $scanGuardPs1) {
     try {
-        $guardOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -JsonOutput | ConvertFrom-Json
+        $guardOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $repoRoot -JsonOutput | ConvertFrom-Json
         Assert-Condition ($guardOut.status -eq "pass") "scan-guardrails.ps1 passes on repository files (0 violations)" "scan-guardrails.ps1 detected $($guardOut.violations_count) violations"
     } catch {
         Assert-Condition $false "scan-guardrails.ps1 executes cleanly" "Execution error: $_"
@@ -657,7 +657,7 @@ Assert-Condition (Test-Path $orphansSh) "scripts/find-orphaned-assets.sh exists"
 
 if (Test-Path $orphansPs1) {
     try {
-        $orphOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $orphansPs1 -JsonOutput | ConvertFrom-Json
+        $orphOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $orphansPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
         Assert-Condition ($orphOut.status -eq "pass") "find-orphaned-assets.ps1 executes cleanly and returns pass ($($orphOut.status))" "find-orphaned-assets.ps1 reported failure"
     } catch {
         Assert-Condition $false "find-orphaned-assets.ps1 executes cleanly" "Execution error: $_"
@@ -674,7 +674,7 @@ Assert-Condition (Test-Path $ciLintSh) "scripts/lint-ci-workflows.sh exists" "sc
 
 if (Test-Path $ciLintPs1) {
     try {
-        $ciOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $ciLintPs1 -JsonOutput | ConvertFrom-Json
+        $ciOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $ciLintPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
         Assert-Condition ($ciOut.status -eq "pass") "lint-ci-workflows.ps1 executes cleanly and returns pass ($($ciOut.status))" "lint-ci-workflows.ps1 reported failure"
     } catch {
         Assert-Condition $false "lint-ci-workflows.ps1 executes cleanly" "Execution error: $_"
