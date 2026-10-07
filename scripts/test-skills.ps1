@@ -204,8 +204,8 @@ Assert-Condition ($missingNoProfile.Count -eq 0) "All powershell command invocat
 
 # 8. Validate get-arch-diff submodule exclusions (_agents and .agents)
 Write-Host "`n8. Validating get-arch-diff submodule exclusions..." -ForegroundColor Yellow
-$archDiffPs1 = Join-Path $repoRoot "skills\ask-architecture-sync\scripts\get-arch-diff.ps1"
-$archDiffSh = Join-Path $repoRoot "skills\ask-architecture-sync\scripts\get-arch-diff.sh"
+$archDiffPs1 = Join-Path $repoRoot "scripts\get-arch-diff.ps1"
+$archDiffSh = Join-Path $repoRoot "scripts\get-arch-diff.sh"
 
 $hasPs1Exclusion = $false
 if (Test-Path $archDiffPs1) {
@@ -317,11 +317,11 @@ Assert-Condition $hasSubIsolation "CommitManager enforces Submodule Isolation Gu
 
 # 16. Validate get-arch-diff git config host repository scoping (-C flag)
 Write-Host "`n16. Validating get-arch-diff git config host repository scoping..." -ForegroundColor Yellow
-$archDiffPs1Content = Get-Content -Path (Join-Path $skillsDir "ask-architecture-sync\scripts\get-arch-diff.ps1") -Raw -Encoding UTF8
+$archDiffPs1Content = Get-Content -Path (Join-Path $repoRoot "scripts\get-arch-diff.ps1") -Raw -Encoding UTF8
 $hasPs1ConfigScope = ($archDiffPs1Content -match 'git\s+-C\s+\$repoRoot\s+config\s+--local')
 Assert-Condition $hasPs1ConfigScope "get-arch-diff.ps1 scopes git config calls to host repo (-C `$repoRoot)" "get-arch-diff.ps1 missing -C `$repoRoot for git config"
 
-$archDiffShContent = Get-Content -Path (Join-Path $skillsDir "ask-architecture-sync\scripts\get-arch-diff.sh") -Raw -Encoding UTF8
+$archDiffShContent = Get-Content -Path (Join-Path $repoRoot "scripts\get-arch-diff.sh") -Raw -Encoding UTF8
 $hasShConfigScope = ($archDiffShContent -match 'git\s+-C\s+"\$REPO_ROOT"\s+config\s+--local')
 Assert-Condition $hasShConfigScope "get-arch-diff.sh scopes git config calls to host repo (-C `"\$REPO_ROOT`")" "get-arch-diff.sh missing -C `"\$REPO_ROOT`" for git config"
 

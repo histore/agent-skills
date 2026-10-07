@@ -29,8 +29,8 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
    - Only modules with structural source code modifications (`.cs`, `.rs`, `.ts`, etc.) are reviewed.
 5. **Deterministic Script Pre-Filtering**:
    - Before consuming LLM tokens, execute the local platform script to detect real architectural changes:
-     - **Windows**: `pwsh -NoProfile -ExecutionPolicy Bypass -File <path-to-skill>/scripts/get-arch-diff.ps1`
-     - **macOS / Linux**: `bash <path-to-skill>/scripts/get-arch-diff.sh`
+     - **Windows**: `pwsh -NoProfile -ExecutionPolicy Bypass -File <path-to-scripts>/get-arch-diff.ps1`
+     - **macOS / Linux**: `bash <path-to-scripts>/get-arch-diff.sh`
      - If the script returns `reason: "NO_ARCH_CHANGES"` or `"UP_TO_DATE"`, **exit immediately**. Token cost = 0.
 6. **In-Place Living Documentation (No Changelog Bloat)**:
    - Architecture documents reflect the *current truth* of the system.
@@ -59,11 +59,11 @@ To configure external storage on project level without creating tracked files or
 git config --local arch-sync.doc-dir "C:/path/to/external-architecture-docs/project-a"
 
 # Or via the script helper:
-pwsh -NoProfile -File ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1 -SetDocDir "C:/path/to/external-architecture-docs/project-a"
+pwsh -NoProfile -File ./_agents/scripts/get-arch-diff.ps1 -SetDocDir "C:/path/to/external-architecture-docs/project-a"
 # Or if mounted under .agents (e.g. Copilot):
-# pwsh -NoProfile -File ./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1 -SetDocDir "C:/path/to/external-architecture-docs/project-a"
+# pwsh -NoProfile -File ./.agents/scripts/get-arch-diff.ps1 -SetDocDir "C:/path/to/external-architecture-docs/project-a"
 # macOS / Linux:
-bash ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh --set-doc-dir "/path/to/external-architecture-docs/project-a"
+bash ./_agents/scripts/get-arch-diff.sh --set-doc-dir "/path/to/external-architecture-docs/project-a"
 ```
 *The setting is recorded in `.git/config` which is strictly local and never tracked or committed by Git.*
 
@@ -90,12 +90,12 @@ The target documentation directory is resolved dynamically in strict priority or
 Execute the platform-appropriate detection script (adjust path based on standalone repo `skills/`, or submodule `_agents/` / `.agents/`):
 ```powershell
 # Windows (PowerShell) - standalone repo or submodule:
-$scriptPath = @("./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1", "./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1", "./skills/ask-architecture-sync/scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+$scriptPath = @("./_agents/scripts/get-arch-diff.ps1", "./.agents/scripts/get-arch-diff.ps1", "./scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
 pwsh -NoProfile -ExecutionPolicy Bypass -File $scriptPath
 ```
 ```bash
 # macOS / Linux (Bash) - standalone repo or submodule:
-for p in ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh ./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh ./skills/ask-architecture-sync/scripts/get-arch-diff.sh; do
+for p in ./_agents/scripts/get-arch-diff.sh ./.agents/scripts/get-arch-diff.sh ./scripts/get-arch-diff.sh; do
   [ -f "$p" ] && SCRIPT_PATH="$p" && break
 done
 bash "$SCRIPT_PATH"
@@ -124,12 +124,12 @@ If new modules were introduced, deleted, or architectural boundaries between ser
 After successful documentation updates, record the new checkpoint commit:
 ```powershell
 # Windows - using _agents (default), .agents, or standalone:
-$scriptPath = @("./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1", "./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.ps1", "./skills/ask-architecture-sync/scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+$scriptPath = @("./_agents/scripts/get-arch-diff.ps1", "./.agents/scripts/get-arch-diff.ps1", "./scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
 pwsh -NoProfile -ExecutionPolicy Bypass -File $scriptPath -UpdateCheckpoint
 ```
 ```bash
 # macOS / Linux - using _agents (default), .agents, or standalone:
-for p in ./_agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh ./.agents/skills/ask-architecture-sync/scripts/get-arch-diff.sh ./skills/ask-architecture-sync/scripts/get-arch-diff.sh; do
+for p in ./_agents/scripts/get-arch-diff.sh ./.agents/scripts/get-arch-diff.sh ./scripts/get-arch-diff.sh; do
   [ -f "$p" ] && SCRIPT_PATH="$p" && break
 done
 bash "$SCRIPT_PATH" --update-checkpoint

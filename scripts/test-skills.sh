@@ -228,8 +228,8 @@ fi
 
 # 8. Validate get-arch-diff submodule exclusions (_agents and .agents)
 echo -e "\n\033[33m8. Validating get-arch-diff submodule exclusions...\033[0m"
-ARCH_DIFF_PS1="$REPO_ROOT/skills/ask-architecture-sync/scripts/get-arch-diff.ps1"
-ARCH_DIFF_SH="$REPO_ROOT/skills/ask-architecture-sync/scripts/get-arch-diff.sh"
+ARCH_DIFF_PS1="$REPO_ROOT/scripts/get-arch-diff.ps1"
+ARCH_DIFF_SH="$REPO_ROOT/scripts/get-arch-diff.sh"
 
 if [ -f "$ARCH_DIFF_PS1" ] && grep -q '_agents' "$ARCH_DIFF_PS1" && grep -q '\.agents' "$ARCH_DIFF_PS1"; then
     assert_condition 0 "get-arch-diff.ps1 excludes _agents and .agents submodules" "get-arch-diff.ps1 missing exclusions"
@@ -356,14 +356,14 @@ fi
 
 # 16. Validate get-arch-diff git config host repository scoping (-C flag)
 echo -e "\n\033[33m16. Validating get-arch-diff git config host repository scoping...\033[0m"
-ARCH_DIFF_PS1="$REPO_ROOT/skills/ask-architecture-sync/scripts/get-arch-diff.ps1"
+ARCH_DIFF_PS1="$REPO_ROOT/scripts/get-arch-diff.ps1"
 if grep -E -q 'git\s+-C\s+\$repoRoot\s+config\s+--local' "$ARCH_DIFF_PS1"; then
     assert_condition 0 "get-arch-diff.ps1 scopes git config calls to host repo (-C \$repoRoot)" "get-arch-diff.ps1 missing -C \$repoRoot for git config"
 else
     assert_condition 1 "get-arch-diff.ps1 scopes git config calls to host repo (-C \$repoRoot)" "get-arch-diff.ps1 missing -C \$repoRoot for git config"
 fi
 
-ARCH_DIFF_SH="$REPO_ROOT/skills/ask-architecture-sync/scripts/get-arch-diff.sh"
+ARCH_DIFF_SH="$REPO_ROOT/scripts/get-arch-diff.sh"
 if grep -E -q 'git\s+-C\s+"\$REPO_ROOT"\s+config\s+--local' "$ARCH_DIFF_SH"; then
     assert_condition 0 "get-arch-diff.sh scopes git config calls to host repo (-C \"\$REPO_ROOT\")" "get-arch-diff.sh missing -C \"\$REPO_ROOT\" for git config"
 else
