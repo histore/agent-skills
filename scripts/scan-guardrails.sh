@@ -39,7 +39,9 @@ else
     -not -path '*/node_modules/*' \
     -not -path '*/target/*' \
     -not -path '*/bin/*' \
-    -not -path '*/obj/*')
+    -not -path '*/obj/*' \
+    -not -path '*/publish/*' \
+    -not -path '*/artifacts/*')
 fi
 
 # 2. Scan files
