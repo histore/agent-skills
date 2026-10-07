@@ -6,12 +6,16 @@ set -euo pipefail
 
 SCAN_PATH="${1:-$(pwd)}"
 STAGED_ONLY=false
+FIX=false
 JSON_OUTPUT=false
 
 for arg in "$@"; do
   case "$arg" in
     --staged)
       STAGED_ONLY=true
+      ;;
+    --fix|-f)
+      FIX=true
       ;;
     --json|-j)
       JSON_OUTPUT=true
@@ -50,7 +54,14 @@ for file in "${FILES[@]}"; do
   # CRLF check
   if file -b --mime "$file" 2>/dev/null | grep -q 'text'; then
     if grep -q $'\r' "$file" 2>/dev/null; then
-      VIOLATIONS+=("[LineEndings] ${rel_path}: CRLF line endings detected (must be LF)")
+      if [[ "$FIX" == "true" ]]; then
+        tr -d '\r' < "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+        if [[ "$STAGED_ONLY" == "true" ]]; then
+          git -C "$SCAN_PATH" add "$file" 2>/dev/null || true
+        fi
+      else
+        VIOLATIONS+=("[LineEndings] ${rel_path}: CRLF line endings detected (must be LF)")
+      fi
     fi
 
     # Safe-Rust check

@@ -27,6 +27,9 @@ param(
     [switch]$StagedOnly,
 
     [Parameter(Mandatory = $false)]
+    [switch]$Fix,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -60,6 +63,7 @@ if ($StagedOnly) {
 }
 
 $violations = [System.Collections.Generic.List[PSCustomObject]]::new()
+$fixedViolations = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # Secret detection regex patterns
 $secretPatterns = @(
@@ -89,15 +93,44 @@ foreach ($filePath in $filesToScan) {
         if ($bytes.Length -eq 0) { continue }
 
         # 2. CRLF Line Ending Check
+        $hasCrlf = $false
         for ($i = 0; $i -lt $bytes.Length - 1; $i++) {
             if ($bytes[$i] -eq 13 -and $bytes[$i+1] -eq 10) {
+                $hasCrlf = $true
+                break
+            }
+        }
+
+        if ($hasCrlf) {
+            if ($Fix) {
+                try {
+                    $rawText = [System.Text.Encoding]::UTF8.GetString($bytes)
+                    $fixedText = $rawText.Replace("`r`n", "`n")
+                    [System.IO.File]::WriteAllText($filePath, $fixedText, (New-Object System.Text.UTF8Encoding($false)))
+                    if ($StagedOnly) {
+                        git -C $ScanPath add $filePath 2>$null
+                    }
+                    $fixedViolations.Add([PSCustomObject]@{
+                        Rule = "LineEndings"
+                        File = $relPath
+                        Action = "Normalized CRLF to LF"
+                    })
+                    $bytes = [System.IO.File]::ReadAllBytes($filePath)
+                } catch {
+                    $violations.Add([PSCustomObject]@{
+                        Rule = "LineEndings"
+                        File = $relPath
+                        Line = 0
+                        Message = "CRLF detected, auto-fix failed: $_"
+                    })
+                }
+            } else {
                 $violations.Add([PSCustomObject]@{
                     Rule = "LineEndings"
                     File = $relPath
                     Line = 0
                     Message = "CRLF line endings detected (must be LF)"
                 })
-                break
             }
         }
 
@@ -145,6 +178,8 @@ $result = [ordered]@{
     status = if ($isPass) { "pass" } else { "fail" }
     scanned_files_count = $filesToScan.Count
     violations_count = $violations.Count
+    fixed_count = $fixedViolations.Count
+    fixed = $fixedViolations.ToArray()
     violations = $violations.ToArray()
 }
 
@@ -155,6 +190,12 @@ if ($JsonOutput) {
     Write-Host "Deterministic Guardrails Scanner" -ForegroundColor Cyan
     Write-Host "Scanned Files: $($filesToScan.Count) | Violations: $($violations.Count)" -ForegroundColor DarkGray
     Write-Host "=============================================" -ForegroundColor Cyan
+    if ($fixedViolations.Count -gt 0) {
+        Write-Host "Auto-Remediation: $($fixedViolations.Count) file(s) fixed" -ForegroundColor Green
+        foreach ($fix in $fixedViolations) {
+            Write-Host "  [$($fix.Rule)] $($fix.File): $($fix.Action)" -ForegroundColor Green
+        }
+    }
     if ($isPass) {
         Write-Host "Guardrails Status: PASS (0 violations)" -ForegroundColor Green
     } else {

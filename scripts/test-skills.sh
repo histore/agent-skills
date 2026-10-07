@@ -588,6 +588,14 @@ else
     assert_condition 1 "lint-ci-workflows scripts exist (.ps1 and .sh)" "lint-ci-workflows scripts missing"
 fi
 
+# 39. Validate unified quality gates orchestrator scripts
+echo -e "\n\033[33m39. Validating unified quality gates orchestrator scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/run-all-gates.ps1" ] && [ -f "$REPO_ROOT/scripts/run-all-gates.sh" ]; then
+    assert_condition 0 "run-all-gates scripts exist (.ps1 and .sh)" "run-all-gates scripts missing"
+else
+    assert_condition 1 "run-all-gates scripts exist (.ps1 and .sh)" "run-all-gates scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

@@ -51,9 +51,11 @@ if (Test-Path $modulesDir) {
 }
 
 $idRegex = 'REQ-([A-Za-z0-9_]+)-([0-9]{3,})'
+$defRegex = '^\s*#{2,4}\s+.*?(REQ-([A-Za-z0-9_]+)-([0-9]{3,}))'
 $validStatuses = @("PROPOSED", "APPROVED", "IMPLEMENTED", "VERIFIED", "DEPRECATED")
 
-$foundIds = [System.Collections.Generic.Dictionary[string, string]]::new() # ID -> File
+$definedIds = [System.Collections.Generic.Dictionary[string, string]]::new() # ID -> File:Line (Definition headings)
+$allFoundIds = [System.Collections.Generic.Dictionary[string, string]]::new() # ID -> File:Line (All occurrences)
 $duplicates = [System.Collections.Generic.List[PSCustomObject]]::new()
 $scopeMax = [System.Collections.Generic.Dictionary[string, int]]::new() # Scope -> MaxNum
 
@@ -63,20 +65,32 @@ foreach ($rf in $reqFiles) {
     
     for ($i = 0; $i -lt $lines.Length; $i++) {
         $line = $lines[$i]
+        $loc = "${relName}:$($i+1)"
+
+        # 1. Check for formal requirement definition headings (e.g. ### [REQ-...] or ## `[REQ-...]`)
+        $defMatch = [regex]::Match($line, $defRegex)
+        if ($defMatch.Success) {
+            $defId = $defMatch.Groups[1].Value.ToUpperInvariant()
+            if ($definedIds.ContainsKey($defId)) {
+                $duplicates.Add([PSCustomObject]@{
+                    Id = $defId
+                    FirstFile = $definedIds[$defId]
+                    SecondFile = $loc
+                })
+            } else {
+                $definedIds[$defId] = $loc
+            }
+        }
+
+        # 2. Track scope numbers across all mentions for -NextId allocation
         $matches = [regex]::Matches($line, $idRegex)
         foreach ($m in $matches) {
             $fullId = $m.Value.ToUpperInvariant()
             $mScope = $m.Groups[1].Value.ToUpperInvariant()
             $mNum = [int]$m.Groups[2].Value
 
-            if ($foundIds.ContainsKey($fullId)) {
-                $duplicates.Add([PSCustomObject]@{
-                    Id = $fullId
-                    FirstFile = $foundIds[$fullId]
-                    SecondFile = "${relName}:$($i+1)"
-                })
-            } else {
-                $foundIds[$fullId] = "${relName}:$($i+1)"
+            if (-not $allFoundIds.ContainsKey($fullId)) {
+                $allFoundIds[$fullId] = $loc
             }
 
             if (-not $scopeMax.ContainsKey($mScope)) {
@@ -108,10 +122,12 @@ if ($NextId) {
 
 $isPass = ($duplicates.Count -eq 0)
 
+$totalReqs = if ($definedIds.Count -gt 0) { $definedIds.Count } else { $allFoundIds.Count }
 $result = [ordered]@{
     status = if ($isPass) { "pass" } else { "fail" }
     scanned_files = $reqFiles.Count
-    total_requirements_found = $foundIds.Count
+    total_requirements_found = $totalReqs
+    defined_count = $definedIds.Count
     scopes_tracked = $scopeMax.Keys.Count
     duplicates_count = $duplicates.Count
     duplicates = $duplicates.ToArray()
@@ -122,7 +138,7 @@ if ($JsonOutput) {
 } else {
     Write-Host "=============================================" -ForegroundColor Cyan
     Write-Host "Requirements Linter & ID Registry" -ForegroundColor Cyan
-    Write-Host "Files: $($reqFiles.Count) | Requirements: $($foundIds.Count) | Scopes: $($scopeMax.Keys.Count)" -ForegroundColor DarkGray
+    Write-Host "Files: $($reqFiles.Count) | Defined: $($definedIds.Count) | Scopes: $($scopeMax.Keys.Count)" -ForegroundColor DarkGray
     Write-Host "=============================================" -ForegroundColor Cyan
     if ($isPass) {
         Write-Host "Status: PASS (0 duplicate IDs, all requirements scoped)" -ForegroundColor Green

@@ -40,7 +40,9 @@ if os.path.isdir(modules_dir):
             files.append(os.path.join(modules_dir, f))
 
 id_pattern = re.compile(r'REQ-([A-Za-z0-9_]+)-([0-9]{3,})')
-found_ids = {}
+def_pattern = re.compile(r'^\s*#{2,4}\s+.*?(REQ-([A-Za-z0-9_]+)-([0-9]{3,}))')
+defined_ids = {}
+all_found_ids = {}
 duplicates = []
 scope_max = {}
 
@@ -48,15 +50,22 @@ for f in files:
     rel = os.path.relpath(f, base_dir)
     with open(f, 'r', encoding='utf-8', errors='ignore') as fp:
         for idx, line in enumerate(fp, 1):
+            loc = f'{rel}:{idx}'
+            def_m = def_pattern.match(line)
+            if def_m:
+                full_id = def_m.group(1).upper()
+                if full_id in defined_ids:
+                    duplicates.append({'id': full_id, 'first': defined_ids[full_id], 'second': loc})
+                else:
+                    defined_ids[full_id] = loc
+
             for match in id_pattern.finditer(line):
                 full_id = match.group(0).upper()
                 sc = match.group(1).upper()
                 num = int(match.group(2))
 
-                if full_id in found_ids:
-                    duplicates.append({'id': full_id, 'first': found_ids[full_id], 'second': f'{rel}:{idx}'})
-                else:
-                    found_ids[full_id] = f'{rel}:{idx}'
+                if full_id not in all_found_ids:
+                    all_found_ids[full_id] = loc
 
                 scope_max[sc] = max(scope_max.get(sc, 0), num)
 
@@ -77,18 +86,20 @@ if next_id:
     sys.exit(0)
 
 is_pass = len(duplicates) == 0
+total_reqs = len(defined_ids) if len(defined_ids) > 0 else len(all_found_ids)
 if json_out:
     print(json.dumps({
         'status': 'pass' if is_pass else 'fail',
         'scanned_files': len(files),
-        'total_requirements_found': len(found_ids),
+        'total_requirements_found': total_reqs,
+        'defined_count': len(defined_ids),
         'duplicates_count': len(duplicates),
         'duplicates': duplicates
     }))
 else:
     print('=============================================')
     print('Requirements Linter & ID Registry')
-    print(f'Files: {len(files)} | Requirements: {len(found_ids)} | Scopes: {len(scope_max)}')
+    print(f'Files: {len(files)} | Defined: {len(defined_ids)} | Scopes: {len(scope_max)}')
     print('=============================================')
     if is_pass:
         print('Status: PASS (0 duplicate IDs, all requirements scoped)')

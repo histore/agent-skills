@@ -681,6 +681,23 @@ if (Test-Path $ciLintPs1) {
     }
 }
 
+# 39. Validate unified quality gates orchestrator scripts
+Write-Host "`n39. Validating unified quality gates orchestrator scripts..." -ForegroundColor Yellow
+$allGatesPs1 = Join-Path $repoRoot "scripts\run-all-gates.ps1"
+$allGatesSh = Join-Path $repoRoot "scripts\run-all-gates.sh"
+
+Assert-Condition (Test-Path $allGatesPs1) "scripts/run-all-gates.ps1 exists" "scripts/run-all-gates.ps1 not found"
+Assert-Condition (Test-Path $allGatesSh) "scripts/run-all-gates.sh exists" "scripts/run-all-gates.sh not found"
+
+if (Test-Path $allGatesPs1) {
+    try {
+        $gatesOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $allGatesPs1 -RepoRoot $repoRoot -Fast -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($gatesOut.status -eq "pass") "run-all-gates.ps1 executes cleanly and returns pass ($($gatesOut.status))" "run-all-gates.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "run-all-gates.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
