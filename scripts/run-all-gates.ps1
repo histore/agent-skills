@@ -134,7 +134,7 @@ $results.Add((Run-Gate -Name "Requirements Scoped IDs & Non-Duplication" -Script
 
 # 5. Stage-1 Fast-Gate (Build & Quiet Tests)
 if (-not $Fast) {
-    $results.Add((Run-Gate -Name "Stage-1 Fast-Gate (Build & Tests)" -ScriptFile "run-fast-gate.ps1" -ScriptArgs @("-RepoRoot", $RepoRoot)))
+    $results.Add((Run-Gate -Name "Stage-1 Fast-Gate (Build & Tests)" -ScriptFile "run-fast-gate.ps1" -ScriptArgs @("-ProjectRoot", $RepoRoot)))
 }
 
 $swTotal.Stop()
