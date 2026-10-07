@@ -698,6 +698,31 @@ if (Test-Path $allGatesPs1) {
     }
 }
 
+# 40. Validate test failure diagnostic scripts
+Write-Host "`n40. Validating test failure diagnostic scripts..." -ForegroundColor Yellow
+$failDiagPs1 = Join-Path $repoRoot "scripts\collect-test-failures.ps1"
+$failDiagSh = Join-Path $repoRoot "scripts\collect-test-failures.sh"
+
+Assert-Condition (Test-Path $failDiagPs1) "scripts/collect-test-failures.ps1 exists" "scripts/collect-test-failures.ps1 not found"
+Assert-Condition (Test-Path $failDiagSh) "scripts/collect-test-failures.sh exists" "scripts/collect-test-failures.sh not found"
+
+if (Test-Path $failDiagPs1) {
+    try {
+        $failOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $failDiagPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($failOut.status -eq "pass") "collect-test-failures.ps1 executes cleanly and returns pass ($($failOut.status))" "collect-test-failures.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "collect-test-failures.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+# 41. Validate startup benchmark scripts
+Write-Host "`n41. Validating startup benchmark scripts..." -ForegroundColor Yellow
+$benchPs1 = Join-Path $repoRoot "scripts\benchmark-startup.ps1"
+$benchSh = Join-Path $repoRoot "scripts\benchmark-startup.sh"
+
+Assert-Condition (Test-Path $benchPs1) "scripts/benchmark-startup.ps1 exists" "scripts/benchmark-startup.ps1 not found"
+Assert-Condition (Test-Path $benchSh) "scripts/benchmark-startup.sh exists" "scripts/benchmark-startup.sh not found"
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

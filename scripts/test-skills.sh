@@ -596,6 +596,22 @@ else
     assert_condition 1 "run-all-gates scripts exist (.ps1 and .sh)" "run-all-gates scripts missing"
 fi
 
+# 40. Validate test failure diagnostic scripts
+echo -e "\n\033[33m40. Validating test failure diagnostic scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/collect-test-failures.ps1" ] && [ -f "$REPO_ROOT/scripts/collect-test-failures.sh" ]; then
+    assert_condition 0 "collect-test-failures scripts exist (.ps1 and .sh)" "collect-test-failures scripts missing"
+else
+    assert_condition 1 "collect-test-failures scripts exist (.ps1 and .sh)" "collect-test-failures scripts missing"
+fi
+
+# 41. Validate startup benchmark scripts
+echo -e "\n\033[33m41. Validating startup benchmark scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/benchmark-startup.ps1" ] && [ -f "$REPO_ROOT/scripts/benchmark-startup.sh" ]; then
+    assert_condition 0 "benchmark-startup scripts exist (.ps1 and .sh)" "benchmark-startup scripts missing"
+else
+    assert_condition 1 "benchmark-startup scripts exist (.ps1 and .sh)" "benchmark-startup scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

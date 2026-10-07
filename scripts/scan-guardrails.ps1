@@ -21,6 +21,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
+    [Alias('RepoRoot')]
     [string]$ScanPath,
 
     [Parameter(Mandatory = $false)]
