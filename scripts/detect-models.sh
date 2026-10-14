@@ -88,6 +88,16 @@ if command -v agy &>/dev/null; then
         if [ ${#models_array[@]} -gt 0 ]; then
             models_json="["$(IFS=,; echo "${models_array[*]}")"]"
         fi
+        opus_high=$(echo "$raw_models" | grep -E 'opus.*high' | head -n1 | awk '{print $1}')
+        sonnet_high=$(echo "$raw_models" | grep -E 'sonnet.*high' | head -n1 | awk '{print $1}')
+        flash_high=$(echo "$raw_models" | grep -E 'flash.*high' | head -n1 | awk '{print $1}')
+        flash_med=$(echo "$raw_models" | grep -E 'flash.*medium' | head -n1 | awk '{print $1}')
+        flash_low=$(echo "$raw_models" | grep -E 'flash.*low' | head -n1 | awk '{print $1}')
+
+        t1="${opus_high:-${flash_high:-inherit}}"
+        t2="${sonnet_high:-${flash_high:-inherit}}"
+        t3="${flash_med:-${flash_high:-inherit}}"
+        t4="${flash_low:-${flash_med:-flash}}"
     fi
 
     json_output=$(cat <<EOF
@@ -101,10 +111,16 @@ if command -v agy &>/dev/null; then
   "supports_subagents": $supports_subagents,
   "detected_models": $models_json,
   "recommended_tiers": {
-    "tier_1": { "model_class": "flash", "exception_model_class": "pro", "reasoning_effort": "high_extended" },
-    "tier_2": { "model_class": "flash", "reasoning_effort": "high" },
-    "tier_3": { "model_class": "flash", "reasoning_effort": "medium" },
-    "tier_4": { "model_class": "flash_lite", "fallback": "flash", "reasoning_effort": "low" }
+    "tier_1": { "model_class": "inherit", "fallback": "flash", "exception_model_class": "pro", "reasoning_effort": "high_extended" },
+    "tier_2": { "model_class": "inherit", "fallback": "flash", "exception_model_class": "pro", "reasoning_effort": "high" },
+    "tier_3": { "model_class": "inherit", "fallback": "flash", "reasoning_effort": "medium" },
+    "tier_4": { "model_class": "flash", "fallback": "flash_lite", "reasoning_effort": "low" }
+  },
+  "active_model_mapping": {
+    "tier_1_deep_reasoning": "$t1",
+    "tier_2_analytical": "$t2",
+    "tier_3_balanced": "$t3",
+    "tier_4_deterministic": "$t4"
   }
 }
 EOF

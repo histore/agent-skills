@@ -7,7 +7,8 @@
     "default_to_cost_efficient": true,
     "high_cost_models_allowed_by_exception_only": true,
     "high_reasoning_requires_cost_advantage": true,
-    "clause": "High-end and high-cost models (e.g. Pro, Opus, o1, flagship tiers) shall not be used as a rule. Workflows, agents, and subagents must default exclusively to cost-efficient models (e.g. Flash, Flash-Lite, Haiku, Mini tiers). High reasoning levels (extended/high thinking effort) must only be used if they are more cost-efficient than a model switch. High-end/high-cost models are permitted solely as an exception when the specific nature or extraordinary scope of the task genuinely requires it (e.g. extreme architectural restructuring, complex multi-component deadlock diagnosis, or explicit user instruction) or when a direct model call is demonstrably more cost-efficient than generating excessive reasoning token volumes."
+    "sweet_spot_principle": "Strike the optimal balance between cognitive capability and cost-efficiency. Avoid wasteful over-provisioning (flagship models for simple deterministic tasks or file grepping) as well as destructive under-provisioning (starving complex architectural, diagnostic, or security analysis with underpowered models that cause hallucination loops, test thrashing, or flawed system designs).",
+    "clause": "High-end and high-cost models (e.g. Pro, Opus, o1, flagship tiers) shall not be used unconditionally for routine tasks. Workflows, agents, and subagents must hit the sweet spot: Subagents default to 'inherit' to preserve the active session's cognitive capability without artificial downgrades, while divergent or deterministic tasks utilize cost-efficient models (e.g. Flash, Haiku, Mini tiers). High reasoning levels (extended/high thinking effort) are allocated where cognitive depth is essential (Architecture, Troubleshooting, Security), and throttled during mechanical code implementation. High-end/high-cost models are permitted solely when the specific nature or extraordinary scope of the task genuinely requires it (e.g. extreme architectural restructuring, complex multi-component deadlock diagnosis, or explicit user instruction) or when a direct model call is demonstrably more cost-effective than generating excessive reasoning token volumes."
   },
   "execution_modes": {
     "compound_execution": {
@@ -27,24 +28,28 @@
       "client_support": ["antigravity"],
       "tier_dispatch": {
         "tier_1_deep_reasoning": {
-          "model_class": "flash",
+          "model_class": "inherit",
+          "fallback_model_class": "flash",
           "exception_model_class": "pro",
           "reasoning_budget": "high_extended",
           "roles": ["Control", "Troubleshooter", "CodeExplainer", "GitTroubleshooter"]
         },
         "tier_2_analytical": {
-          "model_class": "flash",
+          "model_class": "inherit",
+          "fallback_model_class": "flash",
+          "exception_model_class": "pro",
           "reasoning_budget": "high",
           "roles": ["Architekt", "RequirementEngineer", "Verifikation", "UIDesigner", "PerformanceOptimizer", "SecurityAuditor", "DatabaseSpecialist", "ApiContractSpecialist", "CodeReviewer"]
         },
         "tier_3_balanced": {
-          "model_class": "flash",
+          "model_class": "inherit",
+          "fallback_model_class": "flash",
           "reasoning_budget": "low",
           "roles": ["Developer", "Tester", "LocalizationSpecialist", "DocumentationSpecialist", "RefactoringSpecialist", "ArchitectureSync", "DevOpsEngineer"]
         },
         "tier_4_fast_deterministic": {
-          "model_class": "flash_lite",
-          "fallback_model_class": "flash",
+          "model_class": "flash",
+          "fallback_model_class": "flash_lite",
           "reasoning_budget": "low_minimal",
           "roles": ["CommitManager", "PRManager", "ReleaseManager"]
         }
@@ -75,18 +80,19 @@
   },
   "platform_preferences": {
     "antigravity": {
-      "tier_1": ["gemini-3.8-flash-high", "gemini-3.7-flash-high"],
-      "tier_1_exception": ["gemini-3.8-pro-high", "claude-opus-4-6-thinking"],
-      "tier_2": ["gemini-3.8-flash-high", "gemini-3.7-flash-high"],
-      "tier_3": ["gemini-3.8-flash-medium", "gemini-3.7-flash-medium"],
-      "tier_4": ["gemini-3.8-flash-low", "gemini-3.7-flash-low"]
+      "tier_1": ["gemini-3.8-flash-high", "claude-opus-5-5-high", "gemini-3.8-pro-high"],
+      "tier_1_exception": ["claude-opus-5-5-high", "gemini-3.8-pro-high"],
+      "tier_2": ["gemini-3.8-flash-high", "claude-sonnet-5-5-high"],
+      "tier_3": ["gemini-3.8-flash-medium", "claude-sonnet-5-5-medium"],
+      "tier_4": ["gemini-3.8-flash-low", "gemini-3.8-flash-medium"]
     },
     "copilot": {
-      "tier_1": ["o3-mini", "claude-3.5-haiku", "gpt-4o-mini"],
-      "tier_1_exception": ["claude-3.7-sonnet-thinking", "o1"],
-      "tier_2": ["o3-mini", "gpt-4o-mini", "claude-3.5-haiku"],
-      "tier_3": ["gpt-4o-mini", "claude-3.5-haiku"],
-      "tier_4": ["gpt-4o-mini", "claude-3.5-haiku"]
+      "auto_routing_behavior": "When Copilot model selection is set to 'Auto', GitHub dynamically routes prompts based on heuristics. Skills steer this via prompt modulation (Sequential Persona Mode) to signal high-capability reasoning for Tier 1/2 and concise execution for Tier 3/4.",
+      "tier_1": ["claude-opus-5-5-high", "claude-sonnet-5-5-high", "gpt-5.4", "o3-mini"],
+      "tier_1_exception": ["claude-opus-5-5-high", "gpt-5.4"],
+      "tier_2": ["claude-sonnet-5-5-high", "gpt-5.4", "o3-mini"],
+      "tier_3": ["claude-sonnet-5-5-medium", "gpt-5.4-mini", "gpt-4o"],
+      "tier_4": ["gpt-5.4-mini", "gpt-4o-mini"]
     },
     "generic": {
       "tier_1": ["deep-reasoning-efficient-mini"],

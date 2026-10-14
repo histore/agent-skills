@@ -52,7 +52,7 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 
 4. **Dynamic Model & Reasoning Allocation**:
    - Assign capability tiers (Tier 1 to Tier 4) and reasoning depth (Thinking Budget: High/Extended, Medium, Low/Fast) based on cognitive complexity.
-   - **Cost-Efficiency Policy**: As a general rule, high-end and high-cost models (e.g. Pro, Opus, o1) are not used. Workflows and roles default exclusively to cost-efficient models (e.g. Flash, Flash-Lite, Haiku, Mini tiers). High reasoning levels (Thinking Effort: High/Extended) must only be used if they are more cost-efficient than a model switch. High-end models are permitted solely when the nature or exceptional scope of the task genuinely requires it or when a direct model call is more cost-effective than generating excessive reasoning tokens.
+   - **Cost-Efficiency & Sweet-Spot Policy**: Always hit the "sweet spot" balancing cognitive capability and cost-efficiency. Avoid wasteful over-provisioning (flagship models for simple deterministic tasks or file grepping) as well as destructive under-provisioning (starving complex architectural, diagnostic, or security analysis with underpowered models that cause hallucination loops, test thrashing, or flawed system designs). In multi-agent environments, subagents default to `inherit` to preserve session fidelity without artificial downgrades. For divergent research, dispatch lightweight models (`flash`). For mechanical lifecycle tasks (commit, PR, release), dispatch reliable models (`flash`), strictly avoiding underpowered tiers (`flash_lite`). For complex profiles (Profile C) or persistent diagnostic impasses, escalate to flagship models (`pro`) or high reasoning depth.
    - Gracefully adapt to the user's active environment: in multi-model environments, allocate cost-efficient models; in single-model environments, vary the reasoning/thinking budget.
 
 5. **Context Minimization, Isolation & Active Compaction**:
@@ -94,14 +94,14 @@ Act as the central orchestrator. Deconstruct complex requests into discrete subt
 8. **Loop Detection, Deadlock Resolution & Escalation Hierarchy (Circuit Breaking)**:
    - Continuously monitor execution trajectories for repetitive loops, build thrashing, oscillation, or resource deadlocks:
      - **Level 1 (Strategic Pivot)**: Re-diagnose root causes from first principles, formulate an alternative technical strategy.
-     - **Level 2 (Reasoning & Model Escalation)**: Evaluate cost-efficiency trade-offs: escalate reasoning budget on the cost-efficient model (e.g. Gemini Flash with high/extended reasoning effort, o3-mini) strictly if cheaper than a model switch. If the complexity, nature, or scope of the task strictly warrants an exception, or if excessive reasoning token volume makes a direct model switch more cost-effective, escalate to a Tier 1 High-Capacity model (`Gemini Pro` / Claude Sonnet Thinking / o3).
+     - **Level 2 (Reasoning & Model Escalation)**: Evaluate cost-efficiency trade-offs: escalate reasoning budget on the cost-efficient model (e.g. Gemini 3.8 Flash with high/extended reasoning effort, o3-mini) strictly if cheaper than a model switch. If the complexity, nature, or scope of the task strictly warrants an exception, or if excessive reasoning token volume makes a direct model switch more cost-effective, escalate to a Tier 1 High-Capacity model (`Gemini 3.8 Pro` / `Claude Opus 5.5` / `Claude Sonnet 5.5` / `GPT-5.4`).
      - **Level 3 (Context Purge)**: Discard cyclical intermediate discussion history; reconstruct a pristine minimal context containing only active requirements, current code state, and failure logs.
      - **Level 4 (User Escalation)**: If an impasse persists after 3 iterations, stop tool calls and present a structured diagnostic report with actionable alternatives to the user.
 
 ---
 
 ## Dynamic Model & Reasoning Allocation
-Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Tier 1: Deep Reasoning via Cost-Efficient Models + Extended Thinking; High-End models by exception only). High-end/high-cost models are not used as a rule, unless the nature or scope of the task strictly requires an exception. High reasoning levels are applied only when more cost-efficient than switching models. Control dynamically allocates models in multi-agent environments or modulates reasoning depth in sequential environments based on this configuration.
+Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json) (Hitting the Sweet Spot: High cognitive fidelity via `inherit` / extended reasoning for analytical roles; cost-efficient models for divergent and mechanical tasks; flagship models by targeted escalation). Control dynamically allocates models in multi-agent environments or modulates reasoning depth in sequential environments based on this configuration.
 
 ---
 

@@ -127,10 +127,25 @@ if ($agyCmd) {
     }
 
     $result.recommended_tiers = [ordered]@{
-        tier_1 = [ordered]@{ model_class = "flash"; exception_model_class = "pro"; reasoning_effort = "high_extended" }
-        tier_2 = [ordered]@{ model_class = "flash"; reasoning_effort = "high" }
-        tier_3 = [ordered]@{ model_class = "flash"; reasoning_effort = "medium" }
-        tier_4 = [ordered]@{ model_class = "flash_lite"; fallback = "flash"; reasoning_effort = "low" }
+        tier_1 = [ordered]@{ model_class = "inherit"; fallback = "flash"; exception_model_class = "pro"; reasoning_effort = "high_extended" }
+        tier_2 = [ordered]@{ model_class = "inherit"; fallback = "flash"; exception_model_class = "pro"; reasoning_effort = "high" }
+        tier_3 = [ordered]@{ model_class = "inherit"; fallback = "flash"; reasoning_effort = "medium" }
+        tier_4 = [ordered]@{ model_class = "flash"; fallback = "flash_lite"; reasoning_effort = "low" }
+    }
+
+    if ($modelList -and $modelList.Count -gt 0) {
+        $opusHigh = ($modelList | Where-Object { $_.id -match 'opus.*high' } | Select-Object -First 1).id
+        $sonnetHigh = ($modelList | Where-Object { $_.id -match 'sonnet.*high' } | Select-Object -First 1).id
+        $flashHigh = ($modelList | Where-Object { $_.id -match 'flash.*high' } | Select-Object -First 1).id
+        $flashMed = ($modelList | Where-Object { $_.id -match 'flash.*medium' } | Select-Object -First 1).id
+        $flashLow = ($modelList | Where-Object { $_.id -match 'flash.*low' } | Select-Object -First 1).id
+
+        $result.active_model_mapping = [ordered]@{
+            tier_1_deep_reasoning = if ($opusHigh) { $opusHigh } elseif ($flashHigh) { $flashHigh } else { "inherit" }
+            tier_2_analytical     = if ($sonnetHigh) { $sonnetHigh } elseif ($flashHigh) { $flashHigh } else { "inherit" }
+            tier_3_balanced       = if ($flashMed) { $flashMed } elseif ($flashHigh) { $flashHigh } else { "inherit" }
+            tier_4_deterministic  = if ($flashLow) { $flashLow } elseif ($flashMed) { $flashMed } else { "flash" }
+        }
     }
 }
 # 3.2. Probe for GitHub Copilot / gh CLI
