@@ -91,6 +91,7 @@ This repository supports cross-platform execution across **Google Antigravity**,
 
 > [!TIP]
 > **Cost-Efficiency & Sweet-Spot Policy**: Always hit the "sweet spot" balancing cognitive capability and cost-efficiency. Avoid wasteful over-provisioning (flagship models for simple deterministic tasks or file grepping) as well as destructive under-provisioning (starving complex architectural, diagnostic, or security analysis with underpowered models that cause hallucination loops, test thrashing, or flawed system designs). In multi-agent environments, subagents default to `inherit` to preserve session fidelity without artificial downgrades. For divergent research, dispatch lightweight models (`flash`). For mechanical lifecycle tasks (commit, PR, release), dispatch reliable models (`flash`), strictly avoiding underpowered tiers (`flash_lite`). For complex profiles (Profile C) or persistent diagnostic impasses, escalate to flagship models (`pro`) or high reasoning depth.
+> **Cost-Guardrail (Budget Protection)**: Automatically throttles subagent dispatches or triggers an advisory confirmation gate when expensive flagship models (> $4.00/M input, > $20.00/M output) are active for routine or mechanical operations.
 
 ### Execution Strategy & Modes
 1. **Compound Phased Execution (Default & Recommended)**:

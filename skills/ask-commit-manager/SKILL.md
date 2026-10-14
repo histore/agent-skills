@@ -55,6 +55,7 @@ CommitManager strictly observes six governance principles:
   ```
 - Verify working tree is not in an atypical state (detached HEAD, merge conflict, sensitive untracked files, or unexpected submodule modifications in `_agents` / `.agents`). If a submodule is modified (`Subproject commit <hash>`), verify whether the submodule pointer update is part of the task before staging. If atypical, trigger the **Atypical State & Safety Confirmation Gate**, pause, and suggest delegating to `GitTroubleshooter`.
 - If there are no changes to commit, inform the user: *"Working tree clean, nothing to commit."*
+- **Cost-Guardrail Check**: In single-model environments (Copilot), verify whether an expensive flagship model (> $4.00/M input, > $20.00/M output, e.g. GPT-6 Astra, Claude Opus) is active for this routine commit action. If active and not explicitly confirmed by prompt, surface a brief cost advisory before executing.
 
 #### Step 2: Draft Standardized Conventional Commit Message
 Generate a clean commit message in English following the Conventional Commits specification:

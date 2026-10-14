@@ -8,6 +8,17 @@
     "high_cost_models_allowed_by_exception_only": true,
     "high_reasoning_requires_cost_advantage": true,
     "sweet_spot_principle": "Strike the optimal balance between cognitive capability and cost-efficiency. Avoid wasteful over-provisioning (flagship models for simple deterministic tasks or file grepping) as well as destructive under-provisioning (starving complex architectural, diagnostic, or security analysis with underpowered models that cause hallucination loops, test thrashing, or flawed system designs).",
+    "cost_guardrail": {
+      "enabled": true,
+      "purpose": "Prevent accidental budget-burning when high-cost/flagship models are active during mechanical, routine, or high-volume tasks.",
+      "routine_task_thresholds": {
+        "max_cost_class": "versatile",
+        "flagship_cost_threshold_input_per_m": 4.00,
+        "flagship_cost_threshold_output_per_m": 20.00
+      },
+      "multi_agent_policy": "Automatically throttle subagent dispatches for routine/deterministic operations (Profile 0/A, Tier 4 Commits/PRs, file searches) to cost-efficient models ('flash' or 'inherit'), never dispatching high-cost flagship models ('pro') unless explicitly ordered by user.",
+      "sequential_persona_policy": "Smart Confirmation Gate: When a high-cost flagship model (> $4.00/M input, > $20.00/M output, e.g. GPT-6 Astra, Claude Opus, Claude Fable) is active and the incoming task is routine/deterministic (Profile 0 Q&A, Git Commits, PR manifests, trivial text/doc edits), pause and recommend switching to the Daily Driver (Gemini Flash / GPT-6.1 Sol / Luna) before consuming large token volumes. Explicit user confirmation ('Weiter' / prompt instruction) bypasses this gate."
+    },
     "clause": "High-end and high-cost models (e.g. Pro, Opus, o1, flagship tiers) shall not be used unconditionally for routine tasks. Workflows, agents, and subagents must hit the sweet spot: Subagents default to 'inherit' to preserve the active session's cognitive capability without artificial downgrades, while divergent or deterministic tasks utilize cost-efficient models (e.g. Flash, Haiku, Mini tiers). High reasoning levels (extended/high thinking effort) are allocated where cognitive depth is essential (Architecture, Troubleshooting, Security), and throttled during mechanical code implementation. High-end/high-cost models are permitted solely when the specific nature or extraordinary scope of the task genuinely requires it (e.g. extreme architectural restructuring, complex multi-component deadlock diagnosis, or explicit user instruction) or when a direct model call is demonstrably more cost-effective than generating excessive reasoning token volumes."
   },
   "execution_modes": {
