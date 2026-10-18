@@ -180,6 +180,7 @@ while IFS= read -r md_file; do
     md_dir="$(dirname "$md_file")"
     if command -v python3 >/dev/null 2>&1; then
         while IFS= read -r rel_link; do
+            rel_link="${rel_link%$'\r'}"
             if [ -n "$rel_link" ]; then
                 target_path="$md_dir/$rel_link"
                 if [ ! -e "$target_path" ]; then
@@ -210,15 +211,15 @@ fi
 echo -e "\n\033[33m7. Checking PowerShell command hygiene (must use -NoProfile)...\033[0m"
 MISSING_NOPROFILE=()
 while IFS= read -r md_file; do
-    line_num=0
-    while IFS= read -r line; do
-        line_num=$((line_num + 1))
-        if echo "$line" | grep -Eq '^\s*(pwsh|powershell)(\.exe)?\s+|`(pwsh|powershell)(\.exe)?\s+'; then
-            if ! echo "$line" | grep -q -- '-NoProfile'; then
+    while IFS= read -r match; do
+        if [ -n "$match" ]; then
+            line_num="$(echo "$match" | cut -d: -f1)"
+            line_content="$(echo "$match" | cut -d: -f2-)"
+            if ! echo "$line_content" | grep -q -- '-NoProfile'; then
                 MISSING_NOPROFILE+=("${md_file#$REPO_ROOT/}:$line_num")
             fi
         fi
-    done < "$md_file"
+    done < <(grep -nE '^\s*(pwsh|powershell)(\.exe)?\s+|`(pwsh|powershell)(\.exe)?\s+' "$md_file" 2>/dev/null || true)
 done < <(find "$REPO_ROOT" -type f -name "*.md" -not -path '*/.*' 2>/dev/null)
 
 if [ ${#MISSING_NOPROFILE[@]} -eq 0 ]; then
