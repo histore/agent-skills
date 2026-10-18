@@ -175,6 +175,48 @@ foreach ($tc in $cases) {
         }
     }
 
+    # Rule 6: Verify actual skill and governance files enforce the declared invariants
+    $agentsFile = Join-Path $repoRoot "AGENTS.md"
+    $agentsContent = if (Test-Path $agentsFile) { Get-Content -Path $agentsFile -Raw -Encoding UTF8 } else { "" }
+    foreach ($inv in $tc.expected.required_invariants) {
+        switch ($inv) {
+            "zero_git_operations" {
+                if ($agentsContent -notmatch 'Zero Git operations') {
+                    $failures.Add("Invariant 'zero_git_operations' missing in AGENTS.md")
+                }
+            }
+            "zero_test_execution" {
+                if ($agentsContent -notmatch 'zero test execution') {
+                    $failures.Add("Invariant 'zero_test_execution' missing in AGENTS.md")
+                }
+            }
+            "inner_loop_tdd" {
+                $devSkill = Join-Path $repoRoot "skills\ask-developer\SKILL.md"
+                if (-not (Test-Path $devSkill) -or (Get-Content $devSkill -Raw -Encoding UTF8) -notmatch 'Inner-Loop TDD') {
+                    $failures.Add("Invariant 'inner_loop_tdd' missing in ask-developer/SKILL.md")
+                }
+            }
+            "no_unsafe_blocks" {
+                $devSkill = Join-Path $repoRoot "skills\ask-developer\SKILL.md"
+                if (-not (Test-Path $devSkill) -or (Get-Content $devSkill -Raw -Encoding UTF8) -notmatch 'unsafe') {
+                    $failures.Add("Invariant 'no_unsafe_blocks' missing in ask-developer/SKILL.md")
+                }
+            }
+            "submodule_boundary_isolation" {
+                $commitSkill = Join-Path $repoRoot "skills\ask-commit-manager\SKILL.md"
+                if (-not (Test-Path $commitSkill) -or (Get-Content $commitSkill -Raw -Encoding UTF8) -notmatch 'Submodule Isolation Guardrail') {
+                    $failures.Add("Invariant 'submodule_boundary_isolation' missing in ask-commit-manager/SKILL.md")
+                }
+            }
+            "circuit_breaker_triggered" {
+                $devSkill = Join-Path $repoRoot "skills\ask-developer\SKILL.md"
+                if (-not (Test-Path $devSkill) -or (Get-Content $devSkill -Raw -Encoding UTF8) -notmatch 'maximum of 3') {
+                    $failures.Add("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-developer/SKILL.md")
+                }
+            }
+        }
+    }
+
     $isPass = ($failures.Count -eq 0)
     if ($isPass) {
         $passedCount++

@@ -59,7 +59,7 @@ elseif ((Test-Path (Join-Path $ProjectRoot "Directory.Build.props")) -or (Get-Ch
     } else {
         $projFile = (Get-ChildItem -Path $ProjectRoot -Filter "*.*proj" -File -Depth 2 | Select-Object -First 1)
         if ($projFile) {
-            $relProj = (Resolve-Path -Relative -Path $projFile.FullName).Replace('\', '/')
+            $relProj = [System.IO.Path]::GetRelativePath($ProjectRoot, $projFile.FullName).Replace('\', '/')
             $detected.lint_cmd = "dotnet format `"$relProj`" --verify-no-changes"
         } else {
             $detected.lint_cmd = "dotnet format --verify-no-changes"

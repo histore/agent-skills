@@ -178,8 +178,6 @@ echo -e "\n\033[33m6. Validating markdown relative links...\033[0m"
 BROKEN_LINKS=()
 while IFS= read -r md_file; do
     md_dir="$(dirname "$md_file")"
-    # Extract links like [text](link)
-    # Using python/perl or pure bash/awk
     if command -v python3 >/dev/null 2>&1; then
         while IFS= read -r rel_link; do
             if [ -n "$rel_link" ]; then
@@ -188,14 +186,17 @@ while IFS= read -r md_file; do
                     BROKEN_LINKS+=("${md_file#$REPO_ROOT/} -> $rel_link")
                 fi
             fi
-        done < <(python3 -c "
+        done < <(python3 - "$md_file" << 'EOF' 2>/dev/null || true
 import re, sys
-content = open('$md_file', 'r', encoding='utf-8', errors='ignore').read()
+content = open(sys.argv[1], 'r', encoding='utf-8', errors='ignore').read()
+content = re.sub(r'(?s)```.*?```|~~~.*?~~~', '', content)
+content = re.sub(r'`[^`\r\n]+`', '', content)
 for m in re.finditer(r'\[([^\]]+)\]\(([^)]+)\)', content):
     link = m.group(2).split('#')[0].strip()
     if link and not link.startswith(('http://', 'https://', 'mailto:', 'file:', '#')):
         print(link)
-" 2>/dev/null || true)
+EOF
+        )
     fi
 done < <(find "$REPO_ROOT" -type f -name "*.md" -not -path '*/.*' 2>/dev/null)
 
@@ -212,7 +213,7 @@ while IFS= read -r md_file; do
     line_num=0
     while IFS= read -r line; do
         line_num=$((line_num + 1))
-        if echo "$line" | grep -Eq '^\s*powershell(\.exe)?\s+|`powershell(\.exe)?\s+'; then
+        if echo "$line" | grep -Eq '^\s*(pwsh|powershell)(\.exe)?\s+|`(pwsh|powershell)(\.exe)?\s+'; then
             if ! echo "$line" | grep -q -- '-NoProfile'; then
                 MISSING_NOPROFILE+=("${md_file#$REPO_ROOT/}:$line_num")
             fi
@@ -221,9 +222,9 @@ while IFS= read -r md_file; do
 done < <(find "$REPO_ROOT" -type f -name "*.md" -not -path '*/.*' 2>/dev/null)
 
 if [ ${#MISSING_NOPROFILE[@]} -eq 0 ]; then
-    assert_condition 0 "All powershell command invocations include -NoProfile" "powershell commands missing -NoProfile"
+    assert_condition 0 "All powershell/pwsh command invocations include -NoProfile" "powershell/pwsh commands missing -NoProfile"
 else
-    assert_condition 1 "All powershell command invocations include -NoProfile" "powershell commands missing -NoProfile in: ${MISSING_NOPROFILE[*]}"
+    assert_condition 1 "All powershell/pwsh command invocations include -NoProfile" "powershell/pwsh commands missing -NoProfile in: ${MISSING_NOPROFILE[*]}"
 fi
 
 # 8. Validate get-arch-diff submodule exclusions (_agents and .agents)

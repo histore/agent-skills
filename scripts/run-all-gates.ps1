@@ -129,8 +129,19 @@ $results.Add((Run-Gate -Name "Clean Architecture Boundaries" -ScriptFile "lint-c
 # 3. Documentation & Links
 $results.Add((Run-Gate -Name "Documentation & Link Integrity" -ScriptFile "lint-docs.ps1" -ScriptArgs @("-RepoRoot", $RepoRoot)))
 
-# 4. Requirements Consistency & Scoped IDs
-$results.Add((Run-Gate -Name "Requirements Scoped IDs & Non-Duplication" -ScriptFile "lint-requirements.ps1" -ScriptArgs @("-RequirementsPath", $RepoRoot)))
+# 4. Requirements Consistency & Scoped IDs (fast-path skip if no requirements exist)
+$hasReqFiles = (Test-Path (Join-Path $RepoRoot "REQUIREMENTS.md")) -or (Test-Path (Join-Path $RepoRoot "docs\requirements\modules"))
+if ($hasReqFiles) {
+    $results.Add((Run-Gate -Name "Requirements Scoped IDs & Non-Duplication" -ScriptFile "lint-requirements.ps1" -ScriptArgs @("-RequirementsPath", $RepoRoot)))
+} else {
+    $results.Add([PSCustomObject]@{
+        Gate = "Requirements Scoped IDs & Non-Duplication"
+        Status = "pass"
+        DurationMs = 0
+        Message = "No requirements files present (fast-path pass)"
+        Output = ""
+    })
+}
 
 # 5. Stage-1 Fast-Gate (Build & Quiet Tests)
 if (-not $Fast) {

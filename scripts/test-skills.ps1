@@ -168,7 +168,10 @@ $brokenLinks = [System.Collections.Generic.List[string]]::new()
 $allMdFiles = Get-ChildItem -Path $repoRoot -Recurse -File -Filter "*.md" | Where-Object { $_.FullName -notmatch '\\\.git\\' }
 foreach ($file in $allMdFiles) {
     $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
-    $linkMatches = [regex]::Matches($content, '\[([^\]]+)\]\(([^)]+)\)')
+    # Strip fenced code blocks and inline code spans before matching links
+    $cleanContent = [regex]::Replace($content, '(?s)```.*?```|~~~.*?~~~', '')
+    $cleanContent = [regex]::Replace($cleanContent, '`[^`\r\n]+`', '')
+    $linkMatches = [regex]::Matches($cleanContent, '\[([^\]]+)\]\(([^)]+)\)')
     foreach ($m in $linkMatches) {
         $link = $m.Groups[2].Value
         if ($link -match '^(http|https|mailto|#|file:)') { continue }
@@ -194,13 +197,13 @@ foreach ($file in $allMdFiles) {
     $lines = $content -split '\r?\n'
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
-        # Match actual powershell command invocation (command line or backticked command) but ignore prose mentions
-        if (($line -match '^\s*powershell(\.exe)?\s+' -or $line -match '`powershell(\.exe)?\s+') -and $line -notmatch '-NoProfile') {
+        # Match actual powershell/pwsh command invocation (command line or backticked command) but ignore prose mentions
+        if (($line -match '^\s*(pwsh|powershell)(\.exe)?\s+' -or $line -match '`(pwsh|powershell)(\.exe)?\s+') -and $line -notmatch '-NoProfile') {
             $missingNoProfile.Add("$($file.FullName.Replace($repoRoot + '\', '')):$($i+1)")
         }
     }
 }
-Assert-Condition ($missingNoProfile.Count -eq 0) "All powershell command invocations include -NoProfile" "powershell commands missing -NoProfile in: $($missingNoProfile -join ', ')"
+Assert-Condition ($missingNoProfile.Count -eq 0) "All powershell/pwsh command invocations include -NoProfile" "powershell/pwsh commands missing -NoProfile in: $($missingNoProfile -join ', ')"
 
 # 8. Validate get-arch-diff submodule exclusions (_agents and .agents)
 Write-Host "`n8. Validating get-arch-diff submodule exclusions..." -ForegroundColor Yellow

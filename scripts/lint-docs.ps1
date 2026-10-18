@@ -50,9 +50,20 @@ foreach ($file in $mdFiles) {
     $relSource = $file.FullName.Replace($RepoRoot + "\", "").Replace($RepoRoot + "/", "")
     $lines = Get-Content -Path $file.FullName -Encoding UTF8
 
+    $inCodeBlock = $false
     for ($i = 0; $i -lt $lines.Length; $i++) {
         $line = $lines[$i]
-        $matches = [regex]::Matches($line, $linkRegex)
+        if ($line -match '^\s*(```|~~~)') {
+            $inCodeBlock = -not $inCodeBlock
+            continue
+        }
+        if ($inCodeBlock) {
+            continue
+        }
+
+        # Strip inline code spans (`...`) to avoid matching code constructs like [type](var)
+        $cleanLine = [regex]::Replace($line, '`[^`]+`', '')
+        $matches = [regex]::Matches($cleanLine, $linkRegex)
         foreach ($m in $matches) {
             $rawTarget = $m.Groups[2].Value.Trim()
 

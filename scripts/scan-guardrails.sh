@@ -80,6 +80,9 @@ for file in "${FILES[@]}"; do
     if grep -nE -- '(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}' "$file" >/dev/null 2>&1; then
       VIOLATIONS+=("[SecretDetection] ${rel_path}: Potential AWS access key detected")
     fi
+    if grep -nE -- 'gh[pousr]_[A-Za-z0-9_]{36,255}' "$file" >/dev/null 2>&1; then
+      VIOLATIONS+=("[SecretDetection] ${rel_path}: Potential GitHub Personal Token detected")
+    fi
   fi
 done
 

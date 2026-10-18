@@ -71,16 +71,9 @@ foreach ($wf in $workflowFiles) {
 
     # PowerShell hygiene check
     $lines = $content -split "`r?`n"
-    $inPwshStep = $false
     for ($i = 0; $i -lt $lines.Length; $i++) {
         $line = $lines[$i]
-        if ($line -match 'shell\s*:\s*(pwsh|powershell)') {
-            $inPwshStep = $true
-        }
-        if ($line -match '^\s*-\s+name:' -or $line -match '^\s*-\s+uses:') {
-            $inPwshStep = $false
-        }
-        if ($inPwshStep -and $line -match 'run\s*:\s*.*pwsh' -and $line -notmatch '-NoProfile') {
+        if (($line -match '^\s*(-\s+)?run\s*:\s*.*\b(pwsh|powershell)(\.exe)?\b') -and ($line -notmatch '-NoProfile')) {
             $warnings.Add("Workflow file '$name' line $($i+1): PowerShell invocation without '-NoProfile' detected.")
         }
     }

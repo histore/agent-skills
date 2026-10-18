@@ -108,6 +108,13 @@ if command -v agy &>/dev/null; then
   "platform": "$platform",
   "execution_mode": "$execution_mode",
   "cost_efficiency": true,
+  "cost_guardrail": {
+    "enabled": true,
+    "max_routine_cost_class": "versatile",
+    "flagship_threshold_input_per_m": 4.00,
+    "flagship_threshold_output_per_m": 20.00,
+    "throttle_routine_to_cost_efficient": true
+  },
   "supports_subagents": $supports_subagents,
   "detected_models": $models_json,
   "recommended_tiers": {
@@ -134,6 +141,14 @@ elif command -v gh &>/dev/null; then
   "cache_file": "$cache_path",
   "platform": "copilot",
   "execution_mode": "sequential_persona",
+  "cost_efficiency": true,
+  "cost_guardrail": {
+    "enabled": true,
+    "max_routine_cost_class": "versatile",
+    "flagship_threshold_input_per_m": 4.00,
+    "flagship_threshold_output_per_m": 20.00,
+    "throttle_routine_to_cost_efficient": true
+  },
   "supports_subagents": false,
   "detected_models": [],
   "recommended_tiers": {
@@ -154,6 +169,14 @@ else
   "cache_file": "$cache_path",
   "platform": "generic",
   "execution_mode": "sequential_persona",
+  "cost_efficiency": true,
+  "cost_guardrail": {
+    "enabled": true,
+    "max_routine_cost_class": "versatile",
+    "flagship_threshold_input_per_m": 4.00,
+    "flagship_threshold_output_per_m": 20.00,
+    "throttle_routine_to_cost_efficient": true
+  },
   "supports_subagents": false,
   "detected_models": [],
   "recommended_tiers": {

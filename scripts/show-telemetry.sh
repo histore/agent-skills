@@ -49,13 +49,13 @@ if [[ ! -f "$TELEMETRY_PATH" ]]; then
 fi
 
 if command -v python3 &>/dev/null; then
-  python3 -c "
-import json
+  python3 - "$TELEMETRY_PATH" "$SESSION_ID" "$LIMIT" "$JSON_OUTPUT" << 'EOF'
+import json, sys
 
-telemetry_path = '$TELEMETRY_PATH'
-session_id = '$SESSION_ID'
-limit = int('$LIMIT')
-json_output = '$JSON_OUTPUT' == 'true'
+telemetry_path = sys.argv[1]
+session_id = sys.argv[2]
+limit = int(sys.argv[3]) if sys.argv[3].isdigit() else 25
+json_output = sys.argv[4] == 'true'
 
 records = []
 with open(telemetry_path, 'r', encoding='utf-8') as f:
@@ -88,7 +88,7 @@ else:
         dur = r.get('duration_ms', 0)
         prof = r.get('profile', '-')
         print(f'{ts} | {phase:<22} | {ev:<14} | {st:<10} | {dur:>6}ms | {prof}')
-"
+EOF
 else
   tail -n "$LIMIT" "$TELEMETRY_PATH"
 fi

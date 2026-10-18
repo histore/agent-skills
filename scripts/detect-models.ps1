@@ -93,6 +93,13 @@ $result = [ordered]@{
     platform           = "generic"
     execution_mode     = "sequential_persona"
     cost_efficiency    = $true
+    cost_guardrail     = [ordered]@{
+        enabled                            = $true
+        max_routine_cost_class             = "versatile"
+        flagship_threshold_input_per_m     = 4.00
+        flagship_threshold_output_per_m    = 20.00
+        throttle_routine_to_cost_efficient = $true
+    }
     supports_subagents = $false
     detected_models    = @()
     recommended_tiers  = [ordered]@{}

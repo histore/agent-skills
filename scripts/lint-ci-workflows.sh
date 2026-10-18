@@ -55,6 +55,14 @@ for wf in "${WORKFLOW_FILES[@]}"; do
     if ! grep -qE '^\s*permissions\s*:' "$wf"; then
         WARNINGS+=("Workflow file '$base' does not explicitly restrict GITHUB_TOKEN 'permissions:'.")
     fi
+
+    line_no=0
+    while IFS= read -r line; do
+        line_no=$((line_no + 1))
+        if echo "$line" | grep -qE '^\s*(-\s+)?run\s*:.*\b(pwsh|powershell)(\.exe)?\b' && ! echo "$line" | grep -q -- '-NoProfile'; then
+            WARNINGS+=("Workflow file '$base' line $line_no: PowerShell invocation without '-NoProfile' detected.")
+        fi
+    done < "$wf"
 done
 
 STATUS="pass"

@@ -10,7 +10,7 @@ Thank you for contributing to this project. To maintain high architectural integ
    - Technologies must be dynamically discovered from project configuration files and architecture specifications.
 
 2. **Core Roles vs. Domain Specialists**:
-   - **Core Lifecycle Roles** (`RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`) define the standard, linear workflow, supported by **Lifecycle Specialists** (e.g. `ReleaseManager`, `Troubleshooter`, `ArchitectureSync`, `GitTroubleshooter`, `DevOpsEngineer`, `RefactoringSpecialist`, `DocumentationSpecialist`, `CodeExplainer`).
+   - **Core Lifecycle Roles** (`Control`, `RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`) define the standard workflow, supported by **Lifecycle Specialists** (e.g. `ReleaseManager`, `Troubleshooter`, `ArchitectureSync`, `GitTroubleshooter`, `DevOpsEngineer`, `RefactoringSpecialist`, `DocumentationSpecialist`, `CodeExplainer`, `CodeReviewer`).
    - **Domain Specialists** (`UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`) are bound to technical domains, not frameworks. They are invoked conditionally on-demand or consulted by other skills.
 
 3. **Documentation Language**:
@@ -18,7 +18,7 @@ Thank you for contributing to this project. To maintain high architectural integ
 
 ## Lifecycle Action Execution Governance
 
-Operations involving Git and releases (`commit`, `push`, `pr merge`, `release`) adhere to six governance principles:
+Operations involving Git and releases (`commit`, `push`, `pr merge`, `release`) adhere to seven governance principles:
 
 1. **Strict Action Execution (Atomic Scope)**: An explicitly requested action executes only that action without unsolicited side-actions (e.g. committing never triggers an automatic push).
 2. **State-Driven Prerequisite Resolution**: If an action requires preceding state changes (e.g. uncommitted workspace changes when `push` is requested, or unpushed commits before PR creation), prerequisites are resolved automatically.
@@ -26,6 +26,7 @@ Operations involving Git and releases (`commit`, `push`, `pr merge`, `release`) 
 4. **Adaptive Gate Resolution (Intention Matching with Anomaly Fallback)**: When the user's prompt directly instructs or parameterizes an action (e.g. "erstelle einen minor release", "commit with message ..."), interactive confirmation is satisfied by the prompt and the action executes directly. An interactive review gate remains mandatory if: (a) uncommitted/untracked changes exceed the current scope, (b) SemVer history contradicts the requested release bump, or (c) atypical repository states occur.
 5. **Explicit User Override**: Explicit user instructions can combine or alter default actions at any time.
 6. **Atypical State & Safety Confirmation Gate**: If following these instructions produces an unexpected state or requires non-standard measures (e.g. detached HEAD, merge conflicts, unexpected untracked files, unverified release states), the agent halts, describes the situation, and requests explicit user confirmation before proceeding.
+7. **Clean Release Tagging Invariant**: Release tags (`vX.Y.Z`) must be applied directly to the existing production/merge commit on `main`. Standalone metadata commits (such as `docs(changelog): release v...`) directly on `main` during release tagging are strictly prohibited to maintain an uncluttered Git commit history focused on actual functional changes. Release notes belong in tag annotations or GitHub Releases.
 
 ## Branch & Pull Request Process
 

@@ -1,0 +1,26 @@
+# OS & Editor artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
+.vscode/
+.idea/
+
+# Temporary, Backup & Cache files
+*.bak
+*.tmp
+*.log
+model-cache.json
+telemetry.jsonl
+
+# Build & Test output directories
+TestResults/
+test-results/
+coverage/
+artifacts/
+publish/
+bin/
+obj/
+target/
+node_modules/

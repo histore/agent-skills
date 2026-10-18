@@ -81,28 +81,30 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Write JSONL
 if command -v python3 &>/dev/null; then
-  python3 -c "
-import json
+  python3 - "$TIMESTAMP" "$SESSION_ID" "$PHASE" "$EVENT" "$STATUS" "$DURATION_MS" "$PROFILE" "$DETAILS" "$TELEMETRY_PATH" << 'EOF' 2>/dev/null || true
+import json, sys
+
+timestamp, session_id, phase, event, status, duration_ms, profile, details, telemetry_path = sys.argv[1:10]
 
 record = {
-    'timestamp': '$TIMESTAMP',
-    'session_id': '$SESSION_ID',
-    'phase': '$PHASE',
-    'event': '$EVENT',
-    'status': '$STATUS',
-    'duration_ms': int('$DURATION_MS') if '$DURATION_MS'.isdigit() else 0
+    'timestamp': timestamp,
+    'session_id': session_id,
+    'phase': phase,
+    'event': event,
+    'status': status,
+    'duration_ms': int(duration_ms) if duration_ms.isdigit() else 0
 }
-if '$PROFILE':
-    record['profile'] = '$PROFILE'
-if '$DETAILS':
+if profile:
+    record['profile'] = profile
+if details:
     try:
-        record['details'] = json.loads('$DETAILS')
+        record['details'] = json.loads(details)
     except Exception:
-        record['details'] = '$DETAILS'
+        record['details'] = details
 
-with open('$TELEMETRY_PATH', 'a', encoding='utf-8') as f:
+with open(telemetry_path, 'a', encoding='utf-8') as f:
     f.write(json.dumps(record) + '\n')
-" 2>/dev/null || true
+EOF
 else
   echo "{\"timestamp\":\"$TIMESTAMP\",\"session_id\":\"$SESSION_ID\",\"phase\":\"$PHASE\",\"event\":\"$EVENT\",\"status\":\"$STATUS\",\"duration_ms\":$DURATION_MS}" >> "$TELEMETRY_PATH"
 fi

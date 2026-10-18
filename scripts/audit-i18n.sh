@@ -14,10 +14,12 @@ for arg in "$@"; do
 done
 
 if command -v python3 &>/dev/null; then
-  python3 -c "
+  python3 - "$RES_DIR" "$JSON_OUTPUT" << 'EOF'
 import os, json, sys
 
-base_dir = '$RES_DIR'
+base_dir = sys.argv[1]
+json_out = sys.argv[2] == 'true'
+
 de_files = []
 for root, dirs, files in os.walk(base_dir):
     if '.git' in root or 'node_modules' in root:
@@ -61,7 +63,6 @@ for de_path in de_files:
             pass
 
 is_pass = len(missing_in_de) == 0 and len(missing_in_en) == 0
-json_out = '$JSON_OUTPUT' == 'true'
 
 if json_out:
     print(json.dumps({
@@ -87,7 +88,7 @@ else:
 
 if not is_pass:
     sys.exit(1)
-"
+EOF
 else
   echo "python3 required for i18n key audit"
 fi

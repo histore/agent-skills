@@ -20,13 +20,13 @@ for arg in "$@"; do
 done
 
 if command -v python3 &>/dev/null; then
-  python3 -c "
+  python3 - "$REPO_ROOT" "$RESULTS_PATH" "$JSON_OUTPUT" << 'EOF'
 import os, sys, glob, json
 import xml.etree.ElementTree as ET
 
-repo_root = '$REPO_ROOT'
-custom_path = '$RESULTS_PATH'
-json_out = '$JSON_OUTPUT' == 'true'
+repo_root = sys.argv[1]
+custom_path = sys.argv[2]
+json_out = sys.argv[3] == 'true'
 
 files = []
 if custom_path and os.path.exists(custom_path):
@@ -59,7 +59,7 @@ for f in files:
             fail = tc.find('failure')
             if fail is not None:
                 failures.append({
-                    'test_name': f\"{tc.attrib.get('classname', '')}.{tc.attrib.get('name', '')}\",
+                    'test_name': f"{tc.attrib.get('classname', '')}.{tc.attrib.get('name', '')}",
                     'error_message': fail.attrib.get('message', fail.text or '').strip(),
                     'report_file': os.path.basename(f)
                 })
@@ -101,12 +101,12 @@ else:
     else:
         print(f'Diagnostics Status: FAIL ({len(failures)} test failures detected)')
         for fail in failures:
-            print(f\"  [FAILED] {fail['test_name']}: {fail['error_message']}\")
+            print(f"  [FAILED] {fail['test_name']}: {fail['error_message']}")
     print('=============================================')
 
 if not is_pass:
     sys.exit(1)
-"
+EOF
 else
   echo 'python3 required for test failure collection'
   exit 0

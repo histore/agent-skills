@@ -24,10 +24,14 @@ for arg in "$@"; do
 done
 
 if command -v python3 &>/dev/null; then
-  python3 -c "
+  python3 - "$REQ_PATH" "$NEXT_ID" "$SCOPE" "$JSON_OUTPUT" << 'EOF'
 import os, re, json, sys
 
-base_dir = '$REQ_PATH'
+base_dir = sys.argv[1]
+next_id = sys.argv[2] == 'true'
+target_scope = sys.argv[3].upper()
+json_out = sys.argv[4] == 'true'
+
 files = []
 root_req = os.path.join(base_dir, 'REQUIREMENTS.md')
 if os.path.isfile(root_req):
@@ -69,10 +73,6 @@ for f in files:
 
                 scope_max[sc] = max(scope_max.get(sc, 0), num)
 
-next_id = '$NEXT_ID' == 'true'
-target_scope = '$SCOPE'.upper()
-json_out = '$JSON_OUTPUT' == 'true'
-
 if next_id:
     if not target_scope:
         print('Error: --scope is required with --next-id', file=sys.stderr)
@@ -106,12 +106,12 @@ else:
     else:
         print(f'Status: FAIL ({len(duplicates)} duplicate IDs detected)')
         for d in duplicates:
-            print(f\"  Collision on {d['id']}: first in {d['first']}, second in {d['second']}\")
+            print(f"  Collision on {d['id']}: first in {d['first']}, second in {d['second']}")
     print('=============================================')
 
 if not is_pass:
     sys.exit(1)
-"
+EOF
 else
   echo "python3 required for requirements linting"
   exit 0

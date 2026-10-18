@@ -34,18 +34,25 @@ LINT_CMD=""
 if [[ -f "$DETECT_SCRIPT" ]]; then
   STACK_JSON=$(bash "$DETECT_SCRIPT" "$PROJECT_ROOT" --json 2>/dev/null || echo '{}')
   if command -v python3 &>/dev/null; then
-    eval $(python3 -c "
-import json
+    {
+      IFS= read -r STACK || true
+      IFS= read -r BUILD_CMD || true
+      IFS= read -r TEST_CMD || true
+      IFS= read -r FILTER_SYNTAX || true
+      IFS= read -r LINT_CMD || true
+    } < <(python3 - "$STACK_JSON" << 'EOF' 2>/dev/null || true
+import json, sys
 try:
-    d = json.loads('''$STACK_JSON''')
-    print(f\"STACK='{d.get('stack', '')}'\")
-    print(f\"BUILD_CMD='{d.get('build_cmd', '')}'\")
-    print(f\"TEST_CMD='{d.get('test_cmd', '')}'\")
-    print(f\"FILTER_SYNTAX='{d.get('test_filter_syntax', '')}'\")
-    print(f\"LINT_CMD='{d.get('lint_cmd', '')}'\")
+    d = json.loads(sys.argv[1])
+    print(d.get('stack', 'unknown'))
+    print(d.get('build_cmd', ''))
+    print(d.get('test_cmd', ''))
+    print(d.get('test_filter_syntax', ''))
+    print(d.get('lint_cmd', ''))
 except Exception:
-    pass
-" 2>/dev/null || true)
+    print('unknown\n\n\n\n')
+EOF
+    )
   fi
 fi
 

@@ -76,15 +76,16 @@ function Invoke-GateStep {
     param([string]$StepName, [string]$CommandLine)
     if ([string]::IsNullOrWhiteSpace($CommandLine)) { return $true }
     
-    $output = [System.Collections.Generic.List[string]]::new()
+    $stdoutFile = Join-Path ([System.IO.Path]::GetTempPath()) "gate_stdout_${PID}_$([guid]::NewGuid().ToString('N')).log"
+    $stderrFile = Join-Path ([System.IO.Path]::GetTempPath()) "gate_stderr_${PID}_$([guid]::NewGuid().ToString('N')).log"
     try {
-        $proc = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-Command", "Set-Location '$ProjectRoot'; $CommandLine" -NoNewWindow -PassThru -RedirectStandardOutput "$env:TEMP\gate_stdout.log" -RedirectStandardError "$env:TEMP\gate_stderr.log"
+        $proc = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-Command", "Set-Location '$ProjectRoot'; $CommandLine" -NoNewWindow -PassThru -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
         $proc.WaitForExit()
         $exitCode = $proc.ExitCode
 
-        $stdout = if (Test-Path "$env:TEMP\gate_stdout.log") { Get-Content "$env:TEMP\gate_stdout.log" -Raw } else { "" }
-        $stderr = if (Test-Path "$env:TEMP\gate_stderr.log") { Get-Content "$env:TEMP\gate_stderr.log" -Raw } else { "" }
-        Remove-Item "$env:TEMP\gate_stdout.log", "$env:TEMP\gate_stderr.log" -Force -ErrorAction SilentlyContinue
+        $stdout = if (Test-Path $stdoutFile) { Get-Content $stdoutFile -Raw } else { "" }
+        $stderr = if (Test-Path $stderrFile) { Get-Content $stderrFile -Raw } else { "" }
+        Remove-Item $stdoutFile, $stderrFile -Force -ErrorAction SilentlyContinue
 
         if ($exitCode -ne 0) {
             $combined = ($stderr + "`n" + $stdout) -split "`r?`n"

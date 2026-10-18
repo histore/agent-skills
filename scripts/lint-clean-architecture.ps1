@@ -66,6 +66,7 @@ if ($RulesPath -and (Test-Path $RulesPath)) {
 }
 
 $maxFileLines = if ($rules -and $rules.metrics.max_file_lines) { [int]$rules.metrics.max_file_lines } else { 500 }
+$maxFuncLines = if ($rules -and $rules.metrics.max_function_lines) { [int]$rules.metrics.max_function_lines } else { 60 }
 $maxNesting = if ($rules -and $rules.metrics.max_nesting_depth) { [int]$rules.metrics.max_nesting_depth } else { 4 }
 $layerBoundaries = if ($rules -and $rules.layer_boundaries) { $rules.layer_boundaries } else { @() }
 
@@ -101,6 +102,7 @@ $violations = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # Import regex patterns across languages (use, import, using, from)
 $importRegex = '^\s*(use\s+|import\s+|using\s+|from\s+)([^;]+)'
+$funcRegex = '^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\()'
 
 foreach ($filePath in $filesToScan) {
     $relPath = $filePath.Replace($TargetPath + "\", "").Replace($TargetPath + "/", "")
@@ -125,10 +127,25 @@ foreach ($filePath in $filesToScan) {
         }
     }
 
+    $currentFuncStart = 0
     for ($i = 0; $i -lt $lines.Length; $i++) {
         $line = $lines[$i]
 
-        # Metric 2: Max nesting depth
+        # Metric 2: Max function lines (heuristic boundary between top/member function declarations)
+        if ($line -match $funcRegex) {
+            if ($currentFuncStart -gt 0 -and ($i - $currentFuncStart) -gt $maxFuncLines) {
+                $violations.Add([PSCustomObject]@{
+                    Type = "FunctionSizeLimit"
+                    File = $relPath
+                    Line = $currentFuncStart
+                    Severity = "Warning"
+                    Message = "Function starting at line $currentFuncStart spans $($i - $currentFuncStart) lines (exceeds recommended limit of $maxFuncLines)"
+                })
+            }
+            $currentFuncStart = $i + 1
+        }
+
+        # Metric 3: Max nesting depth
         if ($line -match '^\s*(if|for|while|match|switch)\b') {
             $leadingSpaces = ($line -replace '^(\s*).*', '$1').Length
             $depth = [math]::Floor($leadingSpaces / 4)

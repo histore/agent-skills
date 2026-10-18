@@ -1,7 +1,9 @@
 # Workspace Agent Guidelines: Subagent Roles & Context Isolation
 
 ## Overview
-This workspace employs specialized subagent roles to enforce **Clean Code**, **Clean Architecture**, dynamic project stack adaptation, maximum usability, high performance, robust security, systematic **Root Cause Analysis (Troubleshooting)**, high automated test coverage, and strict context isolation.
+This workspace employs specialized subagent roles, adaptive execution profiles, and a zero-token deterministic script toolkit with a clear **dual mission**:
+1. **Ensure Maximum Engineering & Result Quality** through **Clean Code**, **Clean Architecture**, systematic **Root Cause Analysis (Troubleshooting)**, **Inner-Loop TDD**, two-stage quality gates, and strict security/data-loss guardrails.
+2. **Reduce Token & Compute Costs to the Necessary Minimum** through **Compound Phased Execution** (75–90% KV-cache reuse), **Adaptive T-Shirt Sizing** (70–80% fast-track savings), **Calibrated Sweet-Spot Model & Thinking Budgets**, **Zero-Token Script Offloading**, **Context Isolation**, and **Anti-Ceremony Guardrails**.
 
 All skills and rules are designed to be general and reusable across diverse projects. Programming languages, frameworks, libraries, and toolchains are never hardcoded; agents dynamically discover and adapt to the target project's conventions and ecosystem.
 

@@ -4,13 +4,31 @@
 # ==============================================================================
 set -euo pipefail
 
-REPO_ROOT="${1:-$(pwd)}"
+REPO_ROOT="$(pwd)"
 JSON_OUTPUT=false
 
-for arg in "$@"; do
-  if [[ "$arg" == "--json" || "$arg" == "-j" ]]; then
-    JSON_OUTPUT=true
-  fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo-root)
+      REPO_ROOT="$2"
+      shift 2
+      ;;
+    --repo-root=*)
+      REPO_ROOT="${1#*=}"
+      shift
+      ;;
+    --json|-j)
+      JSON_OUTPUT=true
+      shift
+      ;;
+    -*)
+      shift
+      ;;
+    *)
+      REPO_ROOT="$1"
+      shift
+      ;;
+  esac
 done
 
 LATEST_TAG=$(git -C "$REPO_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")

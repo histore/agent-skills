@@ -1,6 +1,10 @@
 # Agent Skills & Subagent Roles (`agent-skills`)
 
-A modular, reusable repository of specialized AI subagent roles, skills, and governance rules designed for modern software development with Antigravity / Gemini agents and cross-platform AI assistants.
+A modular, reusable repository of specialized AI subagent roles, skills, zero-token automation scripts, and governance rules designed for modern software development with Antigravity / Gemini agents and cross-platform AI assistants.
+
+**Core Mission — High Engineering Quality at Minimum Necessary Cost**:
+1. **Maximum Result Quality**: Enforces **Clean Architecture**, **Clean Code** (SOLID, Safe Rust), **Inner-Loop TDD**, **Two-Stage Shift-Left Quality Gates**, and **Zero-Data-Loss Safety Guardrails**.
+2. **Minimum Necessary Cost**: Slashes token and compute expenditure via **Compound Phased Execution** (75–90% KV-cache discounts), **Adaptive T-Shirt Profiles** (70–80% fast-track savings), **Sweet-Spot Model & Reasoning Allocation**, **Zero-Token Deterministic Scripts**, and strict **Anti-Ceremony / Context Isolation Guardrails**.
 
 All skills and rules are designed to be general and reusable across diverse software projects. Programming languages, frameworks, libraries, and toolchains are never hardcoded; agents dynamically discover and adapt to the target project's conventions, manifests, and architecture.
 
@@ -128,9 +132,10 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 
 | Script | Relevant Role(s) | Functionality |
 | :--- | :--- | :--- |
-| `detect-models.ps1/.sh` | `Control` | Probes active environment and models with 24-hour persistent local disk caching. |
+| `detect-models.ps1/.sh` | `Control` | Probes active environment, model catalog, and cost-guardrail thresholds with 24-hour persistent local disk caching. |
 | `detect-tech-stack.ps1/.sh` | `Control`, `Developer` | Auto-detects programming languages, build systems, package managers, and test runners. |
 | `run-fast-gate.ps1/.sh` | `Verifikation`, `Developer` | Stage 1 Zero-Token compiler, linter, and quiet test suite fast gate. |
+| `run-all-gates.ps1/.sh` | `Verifikation`, `Control` | Unified quality gates orchestrator running all static zero-token linters and Stage 1 fast gate. |
 | `lint-clean-architecture.ps1/.sh` | `CodeReviewer`, `Verifikation` | Evaluates declarative layer import boundaries ([`rules/clean-architecture.json`](rules/clean-architecture.json)) and code metric limits. |
 | `scan-guardrails.ps1/.sh` | `SecurityAuditor`, `CommitManager` | Pre-commit scanner enforcing Safe Rust (0 `unsafe`), secret leak prevention, and terminal hygiene. |
 | `lint-requirements.ps1/.sh` | `RequirementEngineer` | Validates requirement formatting, duplicate detection, and allocates scoped IDs (`REQ-<SCOPE>-XXX`). |
@@ -139,22 +144,25 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 | `audit-i18n.ps1/.sh` | `LocalizationSpecialist` | Verifies key parity between German (`de`) and English (`en`) localization resource files. |
 | `generate-pr-summary.ps1/.sh` | `PRManager` | Generates structured PR descriptions, commit listings, and test evidence summaries. |
 | `diagnose-git-state.ps1/.sh` | `GitTroubleshooter` | Analyzes branch state, dirty working tree, diverged commits, and merge/rebase status. |
+| `create-safety-backup.ps1/.sh` | `GitTroubleshooter` | Creates zero-data-loss backup branches and stashes prior to destructive Git operations. |
 | `run-security-audit.ps1/.sh` | `SecurityAuditor`, `DevOpsEngineer` | Universal dependency CVE audit runner (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`). |
 | `check-test-coverage.ps1/.sh` | `Tester`, `Verifikation` | Parses Cobertura XML, LCOV, and coverage JSON to assert coverage threshold compliance. |
+| `collect-test-failures.ps1/.sh` | `Tester`, `Troubleshooter` | Parses JUnit/TRX test reports and extracts compacted failure messages and stack traces. |
+| `benchmark-startup.ps1/.sh` | `PerformanceOptimizer` | Measures cold/warm CLI or application startup latency (min, avg, median, p95, max). |
 | `lint-db-migrations.ps1/.sh` | `DatabaseSpecialist` | Lints database migrations for versioning, `.up.sql`/`.down.sql` symmetry, and destructive DDL statements. |
 | `lint-api-contracts.ps1/.sh` | `ApiContractSpecialist` | Validates OpenAPI schema structure, internal `$ref` pointers, Protobuf tags, and GraphQL schemas. |
 | `find-orphaned-assets.ps1/.sh` | `RefactoringSpecialist`, `DocumentationSpecialist` | Detects unreferenced media files and unindexed modular documentation files. |
 | `lint-ci-workflows.ps1/.sh` | `DevOpsEngineer` | Lints GitHub Actions workflows for syntax, least-privilege `permissions:`, and `-NoProfile` hygiene. |
-| `lint-docs.ps1/.sh` | `DocumentationSpecialist` | Validates relative markdown links and local file references. |
+| `lint-docs.ps1/.sh` | `DocumentationSpecialist` | Validates relative markdown links (ignoring fenced/inline code) and modular architecture parity. |
 | `get-arch-diff.ps1/.sh` | `ArchitectureSync` | Identifies modified host files since last sync commit, strictly excluding submodules. |
 | `record-telemetry.ps1/.sh` | `Control` | Zero-overhead lifecycle event and duration recorder. |
 | `show-telemetry.ps1/.sh` | `Control` | Formats local telemetry run history. |
-| `run-evals.ps1/.sh` | `Control` | Runs synthetic evaluation cases ([`evals/eval-cases.json`](evals/eval-cases.json)) against governance invariants. |
-| `test-skills.ps1/.sh` | CI / Quality Gate | Comprehensive 38-step test harness validating all skills, scripts, links, and line endings. |
+| `run-evals.ps1/.sh` | `Control` | Runs synthetic evaluation cases ([`evals/eval-cases.json`](evals/eval-cases.json)) against governance and skill file invariants. |
+| `test-skills.ps1/.sh` | CI / Quality Gate | Comprehensive 41-step test harness validating all skills, scripts, links, and line endings. |
 
 ## Lifecycle Action Execution Governance
 
-Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to six core execution principles:
+Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to seven core execution principles:
 
 1. **Strict Action Execution (Atomic Scope)**:
    When an action is explicitly requested (e.g. `commit`), only that action is performed. Unsolicited side-actions (e.g. automatic `push`) are omitted.
@@ -168,6 +176,8 @@ Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to si
    The user may explicitly direct combined or deviating behavior at any time (e.g. "commit and push directly").
 6. **Atypical State & Safety Confirmation Gate**:
    If following these rules encounters an unexpected or high-risk state (e.g. detached HEAD, merge conflicts, unexpected untracked files, unverified release states), the agent halts, describes the situation, and requests explicit user confirmation before proceeding.
+7. **Clean Release Tagging Invariant**:
+   Release tags (`vX.Y.Z`) must be applied directly to the existing production/merge commit on `main`. Standalone metadata commits (such as `docs(changelog): release v...`) directly on `main` during release tagging are strictly prohibited to maintain an uncluttered Git commit history focused on actual functional changes. Release notes belong in tag annotations or GitHub Releases.
 
 ## Integration in Projects
 

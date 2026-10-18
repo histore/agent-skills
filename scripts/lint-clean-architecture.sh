@@ -22,26 +22,39 @@ for arg in "$@"; do
   esac
 done
 
-RULES_FILE="${REPO_ROOT}/rules/clean-architecture.json"
+RULES_FILE=""
+for candidate in \
+  "${REPO_ROOT}/.agent-lint.json" \
+  "${REPO_ROOT}/rules/clean-architecture.json" \
+  "${REPO_ROOT}/_agents/rules/clean-architecture.json" \
+  "${REPO_ROOT}/.agents/rules/clean-architecture.json"; do
+  if [[ -f "$candidate" ]]; then
+    RULES_FILE="$candidate"
+    break
+  fi
+done
 
 if command -v python3 &>/dev/null; then
-  python3 -c "
+  python3 - "$RULES_FILE" "$TARGET_PATH" "$STAGED_ONLY" "$JSON_OUTPUT" << 'EOF'
 import os, re, json, sys
 
-rules_file = '$RULES_FILE'
-target_path = os.path.abspath('$TARGET_PATH')
-staged_only = '$STAGED_ONLY' == 'true'
-json_output = '$JSON_OUTPUT' == 'true'
+rules_file = sys.argv[1]
+target_path = os.path.abspath(sys.argv[2])
+staged_only = sys.argv[3] == 'true'
+json_output = sys.argv[4] == 'true'
 
 rules = {}
-if os.path.isfile(rules_file):
+if rules_file and os.path.isfile(rules_file):
     try:
         with open(rules_file, 'r', encoding='utf-8') as f:
             rules = json.load(f)
     except Exception:
         pass
 
-max_file_lines = rules.get('metrics', {}).get('max_file_lines', 500)
+metrics = rules.get('metrics', {})
+max_file_lines = int(metrics.get('max_file_lines', 500))
+max_func_lines = int(metrics.get('max_function_lines', 60))
+max_nesting = int(metrics.get('max_nesting_depth', 4))
 layer_boundaries = rules.get('layer_boundaries', [])
 
 src_exts = ('.rs', '.cs', '.ts', '.js', '.py', '.go')
@@ -63,6 +76,8 @@ else:
 
 violations = []
 import_pattern = re.compile(r'^\s*(use\s+|import\s+|using\s+|from\s+)([^;]+)', re.IGNORECASE)
+func_pattern = re.compile(r'^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\()')
+ctrl_pattern = re.compile(r'^\s*(if|for|while|match|switch)\b')
 
 for fp in files_to_scan:
     rel = os.path.relpath(fp, target_path)
@@ -82,8 +97,32 @@ for fp in files_to_scan:
         })
 
     active_rules = [r for r in layer_boundaries if re.search(r.get('path_pattern', ''), rel, re.IGNORECASE)]
+    current_func_start = 0
 
     for idx, line in enumerate(lines, 1):
+        if func_pattern.match(line):
+            if current_func_start > 0 and (idx - 1 - current_func_start) > max_func_lines:
+                violations.append({
+                    'type': 'FunctionSizeLimit',
+                    'file': rel,
+                    'line': current_func_start,
+                    'severity': 'Warning',
+                    'message': f'Function starting at line {current_func_start} spans {idx - 1 - current_func_start} lines (exceeds recommended limit of {max_func_lines})'
+                })
+            current_func_start = idx
+
+        if ctrl_pattern.match(line):
+            leading_spaces = len(line) - len(line.lstrip(' '))
+            depth = leading_spaces // 4
+            if depth > max_nesting:
+                violations.append({
+                    'type': 'DeepNesting',
+                    'file': rel,
+                    'line': idx,
+                    'severity': 'Warning',
+                    'message': f'Control block nesting depth of {depth} exceeds recommended limit of {max_nesting}'
+                })
+
         m = import_pattern.match(line)
         if m and active_rules:
             import_target = m.group(2).lower()
@@ -95,10 +134,11 @@ for fp in files_to_scan:
                             'file': rel,
                             'line': idx,
                             'severity': 'Error',
-                            'message': f\"Layer '{r.get('layer')}' illegally imports '{forbidden}': {r.get('message')}\"
+                            'message': f"Layer '{r.get('layer')}' illegally imports '{forbidden}': {r.get('message')}"
                         })
 
 errors = [v for v in violations if v['severity'] == 'Error']
+warnings = [v for v in violations if v['severity'] == 'Warning']
 is_pass = len(errors) == 0
 
 if json_output:
@@ -107,6 +147,7 @@ if json_output:
         'scanned_source_files': len(files_to_scan),
         'violations_count': len(violations),
         'error_count': len(errors),
+        'warning_count': len(warnings),
         'violations': violations
     }))
 else:
@@ -117,14 +158,14 @@ else:
     if is_pass:
         print('Clean Architecture Status: PASS (0 architectural boundary errors)')
     else:
-        print(f'Clean Architecture Status: FAIL ({len(errors)} errors)')
+        print(f'Clean Architecture Status: FAIL ({len(errors)} errors, {len(warnings)} warnings)')
         for v in violations:
-            print(f\"  [{v['severity']}: {v['type']}] {v['file']}:{v['line']} - {v['message']}\")
+            print(f"  [{v['severity']}: {v['type']}] {v['file']}:{v['line']} - {v['message']}")
     print('=============================================')
 
 if not is_pass:
     sys.exit(1)
-"
+EOF
 else
   echo "python3 required for clean architecture linting"
 fi
