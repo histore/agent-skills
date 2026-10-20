@@ -179,44 +179,124 @@ Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to se
 7. **Clean Release Tagging Invariant**:
    Release tags (`vX.Y.Z`) must be applied directly to the existing production/merge commit on `main`. Standalone metadata commits (such as `docs(changelog): release v...`) directly on `main` during release tagging are strictly prohibited to maintain an uncluttered Git commit history focused on actual functional changes. Release notes belong in tag annotations or GitHub Releases.
 
-## Integration in Projects
+## Integration & Usage Guide (Project & User Level)
 
-### Client Directory Compatibility (`.agents` vs. `_agents`)
+`agent-skills` can be deployed at two distinct scopes depending on your workflow:
+- **User Level (Global Machine Scope)**: Configured once per developer machine. Skills, rules, and the `ask-control` orchestrator are instantly available across every folder and project you open without modifying repository files or adding submodules.
+- **Project Level (Repository / Team Scope)**: Embedded directly into a specific repository (via Git submodule). Shares rules, architecture contracts, and deterministic CI/CD verification scripts with the entire team.
 
-Different AI coding assistants discover skill directories differently:
+Both **Google Antigravity (AGY)** and **GitHub Copilot** are fully supported at both levels.
 
-- **Gemini / Google Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/` as the default directory. If your repository is used with GitHub Copilot or other AI coding tools, use `.agents` (or create a symlink pointing `.agents` to `_agents`).
+---
 
-### As a Git Submodule
+### Integration Matrix: At a Glance
 
-#### Option A: Target Directory `_agents` (Optimized for Gemini / Antigravity)
-Adding the shared repository as `_agents` leaves `.agents` free for repository-specific rules and local custom overrides:
+| AI Assistant | User Level (Global Machine Configuration) | Project Level (Repository Submodule & Team) |
+| :--- | :--- | :--- |
+| **Google Antigravity (AGY)** | Symlinks/junctions in `~/.gemini/config/` + global `~/.gemini/GEMINI.md` | Submodule in `_agents/` (or `.agents/`) + project `AGENTS.md` |
+| **GitHub Copilot** | VS Code User `settings.json` (`codeGeneration.instructions`) | Submodule in `.agents/` + project `.github/copilot-instructions.md` |
 
-```bash
-git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git _agents
-```
+---
 
-#### Option B: Target Directory `.agents` (Universal / GitHub Copilot & Gemini)
-If your workflow involves GitHub Copilot or tools requiring `.agents/`:
+### 1. Google Antigravity (AGY / Gemini)
 
-```bash
-git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git .agents
-```
+#### A. User Level (Global Machine Configuration)
+Ideal for personal daily development: all 23 skills, model tier mappings, and the `ask-control` orchestrator are available globally across all projects on your workstation.
 
-### Cloning a Repository with Submodules
+1. **Link Skills & Rules into Global Gemini Config**:
+   Create directory junctions (Windows) or symlinks (macOS/Linux) pointing from your user config directory (`~/.gemini/config/`) to your local `agent-skills` clone:
+   - **Windows (PowerShell)**:
+     ```powershell
+     New-Item -ItemType Junction -Path "$env:USERPROFILE\.gemini\config\skills" -Target "C:\projekte\agent-skills\skills"
+     New-Item -ItemType Junction -Path "$env:USERPROFILE\.gemini\config\rules" -Target "C:\projekte\agent-skills\rules"
+     ```
+   - **macOS / Linux (Bash)**:
+     ```bash
+     mkdir -p ~/.gemini/config
+     ln -s /path/to/agent-skills/skills ~/.gemini/config/skills
+     ln -s /path/to/agent-skills/rules ~/.gemini/config/rules
+     ```
 
+2. **Configure Global Default Orchestrator (`ask-control`)**:
+   Add the default orchestrator directive to your global rule file (`~/.gemini/GEMINI.md` / `%USERPROFILE%\.gemini\GEMINI.md`):
+   ```markdown
+   ## Default Role & Orchestration
+   - Default to the `Control` persona (`ask-control`) as the central orchestrator for all tasks.
+   - Automatically classify requests into adaptive execution profiles (Profile 0, A, B, C) and coordinate downstream roles.
+   ```
+   Now, any Antigravity conversation across any directory automatically initializes in the `Control` orchestrator mindset.
+
+#### B. Project Level (Shared via Git Submodule)
+Best for teams requiring reproducible agent governance, shared architecture boundaries, and automated CI quality gates.
+
+1. **Add Submodule**:
+   Add `agent-skills` into the repository root as `_agents` (Antigravity's standard customization root):
+   ```bash
+   git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git _agents
+   ```
+2. **Project Rules**:
+   Antigravity automatically discovers `_agents/skills` and `_agents/rules` hierarchically. Use the repository root `AGENTS.md` (or symlink to `_agents/AGENTS.md`) to define repository-specific guidelines.
+
+---
+
+### 2. GitHub Copilot (VS Code / JetBrains)
+
+GitHub Copilot operates in **Sequential Persona Mode** (single-thread sequential role transitions: `Control` -> `Developer` -> `Verifikation` -> `CommitManager`).
+
+#### A. User Level (Global VS Code Configuration)
+Enables `ask-control` orchestration across **every project and folder** opened in VS Code without needing to add `.github/copilot-instructions.md` or git submodules to individual projects.
+
+1. **Open VS Code User Settings**:
+   Open your global user `settings.json` (`F1` -> `Preferences: Open User Settings (JSON)` or file `%APPDATA%\Code\User\settings.json` on Windows / `~/.config/Code/User/settings.json` on Linux/macOS).
+
+2. **Register Global Copilot Instructions**:
+   Add the `github.copilot.chat.codeGeneration.instructions` entry referencing the universal copilot instructions:
+   ```json
+   "github.copilot.chat.codeGeneration.instructions": [
+       {
+           "file": "C:/projekte/agent-skills/.github/copilot-instructions.md"
+       }
+   ]
+   ```
+   *(On macOS/Linux, adjust the path to your local clone, e.g. `/home/user/agent-skills/.github/copilot-instructions.md`).*
+
+   Now, Copilot Chat automatically starts in `Control` mode on every prompt, decomposes tasks into Profile 0/A/B/C, and follows sequential persona transitions.
+
+#### B. Project Level (Repository Submodule & Team Sharing)
+Enables team-wide consistent Copilot behavior and integrates with Copilot Workspace and Pull Request workflows.
+
+1. **Add Submodule in `.agents`**:
+   GitHub Copilot expects `.agents/` as the default directory:
+   ```bash
+   git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git .agents
+   ```
+
+2. **Activate Copilot Instructions for the Repository**:
+   Copy the preconfigured template into your target repository's `.github/` folder:
+   ```bash
+   mkdir -p .github
+   cp .agents/docs/templates/copilot-instructions.md .github/copilot-instructions.md
+   ```
+
+3. **Commit & Push**:
+   Commit `.gitmodules`, `.agents`, and `.github/copilot-instructions.md`. All developers working on the repository with GitHub Copilot will automatically follow the same `ask-control` workflow.
+
+---
+
+### Submodule Maintenance (Cloning & Updating)
+
+#### Cloning a Repository with Submodules
 ```bash
 git clone --recurse-submodules <repo-url>
 # or in an existing clone:
 git submodule update --init --recursive
 ```
 
-### Updating to Latest Skills
-
+#### Updating to Latest Skills
 ```bash
-# For _agents:
+# For _agents (Antigravity):
 git submodule update --remote _agents
-# For .agents:
+
+# For .agents (Copilot / Universal):
 git submodule update --remote .agents
 ```
