@@ -194,7 +194,7 @@ Both **Google Antigravity (AGY)** and **GitHub Copilot** are fully supported at 
 | AI Assistant | User Level (Global Machine Configuration) | Project Level (Repository Submodule & Team) |
 | :--- | :--- | :--- |
 | **Google Antigravity (AGY)** | Symlinks/junctions in `~/.gemini/config/` + global `~/.gemini/GEMINI.md` | Submodule in `_agents/` (or `.agents/`) + project `AGENTS.md` |
-| **GitHub Copilot** | VS Code User `settings.json` (`codeGeneration.instructions`) | Submodule in `.agents/` + project `.github/copilot-instructions.md` |
+| **GitHub Copilot (CLI & IDE)** | Import skills via `copilot skill add` or link to `~/.copilot/skills/` | Submodule in `.agents/` + project `.github/copilot-instructions.md` |
 
 ---
 
@@ -207,11 +207,13 @@ Ideal for personal daily development: all 23 skills, model tier mappings, and th
    Create directory junctions (Windows) or symlinks (macOS/Linux) pointing from your user config directory (`~/.gemini/config/`) to your local `agent-skills` clone:
    - **Windows (PowerShell)**:
      ```powershell
-     New-Item -ItemType Junction -Path "$env:USERPROFILE\.gemini\config\skills" -Target "C:\projekte\agent-skills\skills"
-     New-Item -ItemType Junction -Path "$env:USERPROFILE\.gemini\config\rules" -Target "C:\projekte\agent-skills\rules"
+     # Replace C:\path\to\agent-skills with your local clone path
+     New-Item -ItemType Junction -Path "$env:USERPROFILE\.gemini\config\skills" -Target "C:\path\to\agent-skills\skills"
+     New-Item -ItemType Junction -Path "$env:USERPROFILE\.gemini\config\rules" -Target "C:\path\to\agent-skills\rules"
      ```
    - **macOS / Linux (Bash)**:
      ```bash
+     # Replace /path/to/agent-skills with your local clone path
      mkdir -p ~/.gemini/config
      ln -s /path/to/agent-skills/skills ~/.gemini/config/skills
      ln -s /path/to/agent-skills/rules ~/.gemini/config/rules
@@ -239,31 +241,60 @@ Best for teams requiring reproducible agent governance, shared architecture boun
 
 ---
 
-### 2. GitHub Copilot (VS Code / JetBrains)
+### 2. GitHub Copilot (CLI & IDE)
 
-GitHub Copilot operates in **Sequential Persona Mode** (single-thread sequential role transitions: `Control` -> `Developer` -> `Verifikation` -> `CommitManager`).
+GitHub Copilot supports Agent Skills natively as slash commands (e.g. `/ask-control <task>`, `/ask-developer <task>`) and operates in **Sequential Persona Mode** (single-thread sequential role transitions: `Control` -> `Developer` -> `Verifikation` -> `CommitManager`).
 
-#### A. User Level (Global VS Code Configuration)
-Enables `ask-control` orchestration across **every project and folder** opened in VS Code without needing to add `.github/copilot-instructions.md` or git submodules to individual projects.
+#### A. Importing Skills (Recommended for Copilot CLI & Workstation)
+Importing skills directly into GitHub Copilot enables native slash commands, argument parsing (`$ARGUMENTS`), and clean command execution.
 
-1. **Open VS Code User Settings**:
-   Open your global user `settings.json` (`F1` -> `Preferences: Open User Settings (JSON)` or file `%APPDATA%\Code\User\settings.json` on Windows / `~/.config/Code/User/settings.json` on Linux/macOS).
+##### Option 1: Direct Import via Copilot CLI (`copilot skill add`)
+Use the Copilot CLI command to import all skills or individual skills into your Copilot environment:
 
-2. **Register Global Copilot Instructions**:
-   Add the `github.copilot.chat.codeGeneration.instructions` entry referencing the universal copilot instructions:
-   ```json
-   "github.copilot.chat.codeGeneration.instructions": [
-       {
-           "file": "C:/projekte/agent-skills/.github/copilot-instructions.md"
-       }
-   ]
-   ```
-   *(On macOS/Linux, adjust the path to your local clone, e.g. `/home/user/agent-skills/.github/copilot-instructions.md`).*
+```bash
+# Import all skills into your user profile (replace with your local clone path):
+copilot skill add C:\path\to\agent-skills\skills
 
-   Now, Copilot Chat automatically starts in `Control` mode on every prompt, decomposes tasks into Profile 0/A/B/C, and follows sequential persona transitions.
+# Or import a specific skill (e.g. ask-control):
+copilot skill add C:\path\to\agent-skills\skills\ask-control
+
+# List installed skills to verify:
+copilot skill list
+```
+
+*(Inside an interactive Copilot CLI session, you can also use `/skills add <path>` or type `/skills` to toggle available skills).*
+
+##### Option 2: Automatic Discovery via Personal Skills Directory (`~/.copilot/skills`)
+Copilot CLI automatically scans and loads skills from `~/.copilot/skills/` (or `~/.agents/skills/`). You can link or copy the skills folder to make them globally available:
+
+- **Windows (PowerShell)**:
+  ```powershell
+  # Ensure the target directory exists
+  New-Item -ItemType Directory -Path "$env:USERPROFILE\.copilot\skills" -Force
+
+  # Link individual skill directories into the Copilot skills directory:
+  Get-ChildItem -Path "C:\path\to\agent-skills\skills" -Directory | ForEach-Object {
+      New-Item -ItemType Junction -Path "$env:USERPROFILE\.copilot\skills\$($_.Name)" -Target $_.FullName
+  }
+  ```
+- **macOS / Linux (Bash)**:
+  ```bash
+  mkdir -p ~/.copilot/skills
+  for skill in /path/to/agent-skills/skills/*; do
+    [ -d "$skill" ] && ln -s "$skill" ~/.copilot/skills/"$(basename "$skill")"
+  done
+  ```
+
+##### Option 3: Project-Scoped Import (`copilot skill add --project`)
+If you want to enable the skills only within a specific project repository without modifying global settings:
+
+```bash
+# Inside your project directory:
+copilot skill add --project C:\path\to\agent-skills\skills
+```
 
 #### B. Project Level (Repository Submodule & Team Sharing)
-Enables team-wide consistent Copilot behavior and integrates with Copilot Workspace and Pull Request workflows.
+Enables team-wide consistent Copilot behavior and integrates with Copilot Workspace and Pull Request workflows. Copilot CLI and VS Code automatically discover skills in `.agents/skills/`.
 
 1. **Add Submodule in `.agents`**:
    GitHub Copilot expects `.agents/` as the default directory:
@@ -272,14 +303,14 @@ Enables team-wide consistent Copilot behavior and integrates with Copilot Worksp
    ```
 
 2. **Activate Copilot Instructions for the Repository**:
-   Copy the preconfigured template into your target repository's `.github/` folder:
+   Copy the preconfigured instructions template into your target repository's `.github/` folder:
    ```bash
    mkdir -p .github
    cp .agents/docs/templates/copilot-instructions.md .github/copilot-instructions.md
    ```
 
 3. **Commit & Push**:
-   Commit `.gitmodules`, `.agents`, and `.github/copilot-instructions.md`. All developers working on the repository with GitHub Copilot will automatically follow the same `ask-control` workflow.
+   Commit `.gitmodules`, `.agents`, and `.github/copilot-instructions.md`. All developers working on the repository with GitHub Copilot will automatically discover the skills and follow the `ask-control` workflow.
 
 ---
 

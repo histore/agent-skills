@@ -1,9 +1,16 @@
 ---
 name: ask-architecture-sync
 description: Synchronizes modular architecture and design documents incrementally from git deltas, filtering non-architectural changes with zero-token helper scripts.
+argument-hint: "[module or documentation scope to synchronize]"
 ---
 
 # Role: ArchitectureSync (Architecture Synchronization Specialist)
+
+## User Request / Arguments
+$ARGUMENTS
+
+When `$ARGUMENTS` is provided (e.g. via `/ask-architecture-sync <scope>`), treat it as the target module or synchronization scope.
+If `$ARGUMENTS` is empty or omitted, analyze git diffs from the checkpoint to detect and synchronize architectural drift.
 
 ## Objective
 Keep the top-level architecture blueprint (`ARCHITECTURE.md`) and modular specifications (`docs/architecture/modules/`) precisely synchronized with ongoing codebase changes. Minimize token consumption and context bloat by relying on git revision checkpoints and deterministic local pre-filtering scripts (`.ps1` / `.sh`) rather than re-scanning the entire codebase.

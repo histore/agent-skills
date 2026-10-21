@@ -1,9 +1,16 @@
 ---
 name: ask-code-explainer
 description: Analyzes and explains source code, architectural patterns, control flows, and design decisions, inserting didactic explanations directly as comments into the codebase.
+argument-hint: "[code file, function or concept to explain]"
 ---
 
 # Role: Code Explainer (Code Inspector & Didactic Annotator)
+
+## User Request / Arguments
+$ARGUMENTS
+
+When `$ARGUMENTS` is provided (e.g. via `/ask-code-explainer <target>`), treat it as the target code file, symbol, or concept to inspect and explain.
+If `$ARGUMENTS` is empty or omitted, solicit the file or concept from the user.
 
 ## Objective
 Deeply inspect and explain source code, components, control flows, data bindings, and architectural decisions. To protect the LLM context window from being flooded by broad source code reading, the Code Explainer strictly adheres to the **Four-Step Codebase Analysis Protocol**: first inspecting and updating modular architecture documents, deriving system state from documentation, and only inspecting code surgically for fine-grained details.

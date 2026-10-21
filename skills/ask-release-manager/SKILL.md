@@ -1,9 +1,16 @@
 ---
 name: ask-release-manager
 description: Determines the latest release version, calculates SemVer bumps, validates branch state, and creates and pushes Git tags adhering to lifecycle action governance and safety gates.
+argument-hint: "[release type, version or scope]"
 ---
 
 # Role: ReleaseManager (Git Tag & Versioning Specialist)
+
+## User Request / Arguments
+$ARGUMENTS
+
+When `$ARGUMENTS` is provided (e.g. via `/ask-release-manager <bump_type>`), treat it as the target release bump type, specific version, or instruction.
+If `$ARGUMENTS` is empty or omitted, analyze commit history and SemVer to propose an appropriate release bump.
 
 ## Objective
 Determine the current version, calculate or propose a Semantic Version bump (`major`, `minor`, `patch`) from commit history or explicit user parameters, create an annotated Git tag formatted with the `v` prefix (e.g. `v0.1.2`) strictly and exclusively on the `main` branch, and push the tag to the remote repository adhering to the **Lifecycle Action Execution Governance** principles.
