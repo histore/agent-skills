@@ -8,6 +8,70 @@
     "high_cost_models_allowed_by_exception_only": true,
     "high_reasoning_requires_cost_advantage": true,
     "sweet_spot_principle": "Strike the optimal balance between cognitive capability and cost-efficiency. Avoid wasteful over-provisioning (flagship models for simple deterministic tasks or file grepping) as well as destructive under-provisioning (starving complex architectural, diagnostic, or security analysis with underpowered models that cause hallucination loops, test thrashing, or flawed system designs).",
+    "task_appraisal_and_model_classes": {
+      "enabled": true,
+      "description": "Dynamic task-complexity-driven model assignment (analogous to fast-lane sizing) replacing rigid role->tier->model binding. Directly correlates cognitive demand with 3 standard model classes and protects user quota with an explicit confirmation gate for premium allocations.",
+      "classes": {
+        "eco": {
+          "label": "ECO (Fast & Quota-Preserving)",
+          "profiles": ["Profile 0", "Profile A", "Tier 4 Lifecycle / Git"],
+          "characteristics": "Minimal token cost, high speed, deterministic outputs.",
+          "models": {
+            "antigravity": "flash",
+            "copilot": "gpt-4o-mini / gpt-5.4-mini / claude-haiku",
+            "generic": "ultra-fast-mini"
+          },
+          "reasoning_budget": "minimal",
+          "user_gate": "none_auto_approved"
+        },
+        "balanced": {
+          "label": "BALANCED (Standard Workhorse / Sweet Spot)",
+          "profiles": ["Profile B"],
+          "characteristics": "High code quality, reliable Clean Code implementation and inner-loop TDD, balanced quota consumption.",
+          "models": {
+            "antigravity": "inherit / flash-high",
+            "copilot": "claude-sonnet / gpt-4o / gpt-5.4",
+            "generic": "balanced-coder-efficient-mini"
+          },
+          "reasoning_budget": "medium",
+          "user_gate": "none_auto_approved"
+        },
+        "premium": {
+          "label": "PREMIUM (Deep Reasoning / Flagship)",
+          "profiles": ["Profile C", "Complex Diagnostics", "Security Audits"],
+          "characteristics": "Maximum analytical depth, complex distributed invariants, deep deadlock analysis, multi-module redesigns.",
+          "models": {
+            "antigravity": "pro / extended reasoning",
+            "copilot": "claude-opus / claude-3.7-sonnet-thinking / o1 / o3-mini",
+            "generic": "deep-reasoning-flagship"
+          },
+          "reasoning_budget": "high_extended",
+          "user_gate": "mandatory_quota_protection_gate"
+        }
+      },
+      "user_gate_protocol": {
+        "trigger": "Triggered whenever an incoming task is classified as Profile C, requires Tier 1 flagship models, or encounters a persistent diagnostic deadlock (Level 4 Escalation).",
+        "action": "Pause execution and present an immediate 3-class selection to the user before consuming quota. In Antigravity, present interactive options (or ask_question); in Copilot/single-model, output the recommendation gate and guide the user's dropdown choice.",
+        "options": [
+          {
+            "key": "1",
+            "class": "premium",
+            "description": "Approve Premium model for maximum analytical depth (higher quota consumption)."
+          },
+          {
+            "key": "2",
+            "class": "balanced",
+            "description": "Downgrade to Balanced class to conserve quota (~70% savings) with solid quality."
+          },
+          {
+            "key": "3",
+            "class": "eco",
+            "description": "Downgrade to Eco class for minimal quota consumption and pragmatic execution."
+          }
+        ],
+        "prompt_override": "When the user prompt explicitly specifies class or model (e.g. '--eco', '--balanced', '--premium', or 'mit Premium ausführen'), the gate is immediately satisfied without pausing."
+      }
+    },
     "cost_guardrail": {
       "enabled": true,
       "purpose": "Prevent accidental budget-burning when high-cost/flagship models are active during mechanical, routine, or high-volume tasks.",

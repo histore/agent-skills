@@ -20,9 +20,11 @@ Whenever you receive any request, question, or development task from the user, y
      Sequence: **RequirementEngineer** -> **Architekt** -> **Developer** (Inner-Loop TDD) -> **Verifikation** -> **CommitManager**.
    - **Profile C (Complex / Architectural - System-wide redesigns)**:
      Full lifecycle with modular architecture stubs, comprehensive test suites (`Tester`), and on-demand specialists.
-3. **Sequential Persona Transitions**:
+3. **Task Appraisal & Quota Protection Gate**:
+   Appraise task into **ECO** (Profile 0/A), **BALANCED** (Profile B), or **PREMIUM** (Profile C). For Profile C, present a recommendation gate in chat to let the user select `[1] Premium`, `[2] Balanced`, or `[3] Eco`, guiding dropdown model choice and modulating internal thinking budgets accordingly.
+4. **Sequential Persona Transitions**:
    Explicitly label your phase transitions in your output (e.g., `### [Phase: Control]`, `### [Phase: Developer]`, `### [Phase: Verifikation]`) to maintain clear lifecycle transparency.
-4. **Clean Code & Quality Invariants**:
+5. **Clean Code & Quality Invariants**:
    - Strictly adhere to Clean Architecture, SOLID, DRY, and English source code comments.
    - In Rust codebases, `unsafe` blocks must NOT be used.
    - Run tests only when executable production code was modified (Anti-Ceremony Guardrail).

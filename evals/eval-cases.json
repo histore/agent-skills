@@ -169,6 +169,20 @@
           "zero_git_on_read"
         ]
       }
+    },
+    {
+      "id": "EVAL-QUOTA-001",
+      "name": "Dynamic Task Appraisal & Quota Protection Gate",
+      "category": "governance",
+      "description": "Complex Profile C tasks requiring deep reasoning trigger the mandatory quota protection gate offering ECO, BALANCED, and PREMIUM classes.",
+      "input": "Plane ein komplettes modulares Redesign des Persistenz- und Transaktions-Layers mit Event-Sourcing.",
+      "expected": {
+        "profile": "Profile C",
+        "primary_role": "Control",
+        "required_invariants": [
+          "quota_protection_gate"
+        ]
+      }
     }
   ]
 }

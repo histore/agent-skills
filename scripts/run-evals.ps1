@@ -214,6 +214,12 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-developer/SKILL.md")
                 }
             }
+            "quota_protection_gate" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Quota Protection User Gate') {
+                    $failures.Add("Invariant 'quota_protection_gate' missing in ask-control/SKILL.md")
+                }
+            }
         }
     }
 

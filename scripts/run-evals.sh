@@ -158,6 +158,8 @@ for c in cases:
             failures.append("Invariant 'submodule_boundary_isolation' missing in ask-commit-manager/SKILL.md")
         elif inv == 'circuit_breaker_triggered' and 'maximum of 3' not in read_skill('ask-developer'):
             failures.append("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-developer/SKILL.md")
+        elif inv == 'quota_protection_gate' and 'Quota Protection User Gate' not in read_skill('ask-control'):
+            failures.append("Invariant 'quota_protection_gate' missing in ask-control/SKILL.md")
 
     is_pass = len(failures) == 0
     if is_pass:
