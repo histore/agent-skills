@@ -158,6 +158,7 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 | `record-telemetry.ps1/.sh` | `Control` | Zero-overhead lifecycle event and duration recorder. |
 | `show-telemetry.ps1/.sh` | `Control` | Formats local telemetry run history. |
 | `run-evals.ps1/.sh` | `Control` | Runs synthetic evaluation cases ([`evals/eval-cases.json`](evals/eval-cases.json)) against governance and skill file invariants. |
+| `setup-agent-skills.ps1/.sh` | Setup / Admin | Automates integration of agent-skills globally (user level) or into target projects (project level) for Antigravity and Copilot. |
 | `test-skills.ps1/.sh` | CI / Quality Gate | Comprehensive 41-step test harness validating all skills, scripts, links, and line endings. |
 
 ## Lifecycle Action Execution Governance
@@ -182,135 +183,210 @@ Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to se
 ## Integration & Usage Guide (Project & User Level)
 
 `agent-skills` can be deployed at two distinct scopes depending on your workflow:
-- **User Level (Global Machine Scope)**: Configured once per developer machine. Skills, rules, and the `ask-control` orchestrator are instantly available across every folder and project you open without modifying repository files or adding submodules.
-- **Project Level (Repository / Team Scope)**: Embedded directly into a specific repository (via Git submodule). Shares rules, architecture contracts, and deterministic CI/CD verification scripts with the entire team.
+- **User Level (Global Machine Scope)**: Configured once per developer workstation. All skills, governance rules, and the `ask-control` orchestrator are instantly active across every folder and project you open without modifying repository files or adding submodules.
+- **Project Level (Repository / Team Scope)**: Embedded directly into a specific project (via lightweight directory link or Git submodule). Shares rules, architecture contracts, and deterministic CI/CD verification scripts with the entire team.
 
-Both **Google Antigravity (AGY)** and **GitHub Copilot** are fully supported at both levels.
+Both **Google Antigravity (AGY / Gemini)** and **GitHub Copilot (VS Code & CLI)** are fully supported at both levels.
 
 ---
 
 ### Integration Matrix: At a Glance
 
-| AI Assistant | User Level (Global Machine Configuration) | Project Level (Repository Submodule & Team) |
+| AI Assistant | User Level (Global Machine Scope) | Project Level (Project Scope) |
 | :--- | :--- | :--- |
-| **Google Antigravity (AGY)** | Symlinks/junctions in `~/.gemini/config/` + global `~/.gemini/GEMINI.md` | Submodule in `_agents/` (or `.agents/`) + project `AGENTS.md` |
-| **GitHub Copilot (CLI & IDE)** | Import skills via `copilot skill add` or link to `~/.copilot/skills/` | Submodule in `.agents/` + project `.github/copilot-instructions.md` |
+| **Google Antigravity (AGY / Gemini)** | Links in `~/.gemini/config/` (`skills`, `rules`) + global `~/.gemini/GEMINI.md` | Directory link or submodule in `_agents/` (or `.agents/`) + project `AGENTS.md` |
+| **GitHub Copilot (VS Code Chat)** | VS Code User `settings.json`: `"github.copilot.chat.customInstructions"` pointing to global `copilot-instructions.md` | Provision `.github/copilot-instructions.md` in repository root |
+| **GitHub Copilot (CLI & Skills)** | Import skills via `copilot skill add` or link to `~/.copilot/skills/` | Directory link or submodule in `.agents/` (Copilot natively checks `.agents/skills/`) |
+| **Automated 1-Click Setup** | `pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -Global`<br>`./scripts/setup-agent-skills.sh --global` | `pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject <dir>`<br>`./scripts/setup-agent-skills.sh -p <dir>` |
 
 ---
 
-### 1. Google Antigravity (AGY / Gemini)
+### Quickstart: 1-Click Automated Setup Scripts
 
-#### A. User Level (Global Machine Configuration)
-Ideal for personal daily development: all 23 skills, model tier mappings, and the `ask-control` orchestrator are available globally across all projects on your workstation.
+The repository includes dedicated automation scripts ([`scripts/setup-agent-skills.ps1`](scripts/setup-agent-skills.ps1) and [`scripts/setup-agent-skills.sh`](scripts/setup-agent-skills.sh)) to set up both Antigravity and Copilot in a single step.
 
-1. **Link Skills & Rules into Global Gemini Config**:
-   Create directory junctions (Windows) or symlinks (macOS/Linux) pointing from your user config directory (`~/.gemini/config/`) to your local `agent-skills` clone:
+#### Option 1: Global User-Level Setup (All Projects)
+Provisions global Antigravity links (`~/.gemini/config/skills`, `~/.gemini/config/rules`) and creates the global Copilot instructions file (`~/.gemini/config/copilot-instructions.md`).
+
+- **Windows (PowerShell)**:
+  ```powershell
+  pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -Global
+  ```
+- **macOS / Linux (Bash)**:
+  ```bash
+  ./scripts/setup-agent-skills.sh --global
+  ```
+
+#### Option 2: Project-Level Setup (Specific Project)
+Creates the directory link (`_agents` and/or `.agents`) pointing to this repository and provisions `.github/copilot-instructions.md` in the target project.
+
+- **Windows (PowerShell)**:
+  ```powershell
+  # Default: creates _agents link and .github/copilot-instructions.md
+  pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject "C:\path\to\target-project"
+
+  # Create both _agents (Antigravity) and .agents (Copilot) links:
+  pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject "C:\path\to\target-project" -FolderType both
+  ```
+- **macOS / Linux (Bash)**:
+  ```bash
+  # Default: creates _agents link and .github/copilot-instructions.md
+  ./scripts/setup-agent-skills.sh -p /path/to/target-project
+
+  # Create both _agents (Antigravity) and .agents (Copilot) links:
+  ./scripts/setup-agent-skills.sh -p /path/to/target-project -t both
+  ```
+
+**Script Parameters**:
+- `-TargetProject <dir>` / `-p, --project <dir>`: Path to the target project directory.
+- `-Global` / `-g, --global`: Installs globally in the user configuration.
+- `-FolderType <type>` / `-t, --folder-type <type>`: `_agents` (default), `.agents`, or `both`.
+- `-SkipCopilot` / `--skip-copilot`: Skips creating `.github/copilot-instructions.md`.
+- `-Force` / `-f, --force`: Overwrites existing symlinks/junctions or files.
+
+---
+
+### Manual Setup: Google Antigravity (AGY / Gemini)
+
+#### A. User Level (Global Machine Scope)
+Enables all 23 skills, model tier mappings, and the `ask-control` orchestrator globally across all projects on your workstation.
+
+1. **Link Skills and Rules into User Gemini Config**:
    - **Windows (PowerShell)**:
      ```powershell
      # Replace C:\path\to\agent-skills with your local clone path
-     New-Item -ItemType Junction -Path "$env:USERPROFILE\.gemini\config\skills" -Target "C:\path\to\agent-skills\skills"
-     New-Item -ItemType Junction -Path "$env:USERPROFILE\.gemini\config\rules" -Target "C:\path\to\agent-skills\rules"
+     $skillsTarget = "C:\path\to\agent-skills\skills"
+     $rulesTarget = "C:\path\to\agent-skills\rules"
+     $geminiConfig = "$env:USERPROFILE\.gemini\config"
+
+     New-Item -ItemType Directory -Path $geminiConfig -Force | Out-Null
+     New-Item -ItemType Junction -Path "$geminiConfig\skills" -Target $skillsTarget -Force
+     New-Item -ItemType Junction -Path "$geminiConfig\rules" -Target $rulesTarget -Force
      ```
    - **macOS / Linux (Bash)**:
      ```bash
-     # Replace /path/to/agent-skills with your local clone path
      mkdir -p ~/.gemini/config
-     ln -s /path/to/agent-skills/skills ~/.gemini/config/skills
-     ln -s /path/to/agent-skills/rules ~/.gemini/config/rules
+     ln -sfn /path/to/agent-skills/skills ~/.gemini/config/skills
+     ln -sfn /path/to/agent-skills/rules ~/.gemini/config/rules
      ```
 
 2. **Configure Global Default Orchestrator (`ask-control`)**:
-   Add the default orchestrator directive to your global rule file (`~/.gemini/GEMINI.md` / `%USERPROFILE%\.gemini\GEMINI.md`):
+   Add the default orchestrator directive to your global instructions (`~/.gemini/GEMINI.md` or `%USERPROFILE%\.gemini\GEMINI.md`):
    ```markdown
    ## Default Role & Orchestration
    - Default to the `Control` persona (`ask-control`) as the central orchestrator for all tasks.
    - Automatically classify requests into adaptive execution profiles (Profile 0, A, B, C) and coordinate downstream roles.
    ```
-   Now, any Antigravity conversation across any directory automatically initializes in the `Control` orchestrator mindset.
+   Now, any Antigravity conversation across any workspace automatically initializes in the `Control` orchestrator mindset.
 
-#### B. Project Level (Shared via Git Submodule)
-Best for teams requiring reproducible agent governance, shared architecture boundaries, and automated CI quality gates.
+#### B. Project Level (Project Scope)
 
-1. **Add Submodule**:
-   Add `agent-skills` into the repository root as `_agents` (Antigravity's standard customization root):
-   ```bash
-   git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git _agents
-   ```
-2. **Project Rules**:
-   Antigravity automatically discovers `_agents/skills` and `_agents/rules` hierarchically. Use the repository root `AGENTS.md` (or symlink to `_agents/AGENTS.md`) to define repository-specific guidelines.
+- **Approach 1: Directory Junction / Symlink (Recommended for Local Work)**:
+  Zero-overhead integration without Git submodule baggage:
+  - **Windows (PowerShell)**:
+    ```powershell
+    New-Item -ItemType Junction -Path "C:\path\to\target-project\_agents" -Target "C:\path\to\agent-skills"
+    ```
+  - **macOS / Linux (Bash)**:
+    ```bash
+    ln -sfn /path/to/agent-skills /path/to/target-project/_agents
+    ```
+  Antigravity automatically loads customizations from `_agents/skills` and `_agents/rules`. Add project-specific rules in the project root's `AGENTS.md`.
+
+- **Approach 2: Git Submodule (Recommended for Teams & CI/CD)**:
+  If your entire team should share the skills and run deterministic CI scripts:
+  ```bash
+  git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git _agents
+  ```
 
 ---
 
-### 2. GitHub Copilot (CLI & IDE)
+### Manual Setup: GitHub Copilot (VS Code & CLI)
 
-GitHub Copilot supports Agent Skills natively as slash commands (e.g. `/ask-control <task>`, `/ask-developer <task>`) and operates in **Sequential Persona Mode** (single-thread sequential role transitions: `Control` -> `Developer` -> `Verifikation` -> `CommitManager`).
+GitHub Copilot operates in **Sequential Persona Mode** (`Control` -> `Developer` -> `Verifikation` -> `CommitManager`) and can be configured globally or per project.
 
-#### A. Importing Skills (Recommended for Copilot CLI & Workstation)
-Importing skills directly into GitHub Copilot enables native slash commands, argument parsing (`$ARGUMENTS`), and clean command execution.
+#### A. User Level (Global Machine Scope)
 
-##### Option 1: Direct Import via Copilot CLI (`copilot skill add`)
-Use the Copilot CLI command to import all skills or individual skills into your Copilot environment:
+##### 1. VS Code Copilot Chat (Global Custom Instructions)
+Applies Clean Code, Clean Architecture, Safe Rust, and Inner-Loop TDD principles across all your VS Code Copilot chats globally.
 
-```bash
-# Import all skills into your user profile (replace with your local clone path):
-copilot skill add C:\path\to\agent-skills\skills
+1. Ensure the global instructions file exists (copied via `setup-agent-skills.ps1 -Global` or manually copied from [`.github/copilot-instructions.md`](.github/copilot-instructions.md) into `~/.gemini/config/copilot-instructions.md`).
+2. Open VS Code User Settings JSON (`Ctrl+Shift+P` -> `Preferences: Open User Settings (JSON)`).
+3. Add the `github.copilot.chat.customInstructions` configuration:
+   ```json
+   "github.copilot.chat.customInstructions": [
+     {
+       "path": "C:/Users/<Username>/.gemini/config/copilot-instructions.md"
+     }
+   ]
+   ```
+   *(On macOS/Linux, use `"/home/<username>/.gemini/config/copilot-instructions.md"` or `"~/.gemini/config/copilot-instructions.md"`)*.
 
-# Or import a specific skill (e.g. ask-control):
-copilot skill add C:\path\to\agent-skills\skills\ask-control
+##### 2. GitHub Copilot CLI & Slash Commands (`~/.copilot/skills/`)
+To use agent skills as slash commands (e.g. `/ask-control`, `/ask-developer`, `/ask-troubleshooter`) in GitHub Copilot CLI:
 
-# List installed skills to verify:
-copilot skill list
-```
-
-*(Inside an interactive Copilot CLI session, you can also use `/skills add <path>` or type `/skills` to toggle available skills).*
-
-##### Option 2: Automatic Discovery via Personal Skills Directory (`~/.copilot/skills`)
-Copilot CLI automatically scans and loads skills from `~/.copilot/skills/` (or `~/.agents/skills/`). You can link or copy the skills folder to make them globally available:
-
-- **Windows (PowerShell)**:
-  ```powershell
-  # Ensure the target directory exists
-  New-Item -ItemType Directory -Path "$env:USERPROFILE\.copilot\skills" -Force
-
-  # Link individual skill directories into the Copilot skills directory:
-  Get-ChildItem -Path "C:\path\to\agent-skills\skills" -Directory | ForEach-Object {
-      New-Item -ItemType Junction -Path "$env:USERPROFILE\.copilot\skills\$($_.Name)" -Target $_.FullName
-  }
-  ```
-- **macOS / Linux (Bash)**:
+- **Option 1: Direct Import via Copilot CLI (`copilot skill add`)**:
   ```bash
-  mkdir -p ~/.copilot/skills
-  for skill in /path/to/agent-skills/skills/*; do
-    [ -d "$skill" ] && ln -s "$skill" ~/.copilot/skills/"$(basename "$skill")"
-  done
+  # Import all skills into your Copilot user profile:
+  copilot skill add C:\path\to\agent-skills\skills
+
+  # Or import a specific skill:
+  copilot skill add C:\path\to\agent-skills\skills\ask-control
+
+  # List installed skills:
+  copilot skill list
   ```
+  *(Inside an interactive Copilot CLI session, you can also use `/skills add <path>` or type `/skills` to toggle available skills).*
 
-##### Option 3: Project-Scoped Import (`copilot skill add --project`)
-If you want to enable the skills only within a specific project repository without modifying global settings:
+- **Option 2: Symlink / Junction to Personal Skills Directory (`~/.copilot/skills`)**:
+  - **Windows (PowerShell)**:
+    ```powershell
+    New-Item -ItemType Directory -Path "$env:USERPROFILE\.copilot\skills" -Force | Out-Null
+    Get-ChildItem -Path "C:\path\to\agent-skills\skills" -Directory | ForEach-Object {
+        New-Item -ItemType Junction -Path "$env:USERPROFILE\.copilot\skills\$($_.Name)" -Target $_.FullName -Force
+    }
+    ```
+  - **macOS / Linux (Bash)**:
+    ```bash
+    mkdir -p ~/.copilot/skills
+    for skill in /path/to/agent-skills/skills/*; do
+      [ -d "$skill" ] && ln -sfn "$skill" ~/.copilot/skills/"$(basename "$skill")"
+    done
+    ```
 
+#### B. Project Level (Project Scope)
+
+##### 1. Project-Specific Copilot Instructions (`.github/copilot-instructions.md`)
+Copy the provided template to enforce lightweight engineering standards in your repository:
 ```bash
 # Inside your project directory:
-copilot skill add --project C:\path\to\agent-skills\skills
+mkdir -p .github
+cp /path/to/agent-skills/.github/copilot-instructions.md .github/copilot-instructions.md
 ```
+GitHub Copilot in VS Code automatically detects and loads `.github/copilot-instructions.md`.
 
-#### B. Project Level (Repository Submodule & Team Sharing)
-Enables team-wide consistent Copilot behavior and integrates with Copilot Workspace and Pull Request workflows. Copilot CLI and VS Code automatically discover skills in `.agents/skills/`.
+##### 2. Skills Folder (`.agents/skills/`)
+Copilot CLI and VS Code automatically detect skills in `.agents/skills/`.
+- **Directory Link (Local)**:
+  - Windows: `New-Item -ItemType Junction -Path ".\.agents" -Target "C:\path\to\agent-skills"`
+  - Linux/macOS: `ln -sfn /path/to/agent-skills ./.agents`
+- **Git Submodule (Team / CI)**:
+  ```bash
+  git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git .agents
+  ```
 
-1. **Add Submodule in `.agents`**:
-   GitHub Copilot expects `.agents/` as the default directory:
-   ```bash
-   git submodule add --name agent-skills -b main https://github.com/histore/agent-skills.git .agents
+---
+
+### Dual Compatibility: Antigravity (`_agents`) & Copilot (`.agents`)
+
+Antigravity checks `_agents/` by default, whereas Copilot and universal tools look for `.agents/`. If you want both assistants to work simultaneously with full local skill access in the same project:
+
+1. **Via Setup Script**:
+   ```powershell
+   pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject "C:\path\to\target-project" -FolderType both
    ```
-
-2. **Activate Copilot Instructions for the Repository**:
-   Copy the preconfigured instructions template into your target repository's `.github/` folder:
-   ```bash
-   mkdir -p .github
-   cp .agents/docs/templates/copilot-instructions.md .github/copilot-instructions.md
-   ```
-
-3. **Commit & Push**:
-   Commit `.gitmodules`, `.agents`, and `.github/copilot-instructions.md`. All developers working on the repository with GitHub Copilot will automatically discover the skills and follow the `ask-control` workflow.
+2. **Via Manual Junctions / Symlinks**:
+   Link both `_agents` and `.agents` in the target project directory to the `agent-skills` repository.
 
 ---
 
