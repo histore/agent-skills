@@ -92,20 +92,61 @@ if [[ "$GLOBAL_MODE" == true ]]; then
   create_symlink "${GEMINI_CONFIG_DIR}/skills" "${REPO_ROOT}/skills"
   create_symlink "${GEMINI_CONFIG_DIR}/rules" "${REPO_ROOT}/rules"
 
-  # 2. Copy global copilot-instructions.md
-  GLOBAL_COPILOT="${GEMINI_CONFIG_DIR}/copilot-instructions.md"
-  cp -f "$COPILOT_TEMPLATE" "$GLOBAL_COPILOT"
-  echo "  [OK] Copied global Copilot Lite instructions: ${GLOBAL_COPILOT}"
+  # 2. Setup GitHub Copilot Personal Mode (~/.agents and ~/.copilot/instructions)
+  create_symlink "${HOME}/.agents" "$REPO_ROOT"
+
+  COPILOT_INSTRUCTIONS_DIR="${HOME}/.copilot/instructions"
+  mkdir -p "${COPILOT_INSTRUCTIONS_DIR}"
+
+  # 3. Generate reference instruction file with YAML frontmatter (applyTo: "**/*")
+  USER_INSTRUCTIONS_FILE="${COPILOT_INSTRUCTIONS_DIR}/agent-skills.instructions.md"
+  cat <<EOF > "$USER_INSTRUCTIONS_FILE"
+---
+applyTo: "**/*"
+description: "Universal Clean Code, Clean Architecture, and on-demand agent skills"
+---
+
+# Personal Agent Skills & Engineering Guidelines
+
+Adhere to the core engineering invariants (Clean Code, Clean Architecture, Safe Rust without unsafe, Inner-Loop TDD, Anti-Ceremony).
+
+## Base Instructions
+The baseline rules are defined in:
+- ${COPILOT_TEMPLATE}
+
+## Central Skills & Tooling Source
+All specialist skills and zero-token automation scripts are located in:
+- Skills Root Directory: ${REPO_ROOT}/skills/
+- Also accessible via personal skills: ~/.agents/skills/ or ~/.copilot/skills/
+
+When encountering specialized tasks, load and follow the corresponding guide on demand:
+- **Git anomalies & conflicts**: ${REPO_ROOT}/skills/ask-git-troubleshooter/SKILL.md
+- **Root cause analysis & bugs**: ${REPO_ROOT}/skills/ask-troubleshooter/SKILL.md
+- **Adversarial code review**: ${REPO_ROOT}/skills/ask-code-reviewer/SKILL.md
+- **Safe Fowler refactoring**: ${REPO_ROOT}/skills/ask-refactoring-specialist/SKILL.md
+- **Release & SemVer calculation**: ${REPO_ROOT}/skills/ask-release-manager/SKILL.md
+- **Security & vulnerability audits**: ${REPO_ROOT}/skills/ask-security-auditor/SKILL.md
+- **API specifications & contracts**: ${REPO_ROOT}/skills/ask-api-contract-specialist/SKILL.md
+- **Database migrations & ORM**: ${REPO_ROOT}/skills/ask-database-specialist/SKILL.md
+- **CI/CD & Docker workflows**: ${REPO_ROOT}/skills/ask-devops-engineer/SKILL.md
+- **Internationalization (i18n)**: ${REPO_ROOT}/skills/ask-localization-specialist/SKILL.md
+EOF
+  echo "  [OK] Generated Copilot user instructions: ${USER_INSTRUCTIONS_FILE}"
 
   echo ""
   echo "Antigravity / Gemini Setup:"
-  echo "  All skills and rules are now automatically active across all projects."
+  echo "  All skills and rules are now automatically active across all projects via ~/.gemini/config."
   echo ""
-  echo "GitHub Copilot Setup (VS Code User Settings):"
-  echo "  To enable Copilot Lite globally, add the following to your VS Code settings.json:"
-  echo "  \"github.copilot.chat.customInstructions\": ["
+  echo "GitHub Copilot CLI Setup:"
+  echo "  - Instructions: Auto-discovered from ~/.copilot/instructions/agent-skills.instructions.md"
+  echo "  - Skills: Auto-discovered from ~/.agents/skills and ~/.copilot/skills"
+  echo "  - Verification commands: 'copilot instruction list' and 'copilot skill list'"
+  echo ""
+  echo "GitHub Copilot (VS Code User Settings):"
+  echo "  Add the following to your VS Code settings.json:"
+  echo "  \"github.copilot.chat.codeGeneration.instructions\": ["
   echo "    {"
-  echo "      \"path\": \"${GLOBAL_COPILOT}\""
+  echo "      \"file\": \"${USER_INSTRUCTIONS_FILE}\""
   echo "    }"
   echo "  ]"
 

@@ -99,20 +99,69 @@ if ($Global) {
     Create-DirectoryLink -LinkPath $globalSkills -TargetPath $skillsTarget -Overwrite $Force
     Create-DirectoryLink -LinkPath $globalRules -TargetPath $rulesTarget -Overwrite $Force
 
-    # 2. Copy global copilot-instructions.md
-    $globalCopilot = Join-Path $geminiConfigDir "copilot-instructions.md"
-    Copy-Item -LiteralPath $copilotTemplate -Destination $globalCopilot -Force
-    Write-Host "  [OK] Copied global Copilot Lite instructions: $globalCopilot" -ForegroundColor Green
+    # 2. Setup GitHub Copilot Personal Mode (~/.agents and ~/.copilot/instructions)
+    $agentsDir = Join-Path $HOME ".agents"
+    Create-DirectoryLink -LinkPath $agentsDir -TargetPath $repoRoot -Overwrite $Force
+
+    $copilotInstructionsDir = Join-Path $HOME ".copilot" "instructions"
+    if (-not (Test-Path $copilotInstructionsDir)) {
+        New-Item -ItemType Directory -Path $copilotInstructionsDir -Force | Out-Null
+    }
+
+    # 3. Generate reference instruction file with YAML frontmatter (applyTo: "**/*")
+    $userInstructionsFile = Join-Path $copilotInstructionsDir "agent-skills.instructions.md"
+    $templateSlash = $copilotTemplate.Replace('\', '/')
+    $skillsSlash = $skillsTarget.Replace('\', '/')
+
+    $instructionContent = @"
+---
+applyTo: "**/*"
+description: "Universal Clean Code, Clean Architecture, and on-demand agent skills"
+---
+
+# Personal Agent Skills & Engineering Guidelines
+
+Adhere to the core engineering invariants (Clean Code, Clean Architecture, Safe Rust without unsafe, Inner-Loop TDD, Anti-Ceremony).
+
+## Base Instructions
+The baseline rules are defined in:
+- $templateSlash
+
+## Central Skills & Tooling Source
+All specialist skills and zero-token automation scripts are located in:
+- Skills Root Directory: $skillsSlash
+- Also accessible via personal skills: ~/.agents/skills/ or ~/.copilot/skills/
+
+When encountering specialized tasks, load and follow the corresponding guide on demand:
+- **Git anomalies & conflicts**: $skillsSlash/ask-git-troubleshooter/SKILL.md
+- **Root cause analysis & bugs**: $skillsSlash/ask-troubleshooter/SKILL.md
+- **Adversarial code review**: $skillsSlash/ask-code-reviewer/SKILL.md
+- **Safe Fowler refactoring**: $skillsSlash/ask-refactoring-specialist/SKILL.md
+- **Release & SemVer calculation**: $skillsSlash/ask-release-manager/SKILL.md
+- **Security & vulnerability audits**: $skillsSlash/ask-security-auditor/SKILL.md
+- **API specifications & contracts**: $skillsSlash/ask-api-contract-specialist/SKILL.md
+- **Database migrations & ORM**: $skillsSlash/ask-database-specialist/SKILL.md
+- **CI/CD & Docker workflows**: $skillsSlash/ask-devops-engineer/SKILL.md
+- **Internationalization (i18n)**: $skillsSlash/ask-localization-specialist/SKILL.md
+"@
+
+    [System.IO.File]::WriteAllText($userInstructionsFile, ($instructionContent -replace "`r?`n", "`n"), [System.Text.Encoding]::UTF8)
+    Write-Host "  [OK] Generated Copilot user instructions: $userInstructionsFile" -ForegroundColor Green
 
     Write-Host "`nAntigravity / Gemini Setup:" -ForegroundColor Cyan
-    Write-Host "  All skills and rules are now automatically active across all projects." -ForegroundColor White
+    Write-Host "  All skills and rules are now automatically active across all projects via ~/.gemini/config." -ForegroundColor White
 
-    Write-Host "`nGitHub Copilot Setup (VS Code User Settings):" -ForegroundColor Cyan
-    Write-Host "  To enable Copilot Lite globally, add the following to your VS Code settings.json:" -ForegroundColor White
+    Write-Host "`nGitHub Copilot CLI Setup:" -ForegroundColor Cyan
+    Write-Host "  - Instructions: Auto-discovered from ~/.copilot/instructions/agent-skills.instructions.md" -ForegroundColor White
+    Write-Host "  - Skills: Auto-discovered from ~/.agents/skills and ~/.copilot/skills" -ForegroundColor White
+    Write-Host "  - Verification commands: 'copilot instruction list' and 'copilot skill list'" -ForegroundColor White
+
+    Write-Host "`nGitHub Copilot (VS Code User Settings):" -ForegroundColor Cyan
+    Write-Host "  Add the following to your VS Code settings.json:" -ForegroundColor White
     Write-Host @"
-  "github.copilot.chat.customInstructions": [
+  "github.copilot.chat.codeGeneration.instructions": [
     {
-      "path": "$($globalCopilot.Replace('\', '/'))"
+      "file": "$($userInstructionsFile.Replace('\', '/'))"
     }
   ]
 "@ -ForegroundColor Gray

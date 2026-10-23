@@ -195,8 +195,8 @@ Both **Google Antigravity (AGY / Gemini)** and **GitHub Copilot (VS Code & CLI)*
 | AI Assistant | User Level (Global Machine Scope) | Project Level (Project Scope) |
 | :--- | :--- | :--- |
 | **Google Antigravity (AGY / Gemini)** | Links in `~/.gemini/config/` (`skills`, `rules`) + global `~/.gemini/GEMINI.md` | Directory link or submodule in `_agents/` (or `.agents/`) + project `AGENTS.md` |
-| **GitHub Copilot (VS Code Chat)** | VS Code User `settings.json`: `"github.copilot.chat.customInstructions"` pointing to global `copilot-instructions.md` | Provision `.github/copilot-instructions.md` in repository root |
-| **GitHub Copilot (CLI & Skills)** | Import skills via `copilot skill add` or link to `~/.copilot/skills/` | Directory link or submodule in `.agents/` (Copilot natively checks `.agents/skills/`) |
+| **GitHub Copilot (VS Code Chat)** | VS Code User `settings.json`: `"github.copilot.chat.codeGeneration.instructions"` pointing to `~/.copilot/instructions/agent-skills.instructions.md` | Provision `.github/copilot-instructions.md` in repository root |
+| **GitHub Copilot (CLI & Skills)** | Auto-discovered from `~/.copilot/instructions/` and `~/.agents/skills/` (or `~/.copilot/skills/`) | Directory link or submodule in `.agents/` (Copilot natively checks `.agents/skills/`) |
 | **Automated 1-Click Setup** | `pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -Global`<br>`./scripts/setup-agent-skills.sh --global` | `pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject <dir>`<br>`./scripts/setup-agent-skills.sh -p <dir>` |
 
 ---
@@ -206,7 +206,7 @@ Both **Google Antigravity (AGY / Gemini)** and **GitHub Copilot (VS Code & CLI)*
 The repository includes dedicated automation scripts ([`scripts/setup-agent-skills.ps1`](scripts/setup-agent-skills.ps1) and [`scripts/setup-agent-skills.sh`](scripts/setup-agent-skills.sh)) to set up both Antigravity and Copilot in a single step.
 
 #### Option 1: Global User-Level Setup (All Projects)
-Provisions global Antigravity links (`~/.gemini/config/skills`, `~/.gemini/config/rules`) and creates the global Copilot instructions file (`~/.gemini/config/copilot-instructions.md`).
+Provisions global Antigravity links (`~/.gemini/config/skills`, `~/.gemini/config/rules`), links personal skills (`~/.agents/skills`, `~/.copilot/skills`), and generates the personal Copilot instruction file with YAML frontmatter `applyTo: "**/*"` (`~/.copilot/instructions/agent-skills.instructions.md`).
 
 - **Windows (PowerShell)**:
   ```powershell
@@ -307,52 +307,63 @@ GitHub Copilot operates in **Sequential Persona Mode** (`Control` -> `Developer`
 
 #### A. User Level (Global Machine Scope)
 
-##### 1. VS Code Copilot Chat (Global Custom Instructions)
-Applies Clean Code, Clean Architecture, Safe Rust, and Inner-Loop TDD principles across all your VS Code Copilot chats globally.
+##### 1. User-Level Copilot Instructions (`~/.copilot/instructions/agent-skills.instructions.md`)
+To ensure that Copilot adheres to Clean Code and Clean Architecture while reliably resolving on-demand specialist skills from any project directory, instructions on user level are maintained as a dedicated reference instruction file with a YAML frontmatter `applyTo: "**/*"`:
 
-1. Ensure the global instructions file exists (copied via `setup-agent-skills.ps1 -Global` or manually copied from [`.github/copilot-instructions.md`](.github/copilot-instructions.md) into `~/.gemini/config/copilot-instructions.md`).
-2. Open VS Code User Settings JSON (`Ctrl+Shift+P` -> `Preferences: Open User Settings (JSON)`).
-3. Add the `github.copilot.chat.customInstructions` configuration:
-   ```json
-   "github.copilot.chat.customInstructions": [
-     {
-       "path": "C:/Users/<Username>/.gemini/config/copilot-instructions.md"
-     }
-   ]
-   ```
-   *(On macOS/Linux, use `"/home/<username>/.gemini/config/copilot-instructions.md"` or `"~/.gemini/config/copilot-instructions.md"`)*.
+```yaml
+---
+applyTo: "**/*"
+description: "Universal Clean Code, Clean Architecture, and on-demand agent skills"
+---
 
-##### 2. GitHub Copilot CLI & Slash Commands (`~/.copilot/skills/`)
-To use agent skills as slash commands (e.g. `/ask-control`, `/ask-developer`, `/ask-troubleshooter`) in GitHub Copilot CLI:
+# Personal Agent Skills & Engineering Guidelines
 
-- **Option 1: Direct Import via Copilot CLI (`copilot skill add`)**:
-  ```bash
-  # Import all skills into your Copilot user profile:
-  copilot skill add C:\path\to\agent-skills\skills
+Adhere to the core engineering invariants (Clean Code, Clean Architecture, Safe Rust without unsafe, Inner-Loop TDD, Anti-Ceremony).
 
-  # Or import a specific skill:
-  copilot skill add C:\path\to\agent-skills\skills\ask-control
+## Base Instructions
+The baseline rules are defined in:
+- C:/path/to/agent-skills/.github/copilot-instructions.md
 
-  # List installed skills:
-  copilot skill list
-  ```
-  *(Inside an interactive Copilot CLI session, you can also use `/skills add <path>` or type `/skills` to toggle available skills).*
+## Central Skills & Tooling Source
+All specialist skills and zero-token automation scripts are located in:
+- Skills Root Directory: C:/path/to/agent-skills/skills/
+- Also accessible via personal skills: ~/.agents/skills/ or ~/.copilot/skills/
 
-- **Option 2: Symlink / Junction to Personal Skills Directory (`~/.copilot/skills`)**:
-  - **Windows (PowerShell)**:
-    ```powershell
-    New-Item -ItemType Directory -Path "$env:USERPROFILE\.copilot\skills" -Force | Out-Null
-    Get-ChildItem -Path "C:\path\to\agent-skills\skills" -Directory | ForEach-Object {
-        New-Item -ItemType Junction -Path "$env:USERPROFILE\.copilot\skills\$($_.Name)" -Target $_.FullName -Force
-    }
-    ```
-  - **macOS / Linux (Bash)**:
-    ```bash
-    mkdir -p ~/.copilot/skills
-    for skill in /path/to/agent-skills/skills/*; do
-      [ -d "$skill" ] && ln -sfn "$skill" ~/.copilot/skills/"$(basename "$skill")"
-    done
-    ```
+When encountering specialized tasks, load and follow the corresponding guide on demand:
+- **Git anomalies & conflicts**: C:/path/to/agent-skills/skills/ask-git-troubleshooter/SKILL.md
+- **Root cause analysis & bugs**: C:/path/to/agent-skills/skills/ask-troubleshooter/SKILL.md
+- **Adversarial code review**: C:/path/to/agent-skills/skills/ask-code-reviewer/SKILL.md
+- **Safe Fowler refactoring**: C:/path/to/agent-skills/skills/ask-refactoring-specialist/SKILL.md
+- **Release & SemVer calculation**: C:/path/to/agent-skills/skills/ask-release-manager/SKILL.md
+- **Security & vulnerability audits**: C:/path/to/agent-skills/skills/ask-security-auditor/SKILL.md
+- **API specifications & contracts**: C:/path/to/agent-skills/skills/ask-api-contract-specialist/SKILL.md
+- **Database migrations & ORM**: C:/path/to/agent-skills/skills/ask-database-specialist/SKILL.md
+- **CI/CD & Docker workflows**: C:/path/to/agent-skills/skills/ask-devops-engineer/SKILL.md
+- **Internationalization (i18n)**: C:/path/to/agent-skills/skills/ask-localization-specialist/SKILL.md
+```
+
+##### 2. VS Code Copilot Chat Setup
+Add the reference file to your VS Code User `settings.json` (`Ctrl+Shift+P` -> `Preferences: Open User Settings (JSON)`):
+
+```json
+"github.copilot.chat.codeGeneration.instructions": [
+  {
+    "file": "C:/Users/<Username>/.copilot/instructions/agent-skills.instructions.md"
+  }
+]
+```
+*(On macOS/Linux, use `"/home/<username>/.copilot/instructions/agent-skills.instructions.md"` or `"~/.copilot/instructions/agent-skills.instructions.md"`)*.
+
+##### 3. GitHub Copilot CLI (`copilot`) Setup
+The GitHub Copilot CLI automatically discovers instructions and personal skills from standard locations without requiring manual `copilot skill add` loops:
+- **Instructions**: Auto-discovered from `~/.copilot/instructions/*.instructions.md`
+- **Personal Skills**: Auto-discovered from `~/.agents/skills/` or `~/.copilot/skills/` (created as a directory link by `setup-agent-skills.ps1 -Global`)
+
+Verify available instructions and skills at any time:
+```bash
+copilot instruction list
+copilot skill list
+```
 
 #### B. Project Level (Project Scope)
 
