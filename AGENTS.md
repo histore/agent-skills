@@ -15,6 +15,7 @@ All skills and rules are designed to be general and reusable across diverse proj
    - Adhere to SOLID, DRY, KISS, YAGNI, Boy Scout Rule, and clear, descriptive naming conventions.
    - Write clean, idiomatic code adhering to the best practices and type-safety mechanisms of the target project's programming language. In Rust codebases, `unsafe` blocks must not be used.
    - All source code comments and docstrings must be written in English.
+   - **Relative Paths Invariant in Documentation**: All file references, links, and paths within documentation, markdown files (`*.md`), specifications, architecture documents, and living feature documents MUST strictly use **relative paths** (e.g. `../ARCHITECTURE.md`, `./features/FEAT-001.md`, `docs/requirements/modules/auth.md`). Absolute local paths (such as `C:\...`, `/home/...`, `/Users/...`, or machine-specific `file:///` URIs) are **strictly prohibited** in committed documentation to guarantee cross-platform portability across different machines, operating systems, and CI runners.
 3. **Dynamic Tech Stack Specialization**:
    - Skills do not hardcode programming languages (e.g., C#, Rust, Python, TypeScript, Go) or specific frameworks/libraries (e.g., Avalonia, React, Tokio, ASP.NET).
    - Agents dynamically detect the project stack by inspecting build configurations, package manifests (e.g., `Directory.Build.props`, `Cargo.toml`, `package.json`, `pyproject.toml`, `go.mod`), and the architecture baseline (`ARCHITECTURE.md`).

@@ -40,6 +40,7 @@ $mdFiles = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter "*.md" | Where-O
 }
 
 $brokenLinks = [System.Collections.Generic.List[PSCustomObject]]::new()
+$absoluteViolations = [System.Collections.Generic.List[PSCustomObject]]::new()
 $totalLinksChecked = 0
 
 # Match markdown links: [text](path)
@@ -67,8 +68,18 @@ foreach ($file in $mdFiles) {
         foreach ($m in $matches) {
             $rawTarget = $m.Groups[2].Value.Trim()
 
-            # Skip web URLs, mailto, or self-anchors
-            if ($rawTarget -match '^(https?://|mailto:|#|file://)') {
+            # Skip external web URLs, mailto, or self-anchors
+            if ($rawTarget -match '^(https?://|mailto:|#)') {
+                continue
+            }
+
+            # Enforce Relative Paths Invariant: Flag forbidden absolute paths (e.g. C:\..., /abs/..., file://...)
+            if ($rawTarget -match '^file://' -or $rawTarget -match '^[A-Za-z]:[\\/]' -or ($rawTarget.StartsWith('/') -and -not $rawTarget.StartsWith('//'))) {
+                $absoluteViolations.Add([PSCustomObject]@{
+                    SourceFile = $relSource
+                    Line = $i + 1
+                    Target = $rawTarget
+                })
                 continue
             }
 
@@ -111,15 +122,17 @@ if ($CheckParity) {
     }
 }
 
-$isPass = ($brokenLinks.Count -eq 0 -and $parityMismatches.Count -eq 0)
+$isPass = ($brokenLinks.Count -eq 0 -and $absoluteViolations.Count -eq 0 -and $parityMismatches.Count -eq 0)
 
 $result = [ordered]@{
-    status               = if ($isPass) { "pass" } else { "fail" }
-    scanned_markdowns    = $mdFiles.Count
-    links_checked        = $totalLinksChecked
-    broken_links_count   = $brokenLinks.Count
-    broken_links         = $brokenLinks.ToArray()
-    parity_mismatches    = $parityMismatches.ToArray()
+    status                     = if ($isPass) { "pass" } else { "fail" }
+    scanned_markdowns          = $mdFiles.Count
+    links_checked              = $totalLinksChecked
+    broken_links_count         = $brokenLinks.Count
+    broken_links               = $brokenLinks.ToArray()
+    absolute_violations_count  = $absoluteViolations.Count
+    absolute_violations        = $absoluteViolations.ToArray()
+    parity_mismatches          = $parityMismatches.ToArray()
 }
 
 if ($JsonOutput) {
@@ -130,9 +143,12 @@ if ($JsonOutput) {
     Write-Host "Markdown Files: $($mdFiles.Count) | Links Checked: $totalLinksChecked" -ForegroundColor DarkGray
     Write-Host "=============================================" -ForegroundColor Cyan
     if ($isPass) {
-        Write-Host "Documentation Status: PASS (0 broken relative links)" -ForegroundColor Green
+        Write-Host "Documentation Status: PASS (0 broken relative links, 0 absolute path violations)" -ForegroundColor Green
     } else {
-        Write-Host "Documentation Status: FAIL ($($brokenLinks.Count) broken links, $($parityMismatches.Count) parity gaps)" -ForegroundColor Red
+        Write-Host "Documentation Status: FAIL ($($brokenLinks.Count) broken links, $($absoluteViolations.Count) absolute violations, $($parityMismatches.Count) parity gaps)" -ForegroundColor Red
+        foreach ($av in $absoluteViolations) {
+            Write-Host "  [Absolute Path Violation] $($av.SourceFile):$($av.Line) -> $($av.Target) (must use relative path)" -ForegroundColor Red
+        }
         foreach ($bl in $brokenLinks) {
             Write-Host "  [Broken Link] $($bl.SourceFile):$($bl.Line) -> $($bl.Target)" -ForegroundColor Yellow
         }

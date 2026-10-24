@@ -30,6 +30,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
      - Maintain `docs/ROADMAP.md` as the lightweight Hub / Index. New features simply append an entry to the roadmap table without rewriting existing documentation or triggering full-file git diffs.
      - Assign explicit phases (`phase: 1`, `phase: 2`, etc.) to enable phase-by-phase execution.
      - **Lazy Loading Protocol**: Downstream agents must query features via `inspect-feature-specs.ps1` (or read only `docs/ROADMAP.md`) and load strictly the single affected feature spec, avoiding bulk parsing.
+     - **Relative Links Only**: All links and file references between the Hub index (`docs/ROADMAP.md` / `REQUIREMENTS.md`) and feature specs (`docs/features/*.md`) must strictly use relative paths. Never use absolute machine paths.
    - **Proactive Modularization Advice**: When a monolithic `REQUIREMENTS.md` crosses scaling thresholds or causes cognitive/token bloat, proactively propose splitting into module-specific files to the user.
 3. **Namespaced Requirement IDs & Deterministic Allocation**:
    - Validate uniqueness or allocate the next sequential ID with zero token overhead via `lint-requirements.ps1` (or `lint-requirements.sh`):

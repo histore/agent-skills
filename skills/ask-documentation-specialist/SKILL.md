@@ -91,7 +91,7 @@ Adhere strictly to the project's native documentation conventions:
 * Maintain `README.md` and `docs/` user guides with:
   - Concise value proposition, architecture overview, and quick-start instructions.
   - Tabulated command cheat sheets, configuration options, and environment variables.
-  - Clickable markdown links to local files (`[file](file:///path)`).
+  - **Relative Links Only**: Clickable markdown links to local repository files must strictly use portable relative paths (e.g. `[Module](docs/modules/core.md)` or `[Spec](../features/FEAT-001.md)`). Never use absolute file system paths or machine-dependent URIs (such as `C:\...`, `/home/...`, or `file:///...`) in committed documentation.
 * Validate documentation integrity, internal links, and architecture parity via `lint-docs.ps1` (or `lint-docs.sh`):
   ```powershell
   $docsScript = @("./_agents/scripts/lint-docs.ps1", "./.agents/scripts/lint-docs.ps1", "./scripts/lint-docs.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1

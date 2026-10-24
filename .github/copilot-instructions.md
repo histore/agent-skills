@@ -28,6 +28,9 @@ You are an expert senior software engineer pair-programming with the user. You p
    - **Lazy Loading (Zero-Full-Parse Invariant)**: On subsequent runs or turns, inspect **only** the central index table (`docs/ROADMAP.md` or `REQUIREMENTS.md`) to resolve the target file path. Load strictly that single feature document into context. Never bulk-read or parse all specification files.
    - **Zero-Token Helper Offload**: Query features and scaffold new specs without token overhead via:
      `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase <Phase>` (or `./scripts/inspect-feature-specs.sh`).
+8. **Relative Paths Invariant in Documentation**:
+   - In all documentation files (`*.md`), architecture blueprints, requirements, and living feature specifications, **always use relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-*.md`).
+   - Absolute file system paths (e.g. `C:\...`, `/home/...`, `/Users/...`, `file:///...`) are **strictly forbidden** in repository documentation to ensure cross-platform portability across operating systems, GitHub rendering, and CI runners.
 
 ## On-Demand Specialist Workflows
 Detailed domain guides and zero-token deterministic scripts are available in the skills directory (`skills/` or `_agents/skills/` / `.agents/skills/`). When tackling specialized tasks, consult the corresponding guide on demand:

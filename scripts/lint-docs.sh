@@ -39,6 +39,7 @@ link_pattern = re.compile(r'\[([^\]]+)\]\(([^)]+)\)')
 fence_pattern = re.compile(r'^\s*(```|~~~)')
 inline_code_pattern = re.compile(r'`[^`]+`')
 broken_links = []
+absolute_violations = []
 total_checked = 0
 
 for file_path in md_files:
@@ -55,7 +56,10 @@ for file_path in md_files:
             clean_line = inline_code_pattern.sub('', line)
             for match in link_pattern.finditer(clean_line):
                 target = match.group(2).strip()
-                if re.match(r'^(https?://|mailto:|#|file://)', target):
+                if re.match(r'^(https?://|mailto:|#)', target):
+                    continue
+                if target.startswith('file://') or re.match(r'^[A-Za-z]:[\\/]', target) or (target.startswith('/') and not target.startswith('//')):
+                    absolute_violations.append({'file': rel_source, 'line': idx, 'target': target})
                     continue
                 target_path = target.split('#')[0].split('?')[0]
                 if not target_path:
@@ -77,7 +81,7 @@ if check_parity:
                 if not os.path.isfile(expected_spec):
                     parity_mismatches.append(f"Module 'src/{entry}' missing spec in docs/architecture/modules/{entry}.md")
 
-is_pass = len(broken_links) == 0 and len(parity_mismatches) == 0
+is_pass = len(broken_links) == 0 and len(absolute_violations) == 0 and len(parity_mismatches) == 0
 
 if json_output:
     print(json.dumps({
@@ -86,6 +90,8 @@ if json_output:
         'links_checked': total_checked,
         'broken_links_count': len(broken_links),
         'broken_links': broken_links,
+        'absolute_violations_count': len(absolute_violations),
+        'absolute_violations': absolute_violations,
         'parity_mismatches': parity_mismatches
     }))
 else:
@@ -94,9 +100,11 @@ else:
     print(f'Files: {len(md_files)} | Links: {total_checked}')
     print('=============================================')
     if is_pass:
-        print('Documentation Status: PASS (0 broken relative links)')
+        print('Documentation Status: PASS (0 broken relative links, 0 absolute path violations)')
     else:
-        print(f'Documentation Status: FAIL ({len(broken_links)} broken links, {len(parity_mismatches)} parity gaps)')
+        print(f'Documentation Status: FAIL ({len(broken_links)} broken links, {len(absolute_violations)} absolute path violations, {len(parity_mismatches)} parity gaps)')
+        for av in absolute_violations:
+            print(f"  [Absolute Path Violation] {av['file']}:{av['line']} -> {av['target']} (must use relative path)")
         for bl in broken_links:
             print(f"  [Broken Link] {bl['file']}:{bl['line']} -> {bl['target']}")
         for pm in parity_mismatches:
