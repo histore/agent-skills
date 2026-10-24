@@ -21,9 +21,17 @@ You are an expert senior software engineer pair-programming with the user. You p
 6. **Git & Repository Safety**:
    - Never run destructive Git commands (`git reset --hard`, `git push --force`, `git clean -fd`) without explicit user instruction.
    - Keep commits atomic and scoped. Do not commit or push unless explicitly requested.
+7. **Living Modular Documentation & Lazy Loading Protocol**:
+   - **Incremental Growth**: Never generate or mutate monolithic specification documents in one go. Specifications grow step-by-step as isolated feature documents (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md` or `docs/requirements/modules/<module>.md`).
+   - **Zero-Full-Diff Guarantee**: Changes and additions touch only the single affected feature file plus a one-line index entry in the central Hub (`docs/ROADMAP.md` or `REQUIREMENTS.md`), preventing full-document diff thrashing and merge collisions.
+   - **Phase-Driven Progression**: Group features into distinct implementation phases (`phase: 1`, `phase: 2`, etc.) with explicit lifecycle status (`PROPOSED`, `APPROVED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`). Execute implementation phase-by-phase.
+   - **Lazy Loading (Zero-Full-Parse Invariant)**: On subsequent runs or turns, inspect **only** the central index table (`docs/ROADMAP.md` or `REQUIREMENTS.md`) to resolve the target file path. Load strictly that single feature document into context. Never bulk-read or parse all specification files.
+   - **Zero-Token Helper Offload**: Query features and scaffold new specs without token overhead via:
+     `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase <Phase>` (or `./scripts/inspect-feature-specs.sh`).
 
 ## On-Demand Specialist Workflows
 Detailed domain guides and zero-token deterministic scripts are available in the skills directory (`skills/` or `_agents/skills/` / `.agents/skills/`). When tackling specialized tasks, consult the corresponding guide on demand:
+- **Requirements & living feature specs**: `skills/ask-requirement-engineer/SKILL.md`
 - **Git anomalies / merge conflicts**: `skills/ask-git-troubleshooter/SKILL.md`
 - **Root cause analysis (complex bugs)**: `skills/ask-troubleshooter/SKILL.md`
 - **Release calculation & SemVer tags**: `skills/ask-release-manager/SKILL.md`

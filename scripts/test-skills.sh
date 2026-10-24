@@ -614,6 +614,14 @@ else
     assert_condition 1 "benchmark-startup scripts exist (.ps1 and .sh)" "benchmark-startup scripts missing"
 fi
 
+# 42. Validate feature specification inspector and scaffolding scripts
+echo -e "\n\033[33m42. Validating feature specification inspector scripts...\033[0m"
+if [ -f "$REPO_ROOT/scripts/inspect-feature-specs.ps1" ] && [ -f "$REPO_ROOT/scripts/inspect-feature-specs.sh" ]; then
+    assert_condition 0 "inspect-feature-specs scripts exist (.ps1 and .sh)" "inspect-feature-specs scripts missing"
+else
+    assert_condition 1 "inspect-feature-specs scripts exist (.ps1 and .sh)" "inspect-feature-specs scripts missing"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

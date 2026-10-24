@@ -726,6 +726,33 @@ $benchSh = Join-Path $repoRoot "scripts\benchmark-startup.sh"
 Assert-Condition (Test-Path $benchPs1) "scripts/benchmark-startup.ps1 exists" "scripts/benchmark-startup.ps1 not found"
 Assert-Condition (Test-Path $benchSh) "scripts/benchmark-startup.sh exists" "scripts/benchmark-startup.sh not found"
 
+# 42. Validate feature specification inspector and scaffolding scripts
+Write-Host "`n42. Validating feature specification inspector scripts..." -ForegroundColor Yellow
+$inspectFeatPs1 = Join-Path $repoRoot "scripts\inspect-feature-specs.ps1"
+$inspectFeatSh = Join-Path $repoRoot "scripts\inspect-feature-specs.sh"
+
+Assert-Condition (Test-Path $inspectFeatPs1) "scripts/inspect-feature-specs.ps1 exists" "scripts/inspect-feature-specs.ps1 not found"
+Assert-Condition (Test-Path $inspectFeatSh) "scripts/inspect-feature-specs.sh exists" "scripts/inspect-feature-specs.sh not found"
+
+if (Test-Path $inspectFeatPs1) {
+    try {
+        $inspectRaw = (pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $repoRoot -JsonOutput).Trim()
+        $jsonValid = ($inspectRaw -eq "[]") -or ($null -ne ($inspectRaw | ConvertFrom-Json))
+        Assert-Condition $jsonValid "inspect-feature-specs.ps1 outputs valid JSON" "inspect-feature-specs.ps1 returned invalid JSON ($inspectRaw)"
+        
+        $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $tempDir | Out-Null
+        try {
+            $newOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -New -Id "FEAT-CORE-001" -Title "Domain Baseline" -Phase 1 -Scope "CORE" -JsonOutput | ConvertFrom-Json
+            Assert-Condition ($newOut.status -eq "created" -and (Test-Path (Join-Path $tempDir $newOut.file))) "inspect-feature-specs.ps1 scaffolds new feature spec" "inspect-feature-specs.ps1 scaffolding failed"
+        } finally {
+            if (Test-Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force }
+        }
+    } catch {
+        Assert-Condition $false "inspect-feature-specs.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

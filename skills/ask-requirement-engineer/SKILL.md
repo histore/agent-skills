@@ -24,13 +24,23 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
    - **Single-File Baseline**: For small projects or early MVPs (< ~30–50 requirements), manage requirements in a single root `REQUIREMENTS.md`.
    - **Modular Hub-and-Spoke Scaling**: When requirements exceed ~30–50 items, grow beyond ~1,000 lines, or align with distinct module boundaries (`docs/architecture/modules/*.md`), partition them into per-module documents under `docs/requirements/modules/<module>.md`.
    - **Hub Role**: The root `REQUIREMENTS.md` remains the central registry, housing cross-cutting non-functional requirements (NFRs), global constraints, and an index linking to all module requirement files.
-   - **Template References**: When establishing or modularizing requirements in the target project, reference the standard templates provided in the submodule: resolve from `./_agents/docs/templates/` (Antigravity/Gemini), `./.agents/docs/templates/` (Copilot/standards), or `./docs/templates/` (standalone): `REQUIREMENTS_TEMPLATE.md` and `REQUIREMENTS_MODULE_TEMPLATE.md`. Never edit templates within the submodule; always author project requirements in the host project root or `docs/requirements/modules/`.
+   - **Template References**: When establishing or modularizing requirements in the target project, reference the standard templates provided in the submodule: resolve from `./_agents/docs/templates/` (Antigravity/Gemini), `./.agents/docs/templates/` (Copilot/standards), or `./docs/templates/` (standalone): `REQUIREMENTS_TEMPLATE.md`, `REQUIREMENTS_MODULE_TEMPLATE.md`, `FEATURE_SPEC_TEMPLATE.md`, and `ROADMAP_TEMPLATE.md`. Never edit templates within the submodule; always author project requirements in the host project root or `docs/requirements/modules/` / `docs/features/`.
+   - **Living Modular Documentation & Phased Feature Specs**:
+     - For iterative product development, author specifications as isolated feature files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md`).
+     - Maintain `docs/ROADMAP.md` as the lightweight Hub / Index. New features simply append an entry to the roadmap table without rewriting existing documentation or triggering full-file git diffs.
+     - Assign explicit phases (`phase: 1`, `phase: 2`, etc.) to enable phase-by-phase execution.
+     - **Lazy Loading Protocol**: Downstream agents must query features via `inspect-feature-specs.ps1` (or read only `docs/ROADMAP.md`) and load strictly the single affected feature spec, avoiding bulk parsing.
    - **Proactive Modularization Advice**: When a monolithic `REQUIREMENTS.md` crosses scaling thresholds or causes cognitive/token bloat, proactively propose splitting into module-specific files to the user.
 3. **Namespaced Requirement IDs & Deterministic Allocation**:
    - Validate uniqueness or allocate the next sequential ID with zero token overhead via `lint-requirements.ps1` (or `lint-requirements.sh`):
      ```powershell
      $reqScript = @("./_agents/scripts/lint-requirements.ps1", "./.agents/scripts/lint-requirements.ps1", "./scripts/lint-requirements.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
      pwsh -NoProfile -ExecutionPolicy Bypass -File $reqScript -NextId -Scope "<SCOPE>"
+     ```
+   - Scaffold new feature specs and update the roadmap index deterministically via `inspect-feature-specs.ps1`:
+     ```powershell
+     $featScript = @("./_agents/scripts/inspect-feature-specs.ps1", "./.agents/scripts/inspect-feature-specs.ps1", "./scripts/inspect-feature-specs.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+     pwsh -NoProfile -ExecutionPolicy Bypass -File $featScript -New -Id "FEAT-<SCOPE>-XXX" -Title "<Title>" -Phase 1 -Scope "<SCOPE>"
      ```
 4. **Lifecycle State Tracking**:
    - Requirements must define an explicit state: `PROPOSED` | `APPROVED` | `IN_PROGRESS` | `IMPLEMENTED` | `VERIFIED` | `DEPRECATED`.

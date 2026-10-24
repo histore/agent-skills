@@ -58,6 +58,12 @@
    - **Single-File vs. Modular Hub-and-Spoke Architecture**:
      - *Single-File (`REQUIREMENTS.md`)*: Used for smaller projects or initial prototypes (< ~30–50 requirements).
      - *Modular Architecture (`docs/requirements/modules/<module>.md`)*: For growing codebases or multi-module projects, requirements are segmented per module. The root `REQUIREMENTS.md` serves as the central Hub, Index, ID Registry, and Non-Functional Requirements (NFR) Baseline.
+   - **Living Modular Documentation & Phased Feature Specs**:
+     - *Append-Only / Delta Growth*: Never generate or mutate monolithic specifications. Documents grow step-by-step as isolated feature files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md` or `docs/requirements/modules/<module>.md`).
+     - *Zero-Full-Diff Guarantee*: Changes and additions affect strictly the single target feature file and append a 1-line link to `docs/ROADMAP.md` or `REQUIREMENTS.md`, eliminating multi-page diff thrashing.
+     - *Phase-Driven Progression*: Group features into distinct implementation phases (`phase: 1`, `phase: 2`, etc.) with explicit lifecycle status (`PROPOSED`, `APPROVED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`).
+     - *Lazy Loading & Token-Hygiene Protocol (Zero Full-Parse Invariant)*: On subsequent runs, agents inspect only the central index table first. Load strictly the single target feature file into context. Never bulk-read or parse all specification files.
+     - *Zero-Token Offloading*: Query features by phase and scaffold templates without token usage via `scripts/inspect-feature-specs.ps1` (`inspect-feature-specs.sh`).
    - **Namespaced IDs & Lifecycle Tracking**: Standardized IDs (`REQ-<SCOPE>-XXX`) and explicit lifecycle status (`PROPOSED`, `APPROVED`, `IMPLEMENTED`, `VERIFIED`, `DEPRECATED`).
    - **User Decision on Conflicts/Duplicates**: Contradictions or duplicates must be escalated to the user for explicit decision.
    - **Immutability of Existing Requirements**: Existing requirements may only be modified with explicit user instruction.
