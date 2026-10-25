@@ -621,6 +621,11 @@ if [ -f "$REPO_ROOT/scripts/inspect-feature-specs.ps1" ] && [ -f "$REPO_ROOT/scr
 else
     assert_condition 1 "inspect-feature-specs scripts exist (.ps1 and .sh)" "inspect-feature-specs scripts missing"
 fi
+if [ -f "$REPO_ROOT/docs/templates/CONCEPT_TEMPLATE.md" ]; then
+    assert_condition 0 "docs/templates/CONCEPT_TEMPLATE.md exists" "docs/templates/CONCEPT_TEMPLATE.md missing"
+else
+    assert_condition 1 "docs/templates/CONCEPT_TEMPLATE.md exists" "docs/templates/CONCEPT_TEMPLATE.md missing"
+fi
 
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"

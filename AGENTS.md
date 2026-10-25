@@ -31,8 +31,9 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 7. **Requirements Governance & Modular Architecture**:
    - Small projects (< ~30–50 items) use single `REQUIREMENTS.md`. Scaled systems partition into `docs/requirements/modules/<module>.md` with `REQUIREMENTS.md` as Hub/Registry.
    - **Living Modular Documentation**: Grow specs as isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md`). Updates touch only the single feature file and append a line to `docs/ROADMAP.md` (zero-full-diff guarantee).
+   - **Concept Distillation & Isolation**: Draft in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`), review/refine with user, distill to `FEAT-*.md` (escalating contradictions to user), and archive to `docs/concepts/archive/`. Downstream implementation roles never read concept files.
    - **Lazy Loading Protocol**: Query features via `scripts/inspect-feature-specs.ps1` or read only the Hub index to load strictly the single affected file. Scoped IDs: `REQ-<SCOPE>-XXX` (`PROPOSED`, `APPROVED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `DEPRECATED`).
-8. **User Decision on Conflicts**: Escalate discrepancies directly to user.
+8. **User Decision on Conflicts**: Escalate discrepancies, distillation contradictions, or requirement conflicts directly to user.
 9. **Immutability of Existing Requirements**: Modified only with explicit user instruction.
 10. **100% Coverage for Functional Features**: Enterprise features require approved requirements; minor tweaks do not require requirement overhead.
 11. **Dynamic Model Allocation & Universal Execution Strategy**:

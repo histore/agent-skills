@@ -31,6 +31,7 @@ Classify every incoming request before acting and modulate your thinking budget 
    - Never run destructive Git commands (`git reset --hard`, `git push --force`) without explicit user instruction. Never stage or commit changes inside `_agents/` or `.agents/` submodules during host project commits.
 7. **Living Modular Documentation & Lazy Loading Protocol**:
    - Grow specifications incrementally as isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md` or `docs/requirements/modules/<module>.md`).
+   - **Concept Distillation & Isolation**: Draft concepts in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`), review/refine with user, distill to `FEAT-*.md` (escalate contradictions to user), and archive to `docs/concepts/archive/`. Downstream implementation roles (`Developer`, `Tester`, `Verifikation`) never inspect concept files.
    - **Lazy Loading (Zero-Full-Parse Invariant)**: Read **only** the central index (`docs/ROADMAP.md` or `REQUIREMENTS.md`) or query via `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase <Phase>` and load strictly the single target spec file.
 8. **Relative Paths Invariant in Documentation**:
    - In all documentation (`*.md`), **always use relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-*.md`). Absolute paths (`C:\...`, `/home/...`, `file:///...`) are strictly forbidden in committed docs.

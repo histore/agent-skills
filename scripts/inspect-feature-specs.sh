@@ -35,6 +35,15 @@ while [[ $# -gt 0 ]]; do
             ACTION="new"
             shift
             ;;
+        --new-concept|-NewConcept|--concept|-Concept)
+            ACTION="new-concept"
+            shift
+            ;;
+        --archive-concept|-ArchiveConcept)
+            ACTION="archive-concept"
+            FILTER_ID="$2"
+            shift 2
+            ;;
         --title|-Title|-t)
             NEW_TITLE="$2"
             shift 2
@@ -83,6 +92,112 @@ for t in "$REPO_ROOT/docs/templates/FEATURE_SPEC_TEMPLATE.md" \
         break
     fi
 done
+
+CONCEPT_TEMPLATE_PATH=""
+for t in "$REPO_ROOT/docs/templates/CONCEPT_TEMPLATE.md" \
+         "$REPO_ROOT/_agents/docs/templates/CONCEPT_TEMPLATE.md" \
+         "$REPO_ROOT/.agents/docs/templates/CONCEPT_TEMPLATE.md"; do
+    if [ -f "$t" ]; then
+        CONCEPT_TEMPLATE_PATH="$t"
+        break
+    fi
+done
+
+CONCEPTS_DRAFT_DIR="$REPO_ROOT/docs/concepts/drafts"
+CONCEPTS_ARCHIVE_DIR="$REPO_ROOT/docs/concepts/archive"
+
+# Action: Scaffolding a new concept draft
+if [ "$ACTION" = "new-concept" ]; then
+    CID="${FILTER_ID:-CONCEPT-${NEW_SCOPE}-001}"
+    if [ -z "$NEW_TITLE" ]; then
+        NEW_TITLE="Concept $CID"
+    fi
+    SLUG=$(echo "$NEW_TITLE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-zA-Z0-9]+/-/g' | sed -E 's/^-+|-+$//g')
+    FILE_NAME="${CID}-${SLUG}.md"
+    mkdir -p "$CONCEPTS_DRAFT_DIR"
+    TARGET_FILE="$CONCEPTS_DRAFT_DIR/$FILE_NAME"
+
+    if [ -f "$TARGET_FILE" ]; then
+        echo "Error: Concept draft already exists: $TARGET_FILE" >&2
+        exit 1
+    fi
+
+    TODAY=$(date +%Y-%m-%d)
+    if [ -n "$CONCEPT_TEMPLATE_PATH" ] && [ -f "$CONCEPT_TEMPLATE_PATH" ]; then
+        sed -e "s/CONCEPT-<SCOPE>-XXX/$CID/g" \
+            -e "s/<CONCEPT-ID>/$CID/g" \
+            -e "s/<Concept Title>/$NEW_TITLE/g" \
+            -e "s/<SCOPE>/$NEW_SCOPE/g" \
+            -e "s/<YYYY-MM-DD>/$TODAY/g" \
+            -e "s/<Author>/User \/ Agent/g" \
+            -e "s/<slug>/$SLUG/g" "$CONCEPT_TEMPLATE_PATH" > "$TARGET_FILE"
+    else
+        cat <<EOF > "$TARGET_FILE"
+# Concept & RFC Draft: $NEW_TITLE
+
+\`\`\`yaml
+---
+id: $CID
+title: "$NEW_TITLE"
+status: DRAFT
+scope: "$NEW_SCOPE"
+target_feature: "FEAT-${NEW_SCOPE}-001"
+author: "User / Agent"
+created: "$TODAY"
+---
+\`\`\`
+
+## 1. Problem Statement & Motivation
+<Context & Need>
+
+## 2. Solution Approaches & Trade-Offs
+- Approach A (Recommended)
+- Approach B (Alternative)
+
+## 3. High-Level Architecture
+Target Layer: Core Domain / Application
+
+## 4. Open Questions & Review Checklist
+- [ ] Q-1: <Clarification needed>
+
+## 5. Distillation Target Preview
+- Preview AC-1: Given, When, Then
+EOF
+    fi
+
+    if [ "$JSON_OUTPUT" -eq 1 ]; then
+        echo "{\"status\":\"created\",\"id\":\"$CID\",\"title\":\"$NEW_TITLE\",\"file\":\"docs/concepts/drafts/$FILE_NAME\"}"
+    else
+        echo "Created concept draft: docs/concepts/drafts/$FILE_NAME"
+    fi
+    exit 0
+fi
+
+# Action: Archiving a distilled concept
+if [ "$ACTION" = "archive-concept" ]; then
+    if [ ! -d "$CONCEPTS_DRAFT_DIR" ]; then
+        echo "Error: Drafts directory does not exist: $CONCEPTS_DRAFT_DIR" >&2
+        exit 1
+    fi
+    MATCHING_FILE=$(find "$CONCEPTS_DRAFT_DIR" -maxdepth 1 -name "*${FILTER_ID}*.md" | head -n 1)
+    if [ -z "$MATCHING_FILE" ]; then
+        echo "Error: No matching draft concept found for '$FILTER_ID' in $CONCEPTS_DRAFT_DIR" >&2
+        exit 1
+    fi
+    mkdir -p "$CONCEPTS_ARCHIVE_DIR"
+    BASE_NAME=$(basename "$MATCHING_FILE")
+    DEST_FILE="$CONCEPTS_ARCHIVE_DIR/$BASE_NAME"
+
+    sed -E 's/status:\s*(DRAFT|UNDER_REVIEW|APPROVED)/status: ARCHIVED/g' "$MATCHING_FILE" > "$DEST_FILE"
+    rm -f "$MATCHING_FILE"
+
+    if [ "$JSON_OUTPUT" -eq 1 ]; then
+        echo "{\"status\":\"archived\",\"id\":\"$FILTER_ID\",\"source\":\"docs/concepts/drafts/$BASE_NAME\",\"destination\":\"docs/concepts/archive/$BASE_NAME\"}"
+    else
+        echo "Archived concept: docs/concepts/archive/$BASE_NAME"
+    fi
+    exit 0
+fi
 
 # Action: Scaffolding a new feature
 if [ "$ACTION" = "new" ]; then

@@ -740,11 +740,20 @@ if (Test-Path $inspectFeatPs1) {
         $jsonValid = ($inspectRaw -eq "[]") -or ($null -ne ($inspectRaw | ConvertFrom-Json))
         Assert-Condition $jsonValid "inspect-feature-specs.ps1 outputs valid JSON" "inspect-feature-specs.ps1 returned invalid JSON ($inspectRaw)"
         
+        $conceptTmpl = Join-Path $repoRoot "docs\templates\CONCEPT_TEMPLATE.md"
+        Assert-Condition (Test-Path $conceptTmpl) "docs/templates/CONCEPT_TEMPLATE.md exists" "docs/templates/CONCEPT_TEMPLATE.md not found"
+
         $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
         New-Item -ItemType Directory -Path $tempDir | Out-Null
         try {
             $newOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -New -Id "FEAT-CORE-001" -Title "Domain Baseline" -Phase 1 -Scope "CORE" -JsonOutput | ConvertFrom-Json
             Assert-Condition ($newOut.status -eq "created" -and (Test-Path (Join-Path $tempDir $newOut.file))) "inspect-feature-specs.ps1 scaffolds new feature spec" "inspect-feature-specs.ps1 scaffolding failed"
+
+            $conceptOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -NewConcept -ConceptId "CONCEPT-CORE-001" -Title "Domain Concept" -Scope "CORE" -JsonOutput | ConvertFrom-Json
+            Assert-Condition ($conceptOut.status -eq "created" -and (Test-Path (Join-Path $tempDir $conceptOut.file))) "inspect-feature-specs.ps1 scaffolds new concept draft" "inspect-feature-specs.ps1 concept scaffolding failed"
+
+            $archiveOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -ArchiveConcept "CONCEPT-CORE-001" -JsonOutput | ConvertFrom-Json
+            Assert-Condition ($archiveOut.status -eq "archived" -and (Test-Path (Join-Path $tempDir $archiveOut.destination))) "inspect-feature-specs.ps1 archives concept draft" "inspect-feature-specs.ps1 concept archiving failed"
         } finally {
             if (Test-Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force }
         }

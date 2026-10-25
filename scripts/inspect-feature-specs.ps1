@@ -69,6 +69,15 @@ param(
     [switch]$UpdateState,
 
     [Parameter(Mandatory = $false)]
+    [switch]$NewConcept,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ConceptId,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ArchiveConcept,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -81,6 +90,9 @@ if (-not $RepoRoot) {
 $featuresDir = Join-Path $RepoRoot "docs\features"
 $roadmapFile = Join-Path $RepoRoot "docs\ROADMAP.md"
 $stateFile = Join-Path $RepoRoot "docs\.spec-state.json"
+$conceptsDir = Join-Path $RepoRoot "docs\concepts"
+$conceptsDraftDir = Join-Path $conceptsDir "drafts"
+$conceptsArchiveDir = Join-Path $conceptsDir "archive"
 
 # Resolve feature template
 $templatePaths = @(
@@ -89,6 +101,14 @@ $templatePaths = @(
     (Join-Path $RepoRoot ".agents\docs\templates\FEATURE_SPEC_TEMPLATE.md")
 )
 $resolvedTemplate = $templatePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+# Resolve concept template
+$conceptTemplatePaths = @(
+    (Join-Path $RepoRoot "docs\templates\CONCEPT_TEMPLATE.md"),
+    (Join-Path $RepoRoot "_agents\docs\templates\CONCEPT_TEMPLATE.md"),
+    (Join-Path $RepoRoot ".agents\docs\templates\CONCEPT_TEMPLATE.md")
+)
+$resolvedConceptTemplate = $conceptTemplatePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 # Helper to parse YAML-like frontmatter or header
 function Get-FeatureMetadata {
@@ -139,6 +159,131 @@ function Get-FeatureMetadata {
         FilePath = $relPath
         FullPath = $FilePath
     }
+}
+
+# 0a. Concept Scaffolding Mode (-NewConcept)
+if ($NewConcept) {
+    $cId = if ($ConceptId) { $ConceptId } elseif ($Id -and $Id -match '^CONCEPT-') { $Id } else { "CONCEPT-$Scope-001" }
+    if (-not $Title) { $Title = "Concept $cId" }
+
+    $slug = ($Title -replace '[^a-zA-Z0-9]+', '-').Trim('-').ToLowerInvariant()
+    $fileName = "$cId-$slug.md"
+
+    if (-not (Test-Path $conceptsDraftDir)) {
+        New-Item -ItemType Directory -Path $conceptsDraftDir -Force | Out-Null
+    }
+
+    $targetFile = Join-Path $conceptsDraftDir $fileName
+    if (Test-Path $targetFile) {
+        Write-Error "Concept draft already exists: $targetFile"
+        exit 1
+    }
+
+    $today = (Get-Date -Format "yyyy-MM-dd")
+    $conceptContent = if ($resolvedConceptTemplate -and (Test-Path $resolvedConceptTemplate)) {
+        Get-Content -Path $resolvedConceptTemplate -Raw -Encoding UTF8
+    } else {
+        @"
+# Concept & RFC Draft: <Concept Title>
+
+```yaml
+---
+id: <CONCEPT-ID>
+title: "<Concept Title>"
+status: DRAFT
+scope: "<SCOPE>"
+target_feature: "FEAT-<SCOPE>-001"
+author: "User / Agent"
+created: "<YYYY-MM-DD>"
+---
+```
+
+## 1. Problem Statement & Motivation
+<Context & Need>
+
+## 2. Solution Approaches & Trade-Offs
+- Approach A (Recommended)
+- Approach B (Alternative)
+
+## 3. High-Level Architecture
+Target Layer: Core Domain / Application
+
+## 4. Open Questions & Review Checklist
+- [ ] Q-1: <Clarification needed>
+
+## 5. Distillation Target Preview
+- Preview AC-1: Given, When, Then
+"@
+    }
+
+    $newContent = $conceptContent.
+        Replace("CONCEPT-<SCOPE>-XXX", $cId).
+        Replace("<CONCEPT-ID>", $cId).
+        Replace("<Concept Title>", $Title).
+        Replace("<SCOPE>", $Scope).
+        Replace("<YYYY-MM-DD>", $today).
+        Replace("<Author>", "User / Agent").
+        Replace("<slug>", $slug)
+
+    $newContentLf = $newContent.Replace("`r`n", "`n")
+    [System.IO.File]::WriteAllText($targetFile, $newContentLf, [System.Text.UTF8Encoding]::new($false))
+
+    $result = [PSCustomObject]@{
+        status = "created"
+        id = $cId
+        title = $Title
+        file = "docs/concepts/drafts/$fileName"
+    }
+
+    if ($JsonOutput) {
+        $result | ConvertTo-Json -Compress
+    } else {
+        Write-Host "Created concept draft: docs/concepts/drafts/$fileName" -ForegroundColor Green
+    }
+    exit 0
+}
+
+# 0b. Archive Concept Mode (-ArchiveConcept)
+if ($ArchiveConcept) {
+    if (-not (Test-Path $conceptsDraftDir)) {
+        Write-Error "Drafts directory does not exist: $conceptsDraftDir"
+        exit 1
+    }
+
+    $draftFiles = Get-ChildItem -Path $conceptsDraftDir -Filter "*.md" -File | Where-Object {
+        $_.Name -like "*$ArchiveConcept*" -or (Get-Content $_.FullName -Raw) -match "id:\s*['`"]?$ArchiveConcept['`"]?"
+    }
+
+    if (-not $draftFiles -or $draftFiles.Count -eq 0) {
+        Write-Error "No matching draft concept found for '$ArchiveConcept' in $conceptsDraftDir"
+        exit 1
+    }
+
+    $sourceFile = $draftFiles[0]
+    if (-not (Test-Path $conceptsArchiveDir)) {
+        New-Item -ItemType Directory -Path $conceptsArchiveDir -Force | Out-Null
+    }
+
+    $destFile = Join-Path $conceptsArchiveDir $sourceFile.Name
+    $content = Get-Content -Path $sourceFile.FullName -Raw -Encoding UTF8
+    $content = $content -replace '(?m)^\s*status:\s*["'']?(DRAFT|UNDER_REVIEW|APPROVED)["'']?', 'status: ARCHIVED'
+
+    [System.IO.File]::WriteAllText($destFile, $content.Replace("`r`n", "`n"), [System.Text.UTF8Encoding]::new($false))
+    Remove-Item -Path $sourceFile.FullName -Force
+
+    $result = [PSCustomObject]@{
+        status = "archived"
+        id = $ArchiveConcept
+        source = "docs/concepts/drafts/$($sourceFile.Name)"
+        destination = "docs/concepts/archive/$($sourceFile.Name)"
+    }
+
+    if ($JsonOutput) {
+        $result | ConvertTo-Json -Compress
+    } else {
+        Write-Host "Archived concept: docs/concepts/archive/$($sourceFile.Name)" -ForegroundColor Green
+    }
+    exit 0
 }
 
 # 1. Scaffolding Mode (-New)
