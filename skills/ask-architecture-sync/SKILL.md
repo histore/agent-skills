@@ -85,4 +85,5 @@ The target documentation directory is resolved dynamically in strict priority or
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all operations target the host repository root. Skill assets and rules reside in `./_agents/`, `./.agents/`, or `./`.
+- **Embedding Host Project Target**: When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all operations target the embedding host repository.
+- **Submodule Asset Resolution**: Internal skill assets and rules reside in `./_agents/`, `./.agents/`, or `./`.

@@ -122,8 +122,8 @@ Act as the universal central orchestrator and mandatory default entry point for 
 ## Environment, Path Compatibility & Diagnostics
 - **Zero-Probe Environment Detection**: Infer execution mode directly from active tool declarations (`invoke_subagent` available = Antigravity Multi-Agent; otherwise Sequential Persona Mode as defined in [`rules/model-tiers.json`](../../rules/model-tiers.json)). Do **NOT** execute `detect-models.ps1` during normal workflows; run it only when explicitly diagnosing model catalogs (`pwsh -NoProfile -File ./scripts/detect-models.ps1`).
 - **Tooling & Path Compatibility (`.agents` vs. `_agents`)**:
-  - When mounted as a submodule (`_agents/` for Gemini/Antigravity, `.agents/` for GitHub Copilot), all code edits, tests, architecture docs, and Git operations target the **embedding host repository**, never the submodule directory.
-  - Resolve helper scripts from `./_agents/scripts/`, `./.agents/scripts/`, or `./scripts/`.
+  - **Embedding Host Project Target**: When mounted as a submodule (`_agents/` for Gemini/Antigravity, `.agents/` for GitHub Copilot), all code edits, tests, architecture docs, and Git operations target the **embedding host repository**, never the submodule directory.
+  - **Submodule Asset Resolution**: Resolve helper scripts and internal skill assets from `./_agents/scripts/`, `./.agents/scripts/`, or `./scripts/`.
 - **Evaluation & Telemetry (On-Demand)**:
   - Validate governance invariants via `pwsh -NoProfile -File ./scripts/run-evals.ps1` (`run-evals.sh`).
   - Inspect lifecycle telemetry via `pwsh -NoProfile -File ./scripts/show-telemetry.ps1` (`show-telemetry.sh`).

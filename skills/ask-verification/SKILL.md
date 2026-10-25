@@ -33,7 +33,7 @@ Only when explicit coverage reports are required, run `check-test-coverage.ps1 -
 Only executed once Stage 1 passes with 100% success (0 failures). **IMPORTANT: Adapt your audit based on the active `Strictness Level` (Standard, Enterprise, Legacy, Prototype):**
 1. **Requirements Coverage Audit**: Confirm all changes map to an approved Requirement ID in `REQUIREMENTS.md` or `docs/requirements/modules/<module>.md` (Enterprise mode; bypass for Legacy/Prototype or trivial Profile A bugfixes).
 2. **Acceptance Criteria Verification**: Validate every Given-When-Then statement defined by `RequirementEngineer` (or the user request).
-3. **Clean Architecture & Clean Code Audit**: Confirm inward dependency flow, separation of concerns, SOLID principles, and English code comments (already pre-verified deterministically by Stage 1; **if Strictness Level is Legacy or Prototype, DO NOT REJECT the code for Clean Architecture or TDD violations**).
+3. **Clean Architecture & Clean Code Audit**: Confirm inward dependency flow, separation of concerns, SOLID principles, and English code comments (already pre-verified deterministically by Stage 1; **if Strictness Level is Legacy or Prototype, DO NOT REJECT the code for Clean Architecture or TDD violations**). For Rust codebases, verify 0 occurrences of `unsafe` (safe Rust invariant).
 4. **Logical Correctness & Error Path Audit**: Audit the code changes for semantic sanity, correct conditional branching, proper error propagation, and avoidance of obvious unhandled edge cases or resource leaks.
    - **Adversarial Scrutiny via `CodeReviewer`**: If changes involve complex algorithms, intricate asynchronous state handling, high concurrency, or extensive diffs, `Verifikation` can consult `CodeReviewer` (or indicate to `Control` that a dedicated `CodeReviewer` pass is required) for deep adversarial bug hunting.
 5. **Internationalization (i18n) & UI/UX Audit** (if applicable): Confirm 0% hardcoded user strings (bilingual `de`/`en` resources) and keyboard/visual ergonomics.
@@ -53,4 +53,5 @@ Only executed once Stage 1 passes with 100% success (0 failures). **IMPORTANT: A
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all operations target the host repository root. Skill assets and rules reside in `./_agents/`, `./.agents/`, or `./`.
+- **Embedding Host Project Target**: When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all operations target the embedding host repository.
+- **Submodule Asset Resolution**: Internal skill assets and rules reside in `./_agents/`, `./.agents/`, or `./`.
