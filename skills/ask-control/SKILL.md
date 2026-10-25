@@ -21,9 +21,10 @@ Act as the universal central orchestrator and mandatory default entry point for 
    - Pass this project stack context to downstream subagents so they immediately operate in the correct idioms without hardcoded assumptions.
 
 2. **Adaptive Workflow & Task Decomposition**:
-   - **Compound Execution & KV-Cache Optimization (Default Strategy)**:
+   - **Compound Execution & Zero-Reload Invariant (Default Strategy)**:
      - Core development workflows execute as **Compound Phased Execution** within a single, continuous conversation thread. This preserves prompt prefix continuity, unlocking 75–90% KV-cache discounts and eliminating subagent cold-start overhead.
-     - Subagents (`invoke_subagent`) are reserved strictly for **divergent research**, broad multi-file searches, web lookups, or independent background sidecars.
+     - **Zero-Reload Core Roles**: For Profile 0, Profile A, and standard Profile B tasks, do **NOT** spend tool calls reading `ask-developer/SKILL.md`, `ask-verification/SKILL.md`, or `ask-commit-manager/SKILL.md`—their operational rules are already embedded in `AGENTS.md` and this orchestrator. Read `SKILL.md` files strictly when engaging On-Demand Specialists or resolving complex edge cases.
+     - **Selective Subagent Forking (`invoke_subagent`)**: Reserved strictly for **divergent research**, broad multi-file searches, web lookups, or independent background sidecars. Dispatch `research` subagents with `Model: "flash"` (ECO) to conserve flagship quota.
    - **Terminal Hygiene & Context Noise Prevention**:
      - Execute PowerShell commands with `-NoProfile` to eliminate profile warnings.
      - Run testrunners in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`) so passing test noise does not consume context window tokens.
@@ -118,77 +119,17 @@ Act as the universal central orchestrator and mandatory default entry point for 
 
 ---
 
-## Dynamic Model & Reasoning Allocation
-Model capability tiers, reference models, and calibrated thinking budgets are dynamically resolved from the Single Source of Truth: [`rules/model-tiers.json`](../../rules/model-tiers.json).
-- **Task Appraisal into 3 Classes**: Tasks are appraised into **ECO** (Profile 0/A, routine/lifecycle), **BALANCED** (Profile B, standard TDD/features), or **PREMIUM** (Profile C, complex architecture/deadlocks).
-- **Quota Protection User Gate**: Whenever an incoming task is classified as Profile C / Premium, `Control` pauses to present an immediate 3-class selection (`[1] Premium`, `[2] Balanced`, `[3] Eco`) to protect user quota. Explicit prompt overrides (e.g. `--eco`, `--balanced`, `--premium`) satisfy the gate immediately.
-
----
-
-## Environment Adaptation & Universal Execution Strategy
-
-Detailed tier mappings and platform preferences are declaratively specified in [`rules/model-tiers.json`](../../rules/model-tiers.json).
-
-### 1. Pre-Flight Runtime Detection & 24h Persistent Caching (Zero-Token Probe)
-Prior to dispatching tasks or starting complex workflows, optionally determine the active runtime platform and model capabilities:
-- **Windows**:
-  ```powershell
-  $script = @("./_agents/scripts/detect-models.ps1", "./.agents/scripts/detect-models.ps1", "./scripts/detect-models.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-  pwsh -NoProfile -ExecutionPolicy Bypass -File $script
-  ```
-- **macOS / Linux**:
-  ```bash
-  for p in ./_agents/scripts/detect-models.sh ./.agents/scripts/detect-models.sh ./scripts/detect-models.sh; do
-    [ -f "$p" ] && SCRIPT_PATH="$p" && break
-  done
-  bash "$SCRIPT_PATH"
-  ```
-- **24-Hour Cross-Session Cache**: Results are automatically persisted across all skills and chat sessions with a 24-hour TTL (`%LOCALAPPDATA%/agent-skills/model-cache.json` or `~/.cache/agent-skills/model-cache.json`). Cached invocations return in < 50ms with `"cached": true` and zero subprocess overhead.
-- **On-Demand Cache Refresh**: Force an immediate re-probe at any time using `-Force` (PowerShell) or `--force` (Bash).
-
-### 2. Universal Execution Strategy
-
-#### Strategy 1: Compound Execution Mode (Default - All Platforms)
-- Standard development workflows execute within a **single, continuous conversation thread** using phased persona transitions (Plan -> Inner-Loop TDD -> Verify -> Commit).
-- **Prompt Caching / KV-Cache**: Reuses the common prefix across turns, cutting token costs by 75–90% and eliminating subagent spawn latency.
-- State, read files, and compiler feedback remain immediately accessible without serialization handoffs.
-
-#### Strategy 2: Multi-Agent Forking (Selective & Divergent)
-- Used selectively when a subtask is **divergent or context-polluting** (e.g. reading 50 codebase files during broad architecture exploration, external web research, or background testing jobs).
-- Subagents execute in isolated sandboxes and return concise executive summaries, protecting the primary thread from exploratory token bloat.
-
-#### Strategy 3: Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)
-- For clients without subagent APIs, apply prompt-modulated thinking budgets (`rules/model-tiers.json`):
-  - **Tier 1**: Extended deep reasoning for architecture and root cause analysis.
-  - **Tier 2**: Analytical reasoning for specifications and UX.
-  - **Tier 3 / Tier 4**: Low/minimal reasoning for deterministic code implementation, testing, and Git operations.
-
-### 3. Model Evolution & Deprecation
-Roles evaluate cognitive capability by **Tier criteria** rather than hardcoded model string dependencies, ensuring full forward-compatibility with future model releases.
-
-### 4. Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all workflow orchestration, tech stack discovery, code modifications, testing, and lifecycle actions target the **embedding host repository** (the parent project root), NOT the submodule directory.
-- **Gemini / Antigravity**: Uses `_agents` as the standard customization root (keeping `.agents` available for repository-specific customizations).
-- **GitHub Copilot & Other Clients**: Specifically expect `.agents/`. When sharing skills across multiple AI clients or targeting Copilot, configure skills under `.agents` (or create a symbolic link from `.agents` to `_agents`). Submodule internal paths are never modified during host project tasks.
-- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
-
-### 5. Evaluation Benchmarks & Lifecycle Telemetry
-- **Eval Benchmark Suite**: Validate governance rules, anti-ceremony invariants, safe-Rust policies, and circuit breaker behavior via `run-evals.ps1` (or `run-evals.sh`):
-  ```powershell
-  $evalScript = @("./_agents/scripts/run-evals.ps1", "./.agents/scripts/run-evals.ps1", "./scripts/run-evals.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-  pwsh -NoProfile -ExecutionPolicy Bypass -File $evalScript
-  ```
-- **Lifecycle Telemetry Dashboard**: Inspect phase durations, execution counts, and profile metrics across sessions via `show-telemetry.ps1` (or `show-telemetry.sh`):
-  ```powershell
-  $showScript = @("./_agents/scripts/show-telemetry.ps1", "./.agents/scripts/show-telemetry.ps1", "./scripts/show-telemetry.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-  pwsh -NoProfile -ExecutionPolicy Bypass -File $showScript
-  ```
-
----
+## Environment, Path Compatibility & Diagnostics
+- **Zero-Probe Environment Detection**: Infer execution mode directly from active tool declarations (`invoke_subagent` available = Antigravity Multi-Agent; otherwise Sequential Persona Mode as defined in [`rules/model-tiers.json`](../../rules/model-tiers.json)). Do **NOT** execute `detect-models.ps1` during normal workflows; run it only when explicitly diagnosing model catalogs (`pwsh -NoProfile -File ./scripts/detect-models.ps1`).
+- **Tooling & Path Compatibility (`.agents` vs. `_agents`)**:
+  - When mounted as a submodule (`_agents/` for Gemini/Antigravity, `.agents/` for GitHub Copilot), all code edits, tests, architecture docs, and Git operations target the **embedding host repository**, never the submodule directory.
+  - Resolve helper scripts from `./_agents/scripts/`, `./.agents/scripts/`, or `./scripts/`.
+- **Evaluation & Telemetry (On-Demand)**:
+  - Validate governance invariants via `pwsh -NoProfile -File ./scripts/run-evals.ps1` (`run-evals.sh`).
+  - Inspect lifecycle telemetry via `pwsh -NoProfile -File ./scripts/show-telemetry.ps1` (`show-telemetry.sh`).
 
 ## Protocol & Execution Instructions
-- Default to **Compound Execution Mode**: execute core development phases within the active session. Announce role/phase transitions explicitly (e.g. `### [Phase: Architecture Contract]` -> `### [Phase: Inner-Loop TDD]`).
-- Invoke subagents (`invoke_subagent`) selectively for noisy, divergent research tasks to isolate search waste from the main context.
-- Always execute PowerShell commands with `-NoProfile` and run testrunners in quiet mode (`--verbosity quiet`, `-q`) to maintain context hygiene.
-- Enforce Inner-Loop TDD: Ensure `Developer` authors unit tests and implementation code to satisfy acceptance criteria and modular contracts, running targeted tests locally before final verification. For Complex profiles, `Tester` validates broader integration test suites.
-- Perform **Proactive Context Compaction**: Synthesize a State Checkpoint and prune intermediate chatter/logs across major phase transitions and prior to initiating new tasks to maximize reasoning performance and trim unnecessary token payload.
+- Default to **Compound Execution Mode**: execute core development phases within the active session without reloading core `SKILL.md` files. Announce phase transitions explicitly (e.g. `### [Phase: Architekt]` -> `### [Phase: Developer]` -> `### [Phase: Verifikation]`).
+- Invoke subagents (`invoke_subagent`) selectively for noisy, divergent research tasks using `Model: "flash"`.
+- Always execute PowerShell commands with `-NoProfile` and run testrunners in quiet mode (`--verbosity quiet`, `-q`) or via the consolidated single-command `run-fast-gate.ps1`.
+- Perform **Proactive Context Compaction**: Synthesize a State Checkpoint and prune intermediate chatter/logs across major phase transitions to maximize reasoning performance and preserve KV-cache hits.

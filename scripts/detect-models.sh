@@ -63,17 +63,20 @@ fi
 # 3. Perform fresh environment probe
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-if command -v agy &>/dev/null; then
+if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d "$HOME/.gemini/antigravity" ]]; then
     platform="antigravity"
     execution_mode="multi_agent"
     supports_subagents=true
 
     # Probe available models via agy models (with timeout guard if available)
     models_json="[]"
-    if command -v timeout >/dev/null 2>&1; then
-        raw_models=$(timeout 3 agy models 2>/dev/null || true)
-    else
-        raw_models=$(agy models 2>/dev/null || true)
+    raw_models=""
+    if command -v agy &>/dev/null; then
+        if command -v timeout >/dev/null 2>&1; then
+            raw_models=$(timeout 3 agy models 2>/dev/null || true)
+        else
+            raw_models=$(agy models 2>/dev/null || true)
+        fi
     fi
     if [[ -n "$raw_models" ]]; then
         models_array=()

@@ -97,10 +97,11 @@ for fp in files_to_scan:
         })
 
     active_rules = [r for r in layer_boundaries if re.search(r.get('path_pattern', ''), rel, re.IGNORECASE)]
+    is_test_file = bool(re.search(r'(test|spec|tests|benches)[\\/._-]', rel, re.IGNORECASE))
     current_func_start = 0
 
     for idx, line in enumerate(lines, 1):
-        if func_pattern.match(line):
+        if not is_test_file and func_pattern.match(line):
             if current_func_start > 0 and (idx - 1 - current_func_start) > max_func_lines:
                 violations.append({
                     'type': 'FunctionSizeLimit',

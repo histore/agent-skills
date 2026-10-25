@@ -89,7 +89,8 @@
     "compound_execution": {
       "description": "Default primary execution strategy: Single-context continuous execution with phased persona switching (Plan -> Inner-Loop TDD -> Verify -> Commit). Maximizes prompt caching / KV-cache reuse (75-90% token discount) and eliminates multi-agent serialization latency.",
       "client_support": ["antigravity", "copilot", "cursor", "claude_code", "generic_llm"],
-      "subagent_policy": "invoke_subagent is reserved strictly for divergent research, broad exploratory repository searches, or independent background sidecars.",
+      "zero_reload_core_roles": "In Profile A and Profile B compound execution, core role directives (Architekt, Developer, Verifikation, CommitManager) are already embedded in AGENTS.md / ask-control. Do NOT spend tool calls reading their SKILL.md files; load SKILL.md files only for on-demand specialists or complex edge cases.",
+      "subagent_policy": "invoke_subagent is reserved strictly for divergent research, broad exploratory repository searches, or independent background sidecars. Exploratory research subagents ('research') should be dispatched with Model='flash' (ECO) to avoid burning flagship quota on file grepping.",
       "phase_reasoning_budgets": {
         "specification_and_architecture": "high",
         "implementation_inner_loop": "low_minimal",

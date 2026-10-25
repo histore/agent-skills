@@ -60,14 +60,18 @@ elif [[ -f "${PROJECT_ROOT}/pyproject.toml" ]] || [[ -f "${PROJECT_ROOT}/require
   BUILD_CMD="python -m compileall -q ."
   TEST_CMD="pytest -q"
   FILTER_SYNTAX="pytest -q -k {filter}"
-  LINT_CMD="flake8 -q"
+  if command -v ruff &>/dev/null; then
+    LINT_CMD="ruff check -q"
+  else
+    LINT_CMD="flake8 -q"
+  fi
   MANIFEST="pyproject.toml / requirements.txt"
 elif [[ -f "${PROJECT_ROOT}/go.mod" ]]; then
   STACK="go"
   LANG="go"
   BUILD_CMD="go build ./..."
-  TEST_CMD="go test -v ./..."
-  FILTER_SYNTAX="go test -v -run {filter} ./..."
+  TEST_CMD="go test ./..."
+  FILTER_SYNTAX="go test -run {filter} ./..."
   LINT_CMD="golangci-lint run"
   MANIFEST="go.mod"
 fi

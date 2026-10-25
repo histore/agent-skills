@@ -30,6 +30,9 @@ param(
     [switch]$SkipLint,
 
     [Parameter(Mandatory = $false)]
+    [switch]$SkipGuardrails,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -40,7 +43,11 @@ if (-not $ProjectRoot) {
     $ProjectRoot = (Get-Location).Path
 }
 
-# 1. Detect tech stack
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$failedStep = $null
+$failureLogs = [System.Collections.Generic.List[string]]::new()
+
+# 1. Detect tech stack in-process (zero subprocess spawn overhead)
 $detectScript = Join-Path $scriptDir "detect-tech-stack.ps1"
 $stackInfo = [ordered]@{
     stack = "unknown"
@@ -51,27 +58,12 @@ $stackInfo = [ordered]@{
 
 if (Test-Path $detectScript) {
     try {
-        $rawStack = pwsh -NoProfile -ExecutionPolicy Bypass -File $detectScript -ProjectRoot $ProjectRoot -JsonOutput | ConvertFrom-Json
+        $rawStack = & $detectScript -ProjectRoot $ProjectRoot -JsonOutput | ConvertFrom-Json
         $stackInfo = $rawStack
     } catch {}
 }
 
-# If unknown stack and no test suite found, consider it pass (Profile A non-executable)
-if ($stackInfo.stack -eq "unknown") {
-    $result = [ordered]@{
-        status = "pass"
-        message = "No executable stack or testrunner detected; bypassing fast-gate"
-        duration_ms = 0
-    }
-    if ($JsonOutput) { $result | ConvertTo-Json -Compress } else { Write-Host "Stage-1 Fast-Gate: Bypassed (no executable stack)" -ForegroundColor Gray }
-    exit 0
-}
-
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
-$failedStep = $null
-$failureLogs = [System.Collections.Generic.List[string]]::new()
-
-# Helper to execute command and collect errors
+# Helper to execute command and collect errors with context lines
 function Invoke-GateStep {
     param([string]$StepName, [string]$CommandLine)
     if ([string]::IsNullOrWhiteSpace($CommandLine)) { return $true }
@@ -89,10 +81,26 @@ function Invoke-GateStep {
 
         if ($exitCode -ne 0) {
             $combined = ($stderr + "`n" + $stdout) -split "`r?`n"
-            # Compact errors: filter lines matching error indicators
-            $errorLines = $combined | Where-Object { $_ -match '(?i)error|failed|exception|assert|fatal' } | Select-Object -First 15
-            if ($errorLines.Count -eq 0) { $errorLines = $combined | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 10 }
-            foreach ($el in $errorLines) { $script:failureLogs.Add($el.Trim()) }
+            # Compact errors with up to 2 trailing context lines for assertion/location clarity
+            $matchedIndices = [System.Collections.Generic.HashSet[int]]::new()
+            for ($i = 0; $i -lt $combined.Length; $i++) {
+                if ($combined[$i] -match '(?i)error|failed|exception|assert|fatal|panicked') {
+                    for ($ctx = [Math]::Max(0, $i - 1); $ctx -le [Math]::Min($combined.Length - 1, $i + 2); $ctx++) {
+                        if (-not [string]::IsNullOrWhiteSpace($combined[$ctx])) {
+                            [void]$matchedIndices.Add($ctx)
+                        }
+                    }
+                    if ($matchedIndices.Count -ge 25) { break }
+                }
+            }
+            if ($matchedIndices.Count -gt 0) {
+                foreach ($idx in ($matchedIndices | Sort-Object)) {
+                    $script:failureLogs.Add($combined[$idx].Trim())
+                }
+            } else {
+                $tailLines = $combined | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 12
+                foreach ($tl in $tailLines) { $script:failureLogs.Add($tl.Trim()) }
+            }
             $script:failedStep = $StepName
             return $false
         }
@@ -104,30 +112,61 @@ function Invoke-GateStep {
     }
 }
 
-# 2. Run Build
+# 2. Run Build, Test, Lint if executable stack is present
 $buildSuccess = $true
-if ($stackInfo.build_cmd) {
-    $buildSuccess = Invoke-GateStep -StepName "Build" -CommandLine $stackInfo.build_cmd
-}
-
-# 3. Run Test
 $testSuccess = $true
-if ($buildSuccess -and $stackInfo.test_cmd) {
-    $testCmd = $stackInfo.test_cmd
-    if ($TestFilter -and $stackInfo.test_filter_syntax) {
-        $testCmd = $stackInfo.test_filter_syntax.Replace("{filter}", $TestFilter)
+$lintSuccess = $true
+
+if ($stackInfo.stack -ne "unknown") {
+    if ($stackInfo.build_cmd) {
+        $buildSuccess = Invoke-GateStep -StepName "Build" -CommandLine $stackInfo.build_cmd
     }
-    $testSuccess = Invoke-GateStep -StepName "Test" -CommandLine $testCmd
+    if ($buildSuccess -and $stackInfo.test_cmd) {
+        $testCmd = $stackInfo.test_cmd
+        if ($TestFilter -and $stackInfo.test_filter_syntax) {
+            $testCmd = $stackInfo.test_filter_syntax.Replace("{filter}", $TestFilter)
+        }
+        $testSuccess = Invoke-GateStep -StepName "Test" -CommandLine $testCmd
+    }
+    if ($buildSuccess -and $testSuccess -and -not $SkipLint -and $stackInfo.lint_cmd) {
+        $lintSuccess = Invoke-GateStep -StepName "Lint" -CommandLine $stackInfo.lint_cmd
+    }
 }
 
-# 4. Run Lint (if not skipped and build/test passed)
-$lintSuccess = $true
-if ($buildSuccess -and $testSuccess -and -not $SkipLint -and $stackInfo.lint_cmd) {
-    $lintSuccess = Invoke-GateStep -StepName "Lint" -CommandLine $stackInfo.lint_cmd
+# 3. Consolidated Guardrails & Clean Architecture Check (in-process, zero extra tool roundtrips)
+$guardrailsSuccess = $true
+if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails) {
+    $archScript = Join-Path $scriptDir "lint-clean-architecture.ps1"
+    if (Test-Path $archScript) {
+        try {
+            $archRes = & $archScript -TargetPath $ProjectRoot -StagedOnly -JsonOutput | ConvertFrom-Json
+            if ($archRes.status -eq "fail") {
+                $guardrailsSuccess = $false
+                $failedStep = "CleanArchitecture"
+                foreach ($v in $archRes.violations | Where-Object { $_.Severity -eq "Error" }) {
+                    $failureLogs.Add("[$($v.Type)] $($v.File):$($v.Line) - $($v.Message)")
+                }
+            }
+        } catch {}
+    }
+
+    $scanScript = Join-Path $scriptDir "scan-guardrails.ps1"
+    if ($guardrailsSuccess -and (Test-Path $scanScript)) {
+        try {
+            $scanRes = & $scanScript -ScanPath $ProjectRoot -StagedOnly -JsonOutput | ConvertFrom-Json
+            if ($scanRes.status -eq "fail") {
+                $guardrailsSuccess = $false
+                $failedStep = "Guardrails"
+                foreach ($v in $scanRes.violations) {
+                    $failureLogs.Add("[$($v.Rule)] $($v.File):$($v.Line) - $($v.Message)")
+                }
+            }
+        } catch {}
+    }
 }
 
 $sw.Stop()
-$overallPass = ($buildSuccess -and $testSuccess -and $lintSuccess)
+$overallPass = ($buildSuccess -and $testSuccess -and $lintSuccess -and $guardrailsSuccess)
 
 $result = [ordered]@{
     status = if ($overallPass) { "pass" } else { "fail" }

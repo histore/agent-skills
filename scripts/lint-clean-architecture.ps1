@@ -127,12 +127,13 @@ foreach ($filePath in $filesToScan) {
         }
     }
 
+    $isTestFile = ($relPath -match '(?i)(test|spec|tests|benches)[\\/._-]')
     $currentFuncStart = 0
     for ($i = 0; $i -lt $lines.Length; $i++) {
         $line = $lines[$i]
 
-        # Metric 2: Max function lines (heuristic boundary between top/member function declarations)
-        if ($line -match $funcRegex) {
+        # Metric 2: Max function lines (heuristic boundary between top/member function declarations, skipping test files)
+        if (-not $isTestFile -and $line -match $funcRegex) {
             if ($currentFuncStart -gt 0 -and ($i - $currentFuncStart) -gt $maxFuncLines) {
                 $violations.Add([PSCustomObject]@{
                     Type = "FunctionSizeLimit"
@@ -177,6 +178,16 @@ foreach ($filePath in $filesToScan) {
                 }
             }
         }
+    }
+
+    if (-not $isTestFile -and $currentFuncStart -gt 0 -and ($lines.Length - $currentFuncStart) -gt $maxFuncLines) {
+        $violations.Add([PSCustomObject]@{
+            Type = "FunctionSizeLimit"
+            File = $relPath
+            Line = $currentFuncStart
+            Severity = "Warning"
+            Message = "Function starting at line $currentFuncStart spans $($lines.Length - $currentFuncStart) lines (exceeds recommended limit of $maxFuncLines)"
+        })
     }
 }
 

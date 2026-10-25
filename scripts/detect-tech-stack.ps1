@@ -85,7 +85,7 @@ elseif ((Test-Path (Join-Path $ProjectRoot "pyproject.toml")) -or (Test-Path (Jo
     $detected.build_cmd = "python -m compileall -q ."
     $detected.test_cmd = "pytest -q"
     $detected.test_filter_syntax = "pytest -q -k {filter}"
-    $detected.lint_cmd = "flake8 -q"
+    $detected.lint_cmd = if (Get-Command ruff -ErrorAction SilentlyContinue) { "ruff check -q" } else { "flake8 -q" }
     $detected.manifest_file = if (Test-Path (Join-Path $ProjectRoot "pyproject.toml")) { "pyproject.toml" } else { "requirements.txt" }
 }
 # 5. Go (go.mod)
@@ -93,8 +93,8 @@ elseif (Test-Path (Join-Path $ProjectRoot "go.mod")) {
     $detected.stack = "go"
     $detected.language = "go"
     $detected.build_cmd = "go build ./..."
-    $detected.test_cmd = "go test -v ./..."
-    $detected.test_filter_syntax = "go test -v -run {filter} ./..."
+    $detected.test_cmd = "go test ./..."
+    $detected.test_filter_syntax = "go test -run {filter} ./..."
     $detected.lint_cmd = "golangci-lint run"
     $detected.manifest_file = "go.mod"
 }

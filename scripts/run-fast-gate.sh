@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${1:-$(pwd)}"
 TEST_FILTER=""
 SKIP_LINT=false
+SKIP_GUARDRAILS=false
 JSON_OUTPUT=false
 
 for arg in "$@"; do
@@ -17,6 +18,9 @@ for arg in "$@"; do
       ;;
     --skip-lint)
       SKIP_LINT=true
+      ;;
+    --skip-guardrails)
+      SKIP_GUARDRAILS=true
       ;;
     --filter=*)
       TEST_FILTER="${arg#*=}"
@@ -78,7 +82,7 @@ run_step() {
   tmp_out=$(mktemp)
   if ! (cd "$PROJECT_ROOT" && eval "$cmd") >"$tmp_out" 2>&1; then
     FAILED_STEP="$step_name"
-    ERROR_LOG=$(grep -iE "error|failed|exception|assert|fatal" "$tmp_out" | head -n 15 || tail -n 10 "$tmp_out")
+    ERROR_LOG=$(grep -iE -C 2 "error|failed|exception|assert|fatal|panicked" "$tmp_out" | head -n 25 || tail -n 12 "$tmp_out")
     rm -f "$tmp_out"
     return 1
   fi
@@ -105,6 +109,19 @@ fi
 if [[ "$OVERALL_PASS" == "true" && "$SKIP_LINT" == "false" && -n "$LINT_CMD" ]]; then
   if ! run_step "Lint" "$LINT_CMD"; then
     OVERALL_PASS=false
+  fi
+fi
+
+if [[ "$OVERALL_PASS" == "true" && "$SKIP_GUARDRAILS" == "false" ]]; then
+  if [[ -f "${SCRIPT_DIR}/lint-clean-architecture.sh" ]]; then
+    if ! run_step "CleanArchitecture" "bash '${SCRIPT_DIR}/lint-clean-architecture.sh' '$PROJECT_ROOT' --staged"; then
+      OVERALL_PASS=false
+    fi
+  fi
+  if [[ "$OVERALL_PASS" == "true" && -f "${SCRIPT_DIR}/scan-guardrails.sh" ]]; then
+    if ! run_step "Guardrails" "bash '${SCRIPT_DIR}/scan-guardrails.sh' --path '$PROJECT_ROOT' --staged"; then
+      OVERALL_PASS=false
+    fi
   fi
 fi
 

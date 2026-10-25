@@ -105,18 +105,21 @@ $result = [ordered]@{
     recommended_tiers  = [ordered]@{}
 }
 
-# 3.1. Probe for Antigravity CLI (agy)
+# 3.1. Probe for Antigravity (agy CLI or Antigravity runtime environment)
 $agyCmd = Get-Command agy -ErrorAction SilentlyContinue
-if ($agyCmd) {
+$isAntigravityEnv = ($null -ne $agyCmd) -or ($null -ne $env:ANTIGRAVITY_CLI_ALIAS) -or (Test-Path (Join-Path $HOME ".gemini\antigravity"))
+if ($isAntigravityEnv) {
     $result.platform = "antigravity"
     $result.execution_mode = "multi_agent"
     $result.supports_subagents = $true
 
     $rawModels = $null
-    try {
-        $rawModels = & agy models 2>$null
-    } catch {
-        $rawModels = $null
+    if ($agyCmd) {
+        try {
+            $rawModels = & agy models 2>$null
+        } catch {
+            $rawModels = $null
+        }
     }
     if ($rawModels) {
         $modelList = @()
