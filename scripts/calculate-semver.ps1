@@ -17,6 +17,15 @@ param(
     [string]$RepoRoot,
 
     [Parameter(Mandatory = $false)]
+    [switch]$CheckSync,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ExecuteTagAndPush,
+
+    [Parameter(Mandatory = $false)]
+    [string]$VersionOverride,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -26,8 +35,30 @@ if (-not $RepoRoot) {
     $RepoRoot = (Get-Location).Path
 }
 
-# 1. Get latest tag
-$latestTag = (git -C $RepoRoot describe --tags --abbrev=0 2>$null)
+# 1. Inspect branch and working tree state
+$currentBranch = (git -C $RepoRoot branch --show-current 2>$null)
+if (-not $currentBranch) { $currentBranch = "HEAD" }
+
+$uncommitted = (git -C $RepoRoot status --porcelain 2>$null) | Where-Object {
+    $_ -notmatch '^\s*[MADRCU?!\s]\s+(_agents|\.agents)(\/|$)'
+}
+$isClean = [string]::IsNullOrWhiteSpace($uncommitted)
+
+$behindCount = 0
+$aheadCount = 0
+if ($CheckSync -or $ExecuteTagAndPush) {
+    git -C $RepoRoot fetch origin main 2>$null
+    $revCount = (git -C $RepoRoot rev-list --left-right --count main...origin/main 2>$null)
+    if ($revCount -match '(\d+)\s+(\d+)') {
+        $behindCount = [int]$matches[2]
+        $aheadCount = [int]$matches[1]
+    }
+}
+
+# 2. Get highest SemVer tag reliably
+$rawTags = (git -C $RepoRoot tag -l "v[0-9]*" --sort=-v:refname 2>$null)
+$latestTag = if ($rawTags -and $rawTags.Count -gt 0) { $rawTags[0] } else { $null }
+
 if (-not $latestTag) {
     $latestTag = "v0.0.0"
     $commits = git -C $RepoRoot log --oneline --no-merges 2>$null
@@ -48,10 +79,9 @@ $features = [System.Collections.Generic.List[string]]::new()
 $fixes = [System.Collections.Generic.List[string]]::new()
 $others = [System.Collections.Generic.List[string]]::new()
 
-$commitLines = if ($commits) { $commits -split "`r?`n" } else { @() }
+$commitLines = if ($commits) { $commits -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } } else { @() }
 
 foreach ($c in $commitLines) {
-    if ([string]::IsNullOrWhiteSpace($c)) { continue }
     $msg = $c -replace '^[a-f0-9]+\s+', ''
 
     # Breaking change check
@@ -86,9 +116,56 @@ if ($bump -eq "major") {
     $patch++
 }
 
-$nextTag = "v$major.$minor.$patch"
+$nextTag = if ($VersionOverride) {
+    if ($VersionOverride -match '^v') { $VersionOverride } else { "v$VersionOverride" }
+} else {
+    "v$major.$minor.$patch"
+}
+
+# Construct formatted release notes
+$notes = [System.Text.StringBuilder]::new()
+[void]$notes.AppendLine("## Release $nextTag")
+if ($breakingChanges.Count -gt 0) {
+    [void]$notes.AppendLine("### Breaking Changes")
+    foreach ($b in $breakingChanges) { [void]$notes.AppendLine("- $b") }
+}
+if ($features.Count -gt 0) {
+    [void]$notes.AppendLine("### Features")
+    foreach ($f in $features) { [void]$notes.AppendLine("- $f") }
+}
+if ($fixes.Count -gt 0) {
+    [void]$notes.AppendLine("### Bug Fixes")
+    foreach ($fx in $fixes) { [void]$notes.AppendLine("- $fx") }
+}
+if ($others.Count -gt 0) {
+    [void]$notes.AppendLine("### Maintenance & Documentation")
+    foreach ($o in $others) { [void]$notes.AppendLine("- $o") }
+}
+
+$tagPushed = $false
+if ($ExecuteTagAndPush) {
+    if ($currentBranch -ne "main") {
+        throw "Cannot tag release on branch '$currentBranch': releases must be created strictly on 'main'."
+    }
+    if (-not $isClean) {
+        throw "Working tree has uncommitted host files. Commit or stash changes before releasing."
+    }
+    if ($behindCount -gt 0) {
+        throw "Local branch is behind origin/main ($behindCount commits). Run 'git pull origin main' first."
+    }
+    
+    $tagMsg = "Release $nextTag"
+    git -C $RepoRoot tag -a $nextTag -m $tagMsg 2>$null
+    git -C $RepoRoot push origin $nextTag 2>$null
+    $tagPushed = ($LASTEXITCODE -eq 0)
+}
 
 $result = [ordered]@{
+    current_branch    = $currentBranch
+    is_main           = ($currentBranch -eq "main")
+    is_clean          = $isClean
+    behind_origin     = $behindCount
+    ahead_origin      = $aheadCount
     current_version   = $latestTag
     next_version      = $nextTag
     bump_type         = $bump
@@ -96,28 +173,19 @@ $result = [ordered]@{
     breaking_changes  = $breakingChanges.ToArray()
     features          = $features.ToArray()
     fixes             = $fixes.ToArray()
-    other_changes     = $others.ToArray()
+    release_notes     = $notes.ToString().Trim()
+    tag_pushed        = $tagPushed
 }
 
 if ($JsonOutput) {
     $result | ConvertTo-Json -Depth 5 -Compress
 } else {
-    Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Deterministic SemVer Calculator" -ForegroundColor Cyan
-    Write-Host "Current: $latestTag -> Next: $nextTag (Bump: $bump)" -ForegroundColor Green
-    Write-Host "Commits Analyzed: $($commitLines.Count)" -ForegroundColor DarkGray
-    Write-Host "=============================================" -ForegroundColor Cyan
-    if ($breakingChanges.Count -gt 0) {
-        Write-Host "Breaking Changes ($($breakingChanges.Count)):" -ForegroundColor Red
-        foreach ($b in $breakingChanges) { Write-Host "  ! $b" -ForegroundColor Red }
+    if ($tagPushed) {
+        Write-Host "Release Tag: SUCCESS $nextTag created and pushed on main" -ForegroundColor Green
+    } else {
+        Write-Host "SemVer Pre-Flight: $latestTag -> $nextTag (Bump: $bump, Commits: $($commitLines.Count), Branch: $currentBranch)" -ForegroundColor Cyan
+        if ($breakingChanges.Count -gt 0) {
+            Write-Host "  ! BREAKING CHANGES detected: $($breakingChanges.Count)" -ForegroundColor Red
+        }
     }
-    if ($features.Count -gt 0) {
-        Write-Host "Features ($($features.Count)):" -ForegroundColor Yellow
-        foreach ($f in $features) { Write-Host "  + $f" -ForegroundColor Yellow }
-    }
-    if ($fixes.Count -gt 0) {
-        Write-Host "Fixes ($($fixes.Count)):" -ForegroundColor Cyan
-        foreach ($fx in $fixes) { Write-Host "  * $fx" -ForegroundColor Cyan }
-    }
-    Write-Host "=============================================" -ForegroundColor Cyan
 }

@@ -6,6 +6,8 @@ set -euo pipefail
 
 REPO_ROOT="$(pwd)"
 JSON_OUTPUT=false
+CHECK_SYNC=false
+EXECUTE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -21,6 +23,14 @@ while [[ $# -gt 0 ]]; do
       JSON_OUTPUT=true
       shift
       ;;
+    --check-sync)
+      CHECK_SYNC=true
+      shift
+      ;;
+    --execute)
+      EXECUTE=true
+      shift
+      ;;
     -*)
       shift
       ;;
@@ -31,7 +41,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-LATEST_TAG=$(git -C "$REPO_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+CURRENT_BRANCH=$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || echo "HEAD")
+LATEST_TAG=$(git -C "$REPO_ROOT" tag -l "v[0-9]*" --sort=-v:refname 2>/dev/null | head -n 1 || echo "")
+[[ -z "$LATEST_TAG" ]] && LATEST_TAG="v0.0.0"
 
 if [[ "$LATEST_TAG" == "v0.0.0" ]]; then
   COMMITS=$(git -C "$REPO_ROOT" log --oneline --no-merges 2>/dev/null || true)
@@ -83,11 +95,13 @@ fi
 
 NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
 
+if [[ "$EXECUTE" == "true" ]]; then
+  git -C "$REPO_ROOT" tag -a "$NEXT_TAG" -m "Release $NEXT_TAG"
+  git -C "$REPO_ROOT" push origin "$NEXT_TAG"
+fi
+
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-  echo "{\"current_version\":\"$LATEST_TAG\",\"next_version\":\"$NEXT_TAG\",\"bump_type\":\"$BUMP\"}"
+  echo "{\"current_branch\":\"$CURRENT_BRANCH\",\"current_version\":\"$LATEST_TAG\",\"next_version\":\"$NEXT_TAG\",\"bump_type\":\"$BUMP\"}"
 else
-  echo "============================================="
-  echo "Deterministic SemVer Calculator"
-  echo "Current: $LATEST_TAG -> Next: $NEXT_TAG (Bump: $BUMP)"
-  echo "============================================="
+  echo "SemVer Pre-Flight: $LATEST_TAG -> $NEXT_TAG (Bump: $BUMP, Branch: $CURRENT_BRANCH)"
 fi

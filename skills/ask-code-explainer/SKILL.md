@@ -69,6 +69,4 @@ Whenever analyzing or explaining a codebase or component, execute the following 
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all code inspections, architecture cross-references, and didactic comment additions target the **embedding host project** codebase, NOT files within the submodule directory.
-- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal files are never analyzed or annotated as part of user code explanation tasks.
-- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
+When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all operations target the host repository root. Skill assets and rules reside in `./_agents/`, `./.agents/`, or `./`.

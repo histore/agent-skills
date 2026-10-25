@@ -206,20 +206,15 @@ $result = [ordered]@{
 if ($JsonOutput) {
     $result | ConvertTo-Json -Depth 5 -Compress
 } else {
-    Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Deterministic Clean Architecture & Code Linter" -ForegroundColor Cyan
-    Write-Host "Scanned Source Files: $($filesToScan.Count) | Violations: $($violations.Count)" -ForegroundColor DarkGray
-    Write-Host "=============================================" -ForegroundColor Cyan
     if ($isPass) {
-        Write-Host "Clean Architecture Status: PASS (0 architectural boundary errors)" -ForegroundColor Green
+        Write-Host "Clean Architecture Linter: PASS ($($filesToScan.Count) files, 0 boundary errors)" -ForegroundColor Green
     } else {
-        Write-Host "Clean Architecture Status: FAIL ($($result.error_count) errors, $($result.warning_count) warnings)" -ForegroundColor Red
+        Write-Host "Clean Architecture Linter: FAIL ($($result.error_count) errors, $($result.warning_count) warnings in $($filesToScan.Count) files)" -ForegroundColor Red
         foreach ($v in $violations) {
             $color = if ($v.Severity -eq "Error") { "Red" } else { "Yellow" }
             Write-Host "  [$($v.Severity): $($v.Type)] $($v.File):$($v.Line) - $($v.Message)" -ForegroundColor $color
         }
     }
-    Write-Host "=============================================" -ForegroundColor Cyan
 }
 
 if ($hasErrors) {

@@ -192,10 +192,6 @@ $result = [ordered]@{
 if ($JsonOutput) {
     $result | ConvertTo-Json -Depth 5 -Compress
 } else {
-    Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Deterministic Guardrails Scanner" -ForegroundColor Cyan
-    Write-Host "Scanned Files: $($filesToScan.Count) | Violations: $($violations.Count)" -ForegroundColor DarkGray
-    Write-Host "=============================================" -ForegroundColor Cyan
     if ($fixedViolations.Count -gt 0) {
         Write-Host "Auto-Remediation: $($fixedViolations.Count) file(s) fixed" -ForegroundColor Green
         foreach ($fix in $fixedViolations) {
@@ -203,14 +199,13 @@ if ($JsonOutput) {
         }
     }
     if ($isPass) {
-        Write-Host "Guardrails Status: PASS (0 violations)" -ForegroundColor Green
+        Write-Host "Deterministic Guardrails: PASS ($($filesToScan.Count) files, 0 violations)" -ForegroundColor Green
     } else {
-        Write-Host "Guardrails Status: FAIL ($($violations.Count) violations)" -ForegroundColor Red
+        Write-Host "Deterministic Guardrails: FAIL ($($violations.Count) violations in $($filesToScan.Count) files)" -ForegroundColor Red
         foreach ($v in $violations) {
             Write-Host "  [$($v.Rule)] $($v.File)$(if ($v.Line -gt 0) { ':' + $v.Line }): $($v.Message)" -ForegroundColor Yellow
         }
     }
-    Write-Host "=============================================" -ForegroundColor Cyan
 }
 
 if (-not $isPass) {

@@ -52,95 +52,41 @@ ReleaseManager strictly observes seven governance principles:
 
 ## Workflow & Execution Steps
 
-### Step 0: Validate Branch & Working Tree State (Prerequisite & Anomaly Gate)
-Releases must only be tagged on the production `main` branch.
-1. Verify active branch is `main`:
-   ```powershell
-   $rawBranch = git branch --show-current
-   $currentBranch = if ($rawBranch) { $rawBranch.Trim() } else { "" }
-   if ($currentBranch -ne "main") {
-     # If clean and user asked for release, offer/perform checkout of main as a prerequisite
-     Write-Host "Current branch: $currentBranch. Checking if working tree is clean to switch to 'main'..."
-   }
-   ```
-2. Verify working tree is clean and synchronized with `origin/main`:
-   ```powershell
-   git fetch origin main
-   # Exclude submodule dirty markers (_agents / .agents) so submodule scratchpads don't block host release
-   $status = (git status --porcelain --ignore-submodules=dirty) | Where-Object { $_ -notmatch '^\s*[MADRCU?!\s]\s+(_agents|\.agents)(\/|$)' }
-   if ($status) {
-     # Atypical state: uncommitted files in host project on main
-     throw "Working tree has uncommitted host project changes. Please commit or stash changes before tagging a release."
-   }
-   $rawCount = git rev-list --left-right --count main...origin/main 2>$null
-   $behindAhead = if ($rawCount) { $rawCount.Trim() } else { "0 0" }
-   # Format: "<behind> <ahead>"
-   ```
-   - If `behind > 0`: Execute prerequisite `git pull origin main`.
-   - If `ahead > 0`: Execute prerequisite `git push origin main`.
-   - If diverged: Trigger the **Atypical State Gate** and ask user how to resolve.
+### Step 1: Consolidated Pre-Flight & SemVer Calculation (Single Tool Call)
+Run the consolidated SemVer pre-flight check deterministically via `calculate-semver.ps1` (or `calculate-semver.sh`):
+```powershell
+$semverScript = @("./_agents/scripts/calculate-semver.ps1", "./.agents/scripts/calculate-semver.ps1", "./scripts/calculate-semver.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+pwsh -NoProfile -ExecutionPolicy Bypass -File $semverScript -CheckSync -JsonOutput
+```
+This single command automatically validates:
+1. Active branch is `main` (reports error if on feature branch).
+2. Working tree is clean (excluding `_agents`/`.agents` submodule scratchpads).
+3. Local `main` is up to date (`behind_origin == 0`). If behind, run `git pull origin main`. If ahead, run `git push origin main`.
+4. Extracts the highest SemVer tag `vX.Y.Z` (`current_version`).
+5. Determines the conventional commit bump (`major` if breaking changes, `minor` if features, `patch` if fixes/chores) and generates formatted `release_notes`.
 
-### Step 1: Determine Current Version
-1. Query existing release tags in Git:
-   ```powershell
-   git tag -l --sort=-v:refname
-   ```
-2. Extract the highest SemVer tag matching `vX.Y.Z` (e.g. `v0.1.1`).
-   - If no Git tags exist, check version declarations in project configuration files (e.g., `package.json`, `Cargo.toml`, `pyproject.toml`, `Directory.Build.props`, `*.csproj`), or default to `v0.0.0`.
-
-### Step 2: Calculate New Version Number & Validate History
-1. **Mandatory SemVer Calculation & History Audit**:
-   Execute `calculate-semver.ps1` (or `calculate-semver.sh`) to deterministically analyze unreleased commits and detect any breaking changes:
-   ```powershell
-   $semverScript = @("./_agents/scripts/calculate-semver.ps1", "./.agents/scripts/calculate-semver.ps1", "./scripts/calculate-semver.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-   pwsh -NoProfile -ExecutionPolicy Bypass -File $semverScript
-   ```
-2. **Version Resolution**:
-   - **Explicit Parameter Provided (`major` | `minor` | `patch` | `vX.Y.Z`)**:
-     Apply the requested bump to the current highest tag ($vX.Y.Z$), but verify that no contradiction exists (e.g. prompt requests `patch` but unreleased commits contain breaking changes; if so, trigger SemVer Discrepancy Gate in Step 3).
-   - **Automatic Proposal (No Parameter Provided)**:
-     Use the bump proposed by `calculate-semver.ps1` based on Conventional Commits:
-     - Contains `BREAKING CHANGE` or `<type>!:` → Propose **`major`** (`v(X+1).0.0`)
-     - Contains `feat:` or `feat(...):` → Propose **`minor`** (`vX.(Y+1).0`)
-     - Contains `fix:`, `perf:`, `refactor:`, `docs:`, `chore:` → Propose **`patch`** (`vX.Y.(Z+1)`)
-
-### Step 3: Confirmation Gate & Adaptive Resolution
-- **Direct Execution Check**: If the user prompt directly instructed or parameterized the release (e.g. *"erstelle einen minor release"*, *"release v1.2.0"*) AND no SemVer discrepancy (such as unhandled breaking changes) or branch anomaly was detected, skip interactive waiting and proceed directly to Step 4. Display the created tag, bumped version, and commit summary in the completion report.
-- **Otherwise (or if SemVer discrepancy / anomaly detected)**: Present the analysis and proposed tag clearly to the user:
+### Step 2: Confirmation Gate & Adaptive Resolution
+- **Direct Execution Check**: If the user prompt directly instructed or parameterized the release (e.g. *"erstelle einen minor release"*, *"release v1.2.0"*) AND no SemVer discrepancy (such as unhandled breaking changes) or branch anomaly was detected, skip interactive waiting and proceed directly to Step 3.
+- **Otherwise (or if SemVer discrepancy / anomaly detected)**: Present the pre-flight summary and proposed tag to the user:
 ```markdown
 ### Proposed Release Tag
 - **Current Version**: `v0.1.1`
-- **Analyzed Commits**:
-  - `fix(core): resolve stream framing error`
-  - `feat(api): add pagination support`
 - **Determined Bump**: `minor` (due to new feature commit)
 - **Target Tag**: `v0.2.0`
 
 **[User Decision Required]**: Please confirm if the tag `v0.2.0` should be created and pushed, or specify an alternative version.
 ```
-- **WAIT** for the user's explicit response if presented. The user may confirm the suggestion or define a different version.
+- **WAIT** for user response if presented.
 
-### Step 4: Tag Creation & Push (Post-Confirmation)
-Once confirmed or resolved via Adaptive Gate:
-1. **Clean Release Tagging (Direct HEAD Tagging)**:
-   Release tags are applied directly to the active HEAD commit on `main`. Standalone metadata commits (such as `docs(changelog)`) directly on `main` during release tagging are strictly prohibited.
-2. **Optional Release Notes Extraction**:
-   Changelog / release notes can be generated deterministically via `generate-changelog.ps1` (or `generate-changelog.sh`) for tag annotations or GitHub Releases:
-   ```powershell
-   $changelogScript = @("./_agents/scripts/generate-changelog.ps1", "./.agents/scripts/generate-changelog.ps1", "./scripts/generate-changelog.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-   $notes = if ($changelogScript) { (pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript -Version "v<Version>" -JsonOutput | ConvertFrom-Json).markdown } else { "Release v<Version>" }
-   ```
-3. Create the annotated Git tag with the `v` prefix directly on the current HEAD commit:
-   ```powershell
-   git tag -a v<Version> -m "Release v<Version>"
-   ```
-4. Push the tag to the remote repository:
-   ```powershell
-   git push origin v<Version>
-   ```
-5. Output confirmation with `git tag -l -n1 v<Version>`.
+### Step 3: Tag Creation & Push (Post-Confirmation)
+Once confirmed or resolved via Adaptive Gate, create and push the release tag directly:
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File $semverScript -ExecuteTagAndPush -VersionOverride "<TargetTag>"
+```
+Or natively: `git tag -a v<Version> -m "Release v<Version>"; git push origin v<Version>`.
+*(Clean Release Tagging Invariant: Release tags are applied directly to HEAD on `main`. Standalone metadata commits directly on `main` during release tagging are strictly prohibited.)*
 
-### Step 5: Proactive Next-Step Recommendation
+### Step 4: Proactive Next-Step Recommendation
 Report success and offer logical next steps:
 ```markdown
 Release tag `v<Version>` created and pushed successfully.

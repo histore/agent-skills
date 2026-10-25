@@ -58,7 +58,4 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all test authoring, mocks, fixtures, and test suite executions target the **embedding host repository**, NOT the submodule directory. Never write tests or mocks into `_agents/` or `.agents/`.
-- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never modified during testing tasks.
-- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
-
+When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all operations target the host repository root. Skill assets and rules reside in `./_agents/`, `./.agents/`, or `./`.

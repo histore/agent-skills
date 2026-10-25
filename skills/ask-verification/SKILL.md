@@ -53,6 +53,4 @@ Only executed once Stage 1 passes with 100% success (0 failures). **IMPORTANT: A
 ---
 
 ## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Embedding Host Project Target**: When this skill repository is mounted as a git submodule (`_agents/` or `.agents/`), all Stage 1 machine checks (build, lint, quiet test suite) and Stage 2 verification audits target the **embedding host repository**, NOT the submodule directory. Submodule files are excluded from project requirement and architecture verification. If host linters or build tools scan subdirectories by default, ensure `_agents/` and `.agents/` are excluded via tool configuration or flags (e.g. `.gitignore`, linter ignore files), keeping Stage 1 focused strictly on host project code.
-- **Client Standards**: Gemini/Antigravity uses `_agents` as the standard customization root, while GitHub Copilot and other clients expect `.agents/`. Submodule internal paths are never audited or verified during host project quality gates.
-- **Submodule Asset Resolution**: Internal skill assets, templates, and governance configurations (such as `rules/model-tiers.json`) reside within the submodule directory: `./_agents/` (Antigravity/Gemini), `./.agents/` (Copilot/standards), or `./` (standalone).
+When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all operations target the host repository root. Skill assets and rules reside in `./_agents/`, `./.agents/`, or `./`.
