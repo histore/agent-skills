@@ -45,6 +45,20 @@ CURRENT_BRANCH=$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || echo "
 LATEST_TAG=$(git -C "$REPO_ROOT" tag -l "v[0-9]*" --sort=-v:refname 2>/dev/null | head -n 1 || echo "")
 [[ -z "$LATEST_TAG" ]] && LATEST_TAG="v0.0.0"
 
+IS_CLEAN=true
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)" ]]; then
+  IS_CLEAN=false
+fi
+
+BEHIND_COUNT=0
+AHEAD_COUNT=0
+UPSTREAM=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo "")
+if [[ -n "$UPSTREAM" ]]; then
+  COUNTS=$(git -C "$REPO_ROOT" rev-list --left-right --count "$UPSTREAM...HEAD" 2>/dev/null || echo "0	0")
+  BEHIND_COUNT=$(echo "$COUNTS" | awk '{print $1}')
+  AHEAD_COUNT=$(echo "$COUNTS" | awk '{print $2}')
+fi
+
 if [[ "$LATEST_TAG" == "v0.0.0" ]]; then
   COMMITS=$(git -C "$REPO_ROOT" log --oneline --no-merges 2>/dev/null || true)
 else
@@ -95,13 +109,32 @@ fi
 
 NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
 
+TAG_PUSHED=false
 if [[ "$EXECUTE" == "true" ]]; then
-  git -C "$REPO_ROOT" tag -a "$NEXT_TAG" -m "Release $NEXT_TAG"
-  git -C "$REPO_ROOT" push origin "$NEXT_TAG"
+  if [[ "$CURRENT_BRANCH" != "main" ]]; then
+    echo "Error: Cannot tag release on branch '$CURRENT_BRANCH': releases must be created strictly on 'main'." >&2
+    exit 1
+  fi
+  if [[ "$IS_CLEAN" != "true" ]]; then
+    echo "Error: Working tree has uncommitted host files. Commit or stash changes before releasing." >&2
+    exit 1
+  fi
+  if [[ "$BEHIND_COUNT" -gt 0 ]]; then
+    echo "Error: Local branch is behind origin/main ($BEHIND_COUNT commits). Run 'git pull origin main' first." >&2
+    exit 1
+  fi
+
+  git -C "$REPO_ROOT" tag -a "$NEXT_TAG" -m "Release $NEXT_TAG" >/dev/null 2>&1
+  git -C "$REPO_ROOT" push origin "$NEXT_TAG" >/dev/null 2>&1
+  TAG_PUSHED=true
 fi
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-  echo "{\"current_branch\":\"$CURRENT_BRANCH\",\"current_version\":\"$LATEST_TAG\",\"next_version\":\"$NEXT_TAG\",\"bump_type\":\"$BUMP\"}"
+  echo "{\"current_branch\":\"$CURRENT_BRANCH\",\"is_main\":$([[ "$CURRENT_BRANCH" == "main" ]] && echo true || echo false),\"is_clean\":$IS_CLEAN,\"behind_origin\":$BEHIND_COUNT,\"ahead_origin\":$AHEAD_COUNT,\"current_version\":\"$LATEST_TAG\",\"next_version\":\"$NEXT_TAG\",\"bump_type\":\"$BUMP\",\"tag_pushed\":$TAG_PUSHED}"
 else
-  echo "SemVer Pre-Flight: $LATEST_TAG -> $NEXT_TAG (Bump: $BUMP, Branch: $CURRENT_BRANCH)"
+  if [[ "$TAG_PUSHED" == "true" ]]; then
+    echo "Release Tag: SUCCESS $NEXT_TAG created and pushed on main"
+  else
+    echo "SemVer Pre-Flight: $LATEST_TAG -> $NEXT_TAG (Bump: $BUMP, Branch: $CURRENT_BRANCH)"
+  fi
 fi

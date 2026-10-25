@@ -125,8 +125,11 @@ if [[ "$OVERALL_PASS" == "true" && "$SKIP_GUARDRAILS" == "false" ]]; then
   fi
 fi
 
-END_TIME=$(date +%s%N 2>/dev/null || date +%s)
-DURATION_MS=$(( (END_TIME - START_TIME) / 1000000 2>/dev/null || 0 ))
+END_TIME=$(date +%s%N 2>/dev/null || true)
+DURATION_MS=0
+if [[ "$END_TIME" =~ ^[0-9]+$ && "$START_TIME" =~ ^[0-9]+$ && ${#END_TIME} -gt 10 ]]; then
+  DURATION_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+fi
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
   if [[ "$OVERALL_PASS" == "true" ]]; then
