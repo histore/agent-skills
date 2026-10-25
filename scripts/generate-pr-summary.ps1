@@ -133,10 +133,6 @@ $result = [ordered]@{
 if ($JsonOutput) {
     $result | ConvertTo-Json -Depth 5 -Compress
 } else {
-    Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Deterministic Pull Request Summary Generator" -ForegroundColor Cyan
-    Write-Host "Branch: $currentBranch -> Base: $BaseBranch" -ForegroundColor DarkGray
-    Write-Host "Suggested Title: $suggestedTitle" -ForegroundColor Green
-    Write-Host "=============================================" -ForegroundColor Cyan
+    Write-Host "PR Summary: $suggestedTitle (Branch: $currentBranch -> Base: $BaseBranch, Commits: $($commitLines.Count))" -ForegroundColor Green
     Write-Output $prMarkdown.ToString()
 }

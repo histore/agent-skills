@@ -183,6 +183,32 @@
           "quota_protection_gate"
         ]
       }
+    },
+    {
+      "id": "EVAL-REL-001",
+      "name": "Clean Release Tagging Invariant",
+      "category": "governance",
+      "description": "ReleaseManager must tag HEAD directly on main and never create standalone metadata commits on main.",
+      "input": "Erstelle einen neuen Patch-Release v0.1.1 auf main.",
+      "expected": {
+        "primary_role": "ReleaseManager",
+        "required_invariants": [
+          "clean_release_tagging"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-GATE-001",
+      "name": "Consolidated Stage-1 Fast-Gate Invariant",
+      "category": "governance",
+      "description": "Verifikation enforces a single-command machine gate for build, quiet tests, linter, clean architecture, and guardrails.",
+      "input": "Überprüfe die Änderungen nach der Implementierung von AuthenticationService.",
+      "expected": {
+        "primary_role": "Verifikation",
+        "required_invariants": [
+          "fast_gate_consolidated"
+        ]
+      }
     }
   ]
 }

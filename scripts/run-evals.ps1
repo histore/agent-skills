@@ -220,6 +220,17 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'quota_protection_gate' missing in ask-control/SKILL.md")
                 }
             }
+            "clean_release_tagging" {
+                if ($agentsContent -notmatch 'Clean Release Tagging') {
+                    $failures.Add("Invariant 'clean_release_tagging' missing in AGENTS.md")
+                }
+            }
+            "fast_gate_consolidated" {
+                $verifSkill = Join-Path $repoRoot "skills\ask-verification\SKILL.md"
+                if (-not (Test-Path $verifSkill) -or (Get-Content $verifSkill -Raw -Encoding UTF8) -notmatch 'Consolidated Deterministic Fast-Gate') {
+                    $failures.Add("Invariant 'fast_gate_consolidated' missing in ask-verification/SKILL.md")
+                }
+            }
         }
     }
 

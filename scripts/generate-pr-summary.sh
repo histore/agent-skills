@@ -35,11 +35,7 @@ if [[ "$JSON_OUTPUT" == "true" ]]; then
 {"base_branch":"$BASE_BRANCH","current_branch":"$CURRENT_BRANCH","suggested_title":"$TITLE","commits_count":$COMMIT_COUNT,"files_count":$FILE_COUNT}
 EOF
 else
-  echo "============================================="
-  echo "Deterministic Pull Request Summary Generator"
-  echo "Branch: $CURRENT_BRANCH -> Base: $BASE_BRANCH"
-  echo "Suggested Title: $TITLE"
-  echo "============================================="
+  echo "PR Summary: $TITLE (Branch: $CURRENT_BRANCH -> Base: $BASE_BRANCH, Commits: $COMMIT_COUNT)"
   echo "## Summary of Changes"
   if [[ -n "$COMMITS" ]]; then
     while IFS= read -r c; do
