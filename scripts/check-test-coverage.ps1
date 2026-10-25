@@ -164,20 +164,14 @@ $result = [ordered]@{
 }
 
 if ($JsonOutput) {
-    $result | ConvertTo-Json -Depth 5
+    $result | ConvertTo-Json -Depth 5 -Compress
 } else {
-    Write-Host "`n=============================================" -ForegroundColor Cyan
-    Write-Host "Test Coverage Check Summary" -ForegroundColor Cyan
-    Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Status: $status" -ForegroundColor $(if ($status -eq "pass") { "Green" } else { "Red" })
-    Write-Host "Report Found: $coverageFound"
+    $color = if ($status -eq "pass") { "Green" } else { "Red" }
     if ($coverageFound) {
-        Write-Host "Format: $format"
-        Write-Host "Report File: $($result.report_file)"
-        Write-Host "Line Coverage: $lineCoveragePct% (Threshold: $Threshold%)"
-        if ($hasBranch) { Write-Host "Branch Coverage: $branchCoveragePct%" }
+        Write-Host "Coverage Gate: $($status.ToUpper()) ($lineCoveragePct%, Threshold: $Threshold%, Format: $format)" -ForegroundColor $color
+    } else {
+        Write-Host "Coverage Gate: $status - $message" -ForegroundColor $color
     }
-    Write-Host "Message: $message"
 }
 
 if ($status -ne "pass") {

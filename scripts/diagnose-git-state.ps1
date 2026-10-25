@@ -101,11 +101,8 @@ $result = [ordered]@{
 if ($JsonOutput) {
     $result | ConvertTo-Json -Depth 5 -Compress
 } else {
-    Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Deterministic Git State & Anomaly Diagnostics" -ForegroundColor Cyan
-    Write-Host "Branch: $($result.branch) | State: $stateName" -ForegroundColor $(if ($stateName -eq "clean") { "Green" } else { "Yellow" })
-    Write-Host "Uncommitted Changes: $uncommittedCount | Ahead: $ahead | Behind: $behind" -ForegroundColor DarkGray
-    Write-Host "=============================================" -ForegroundColor Cyan
+    $color = if ($stateName -eq "clean") { "Green" } else { "Yellow" }
+    Write-Host "Git State: $stateName (Branch: $($result.branch), Dirty: $uncommittedCount, Ahead: $ahead, Behind: $behind)" -ForegroundColor $color
     if ($hasConflicts) {
         Write-Host "Active Conflicts ($($conflictList.Count)):" -ForegroundColor Red
         foreach ($cf in $conflictList) { Write-Host "  ! $cf" -ForegroundColor Red }

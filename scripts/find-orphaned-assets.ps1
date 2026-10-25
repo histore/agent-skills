@@ -110,21 +110,15 @@ $result = [ordered]@{
 }
 
 if ($JsonOutput) {
-    $result | ConvertTo-Json -Depth 5
+    $result | ConvertTo-Json -Depth 5 -Compress
 } else {
-    Write-Host "`n=============================================" -ForegroundColor Cyan
-    Write-Host "Orphaned Assets & Modular Docs Audit Summary" -ForegroundColor Cyan
-    Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Status: $status" -ForegroundColor $(if ($status -eq "pass") { "Green" } else { "Yellow" })
-    Write-Host "Assets Scanned: $($assetFiles.Count)"
-    Write-Host "Total Orphaned: $totalOrphans"
+    $color = if ($status -eq "pass") { "Green" } else { "Yellow" }
+    Write-Host "Asset Audit: $($status.ToUpper()) (Scanned: $($assetFiles.Count), Orphans: $totalOrphans)" -ForegroundColor $color
     if ($orphanedAssets.Count -gt 0) {
-        Write-Host "Orphaned Assets:"
-        foreach ($oa in $orphanedAssets) { Write-Host "  - $oa" -ForegroundColor Yellow }
+        foreach ($oa in $orphanedAssets) { Write-Host "  [Asset] $oa" -ForegroundColor Yellow }
     }
     if ($orphanedDocs.Count -gt 0) {
-        Write-Host "Unindexed Modular Docs:"
-        foreach ($od in $orphanedDocs) { Write-Host "  - $od" -ForegroundColor Yellow }
+        foreach ($od in $orphanedDocs) { Write-Host "  [Doc] $od" -ForegroundColor Yellow }
     }
 }
 

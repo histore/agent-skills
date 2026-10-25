@@ -55,10 +55,7 @@ fi
 if [[ "$JSON_OUTPUT" == "true" ]]; then
   echo "{\"branch\":\"$BRANCH\",\"is_detached_head\":$IS_DETACHED,\"has_conflicts\":$HAS_CONFLICTS,\"is_rebase\":$IS_REBASE,\"is_merge\":$IS_MERGE,\"uncommitted\":$UNCOMMITTED_COUNT,\"snapshot\":\"$SNAPSHOT_BRANCH\"}"
 else
-  echo "============================================="
-  echo "Deterministic Git State & Anomaly Diagnostics"
-  echo "Branch: $BRANCH | Uncommitted: $UNCOMMITTED_COUNT"
-  echo "============================================="
+  echo "Git State: $BRANCH (Uncommitted: $UNCOMMITTED_COUNT)"
   if [[ -n "$SNAPSHOT_BRANCH" ]]; then
     echo "Safety Snapshot Created: $SNAPSHOT_BRANCH"
   fi
