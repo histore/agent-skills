@@ -97,17 +97,12 @@ if json_out:
         'duplicates': duplicates
     }))
 else:
-    print('=============================================')
-    print('Requirements Linter & ID Registry')
-    print(f'Files: {len(files)} | Defined: {len(defined_ids)} | Scopes: {len(scope_max)}')
-    print('=============================================')
     if is_pass:
-        print('Status: PASS (0 duplicate IDs, all requirements scoped)')
+        print(f'Requirements Linter: PASS (0 duplicate IDs, {total_reqs} requirements in {len(files)} files)')
     else:
-        print(f'Status: FAIL ({len(duplicates)} duplicate IDs detected)')
+        print(f'Requirements Linter: FAIL ({len(duplicates)} duplicate IDs detected in {len(files)} files)')
         for d in duplicates:
             print(f"  Collision on {d['id']}: first in {d['first']}, second in {d['second']}")
-    print('=============================================')
 
 if not is_pass:
     sys.exit(1)

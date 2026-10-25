@@ -136,19 +136,14 @@ $result = [ordered]@{
 if ($JsonOutput) {
     $result | ConvertTo-Json -Depth 5 -Compress
 } else {
-    Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Requirements Linter & ID Registry" -ForegroundColor Cyan
-    Write-Host "Files: $($reqFiles.Count) | Defined: $($definedIds.Count) | Scopes: $($scopeMax.Keys.Count)" -ForegroundColor DarkGray
-    Write-Host "=============================================" -ForegroundColor Cyan
     if ($isPass) {
-        Write-Host "Status: PASS (0 duplicate IDs, all requirements scoped)" -ForegroundColor Green
+        Write-Host "Requirements Linter: PASS (0 duplicate IDs, $($result.total_requirements_found) requirements in $($reqFiles.Count) files)" -ForegroundColor Green
     } else {
-        Write-Host "Status: FAIL ($($duplicates.Count) duplicate IDs detected)" -ForegroundColor Red
+        Write-Host "Requirements Linter: FAIL ($($duplicates.Count) duplicate IDs detected in $($reqFiles.Count) files)" -ForegroundColor Red
         foreach ($d in $duplicates) {
             Write-Host "  Collision on $($d.Id): first seen in $($d.FirstFile), duplicate in $($d.SecondFile)" -ForegroundColor Yellow
         }
     }
-    Write-Host "=============================================" -ForegroundColor Cyan
 }
 
 if (-not $isPass) {
