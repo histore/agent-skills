@@ -29,6 +29,11 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - **Step 4 (Targeted Inspection)**: Inspect only the precise code lines, call stack frames, and log traces relevant to the failure, avoiding whole-codebase scans.
 - **RCA vs. Symptom Patching**: Differentiate between superficial symptoms and the underlying defect mechanism (e.g., race conditions, unhandled lifecycle transitions, broken invariants).
 - **Reproduction Test Specification (Phase RED)**:
+  - Extract compacted test failure messages and stack traces from JUnit/TRX reports without flooding the context window via `collect-test-failures.ps1` (`collect-test-failures.sh`):
+    ```powershell
+    $failScript = @("./_agents/scripts/collect-test-failures.ps1", "./.agents/scripts/collect-test-failures.ps1", "./scripts/collect-test-failures.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($failScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $failScript -JsonOutput }
+    ```
   - Formulate an explicit, deterministic Arrange-Act-Assert reproduction test scenario.
   - Ensure the test fails for the right reason prior to applying any code fixes.
   - In Rust codebases, all test fixtures and implementations must adhere to safe Rust without `unsafe` blocks.
@@ -51,9 +56,16 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - *Change Preventers* (Divergent Change, Shotgun Surgery): Split Class by SRP, Move Method/Field.
   - *Couplers* (Feature Envy, Inappropriate Intimacy): Move Method, Extract Common Abstraction.
   - *Dispensables* (Code Duplication, Dead Code): Extract Method, Safe Delete, Collapse Hierarchy.
+- **Boy Scout Cleanup & Orphaned Assets Detection**:
+  - Audit the workspace for unreferenced media assets or unindexed modular documentation files via `find-orphaned-assets.ps1` (`find-orphaned-assets.sh`):
+    ```powershell
+    $orphanScript = @("./_agents/scripts/find-orphaned-assets.ps1", "./.agents/scripts/find-orphaned-assets.ps1", "./scripts/find-orphaned-assets.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($orphanScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $orphanScript -JsonOutput }
+    ```
 
 ### 4. Performance & Resource Profiling
-- Audit hot paths, excessive heap allocations, and algorithmic complexity.
+- **Memory, Leak & Hot-Path Optimization**:
+  - Minimize heap allocations in hot paths (pooled buffers, slices, zero-allocation streaming), enforce deterministic resource/event-subscription disposal, and apply UI list virtualization where applicable.
 - Profile startup time and throughput via zero-token helper scripts:
   - Windows:
     ```powershell

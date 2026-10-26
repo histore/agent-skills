@@ -60,31 +60,40 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   ```
 
 ### 2. Automated Changelog & Documentation Generation
-- Generate release notes and maintain `CHANGELOG.md` adhering to Keep a Changelog conventions:
+- Generate release notes and maintain `CHANGELOG.md` adhering to **Keep a Changelog** (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`) and SemVer conventions:
   ```powershell
   $changelogScript = @("./_agents/scripts/generate-changelog.ps1", "./.agents/scripts/generate-changelog.ps1", "./scripts/generate-changelog.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-  if ($changelogScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript }
+  if ($changelogScript) {
+      pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript
+      # Or prepend directly to CHANGELOG.md on feature/release branches:
+      # pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript -OutputFile CHANGELOG.md -Prepend
+  }
   ```
 
-### 3. CI/CD & Build Matrix Workflows (DevOps)
-- Maintain GitHub Actions workflows (`.github/workflows/*.yml`), multi-stage Dockerfiles, and cross-platform build matrices.
+### 3. CI/CD & Container Architecture Workflows (DevOps)
+- **GitHub Actions Engineering**: Maintain `.github/workflows/*.yml` with OS/SDK build matrices, native dependency caching (`actions/cache`), path filters, and explicit least-privilege token permissions (`permissions: contents: read`). Never print raw secrets in logs.
+- **Multi-Stage Dockerfiles**: Separate SDK build stages from slim/distroless runtime images, order layers from least- to most-frequently changed, enforce non-root execution (`USER appuser`), and maintain `.dockerignore` and `healthcheck` definitions.
 - Validate workflows and container files deterministically:
   ```powershell
   $ciScript = @("./_agents/scripts/lint-ci-workflows.ps1", "./.agents/scripts/lint-ci-workflows.ps1", "./scripts/lint-ci-workflows.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($ciScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $ciScript }
   ```
 
-### 4. Security Auditing & Guardrails Scanner
-- Audit dependencies for CVEs, scan for accidental secret leakage, and verify safe path traversal:
+### 4. Security Auditing & Guardrails Scanner (6 Audit Vectors)
+- **1. Supply Chain & Dependency CVEs**: Audit third-party packages (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`, `govulncheck`) via `run-security-audit.ps1`:
   ```powershell
   $secScript = @("./_agents/scripts/run-security-audit.ps1", "./.agents/scripts/run-security-audit.ps1", "./scripts/run-security-audit.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($secScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $secScript }
   ```
-- Run guardrails scanner for CRLF, secrets, safe-Rust, and submodule leakage:
+- **2. Secret & Guardrail Scanning**: Scan for high-entropy secrets, private keys, CRLF violations, safe-Rust (`unsafe` blocks), and submodule leakage (`-StagedOnly` for pre-commit):
   ```powershell
   $guardScript = @("./_agents/scripts/scan-guardrails.ps1", "./.agents/scripts/scan-guardrails.ps1", "./scripts/scan-guardrails.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($guardScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $guardScript }
   ```
+- **3. Command & Process Injection Prevention**: Never pass unsafely interpolated user input to shell interpreters; enforce strict argument vector escaping.
+- **4. Safe File I/O & Path Traversal**: Prevent directory traversal (`../` or unauthorized absolute path hijacking).
+- **5. Secure Deserialization**: Guard against untrusted type-handling or state injection payloads.
+- **6. Memory Safety**: Enforce 100% safe Rust (zero `unsafe` blocks) and safe native interop bounds checking.
 
 ---
 

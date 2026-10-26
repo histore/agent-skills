@@ -58,10 +58,12 @@ Act as the universal central orchestrator and unified core engineer for all soft
      - **Iteration Cap**: During the inner test-fix loop, a **maximum of 3 iterations** is allowed (`Code` -> `Run Targeted Tests` -> `Fix`). If tests do not pass within 3 iterations, halt and execute Circuit Breaking protocol or escalate to the user.
      - **Targeted Test Execution**: Test runners must target only the affected test class/file (`--filter`, specific test path) to prevent full-suite build thrashing. The full test suite runs once during final verification.
      - **Test Integrity Guardrail**: Replaces rigid test immutability. You may refine test signatures, fixtures, and assertions to align with real contracts, but are strictly forbidden from weakening, bypassing, or deleting assertions to fake a passing test.
+   - **Didactic Code Explanation & Non-Destructive In-Code Commenting**:
+     - When asked to explain code or architecture, follow the 4-Step Codebase Analysis Protocol, explain in the user's operating system language, and optionally insert clean, didactic explanatory comments above complex methods/algorithms (in English by default, or in the user's explicitly requested language override) with **zero executable code alteration**.
 
 4. **Two-Stage Quality Gating & Verification**:
    - **Consolidated Deterministic Fast-Gate (Stage 1 - Zero Tokens)**:
-     - Validate native build, project linter, quiet native tests (0 errors, 100% pass rate), Clean Architecture layer boundaries, and safe-Rust guardrails in a single deterministic command:
+     - Validate native build, project linter, quiet native tests (0 errors, 100% pass rate), Clean Architecture layer boundaries (`lint-clean-architecture.ps1 -StagedOnly`), and Safe-Rust/Secret/Submodule guardrails (`scan-guardrails.ps1 -StagedOnly`) in a single deterministic command:
        - Windows:
          ```powershell
          $gateScript = @("./_agents/scripts/run-fast-gate.ps1", "./.agents/scripts/run-fast-gate.ps1", "./scripts/run-fast-gate.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -72,16 +74,23 @@ Act as the universal central orchestrator and unified core engineer for all soft
          for p in ./_agents/scripts/run-fast-gate.sh ./.agents/scripts/run-fast-gate.sh ./scripts/run-fast-gate.sh; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
          [ -n "$SCRIPT_PATH" ] && bash "$SCRIPT_PATH"
          ```
+     - Do **not** invoke `lint-clean-architecture` or `scan-guardrails` separately if `run-fast-gate` has already passed. When coverage thresholds are required, run `check-test-coverage.ps1 -Threshold 80 -JsonOutput`.
      - If failed, compacted error logs are routed back immediately for remediation without consuming LLM tokens on speculative analysis. Executed strictly when executable code was modified.
    - **Concise Traceability Gate (Stage 2)**:
-     - Audit acceptance criteria fulfillment, architectural boundary compliance, and full requirement traceability.
+     - Audit acceptance criteria fulfillment, logical correctness, error paths, i18n/a11y compliance, and requirement traceability. Adapt to the active `Strictness Level` (`Legacy` and `Prototype` modes do not reject code for missing formal requirement IDs or legacy Clean Architecture debt).
 
 5. **Lifecycle Action Execution Governance & Submodule Isolation**:
    - **Purpose-Bound Git Operations**: Git status checks, branch creation, or checkout commands must **ONLY** be executed when changes are actively being committed or pushed, or when explicitly requested by the user. Do **NOT** invoke git commands proactively during read-only queries or local edits.
    - **Strict Action Execution (Atomic Scope)**: Execute strictly the requested action without unsolicited follow-ups (e.g., commit only without auto-push).
    - **State-Driven Prerequisite Resolution**: Automatically identify and resolve preceding requirements (e.g. uncommitted changes before push, unpushed commits before PR creation).
-   - **Submodule Isolation Guardrail**:
-     - When managing Git commits or PRs for the host project, never stage or commit changes inside `_agents/` or `.agents/` submodules. Scopes must strictly target host workspace changes (`git add <host-files>`, ignoring submodule directories).
+   - **Pre-Commit Guardrail Scan & Submodule Isolation Guardrail**:
+     - Before staging or committing, run `scan-guardrails.ps1 -StagedOnly` (if not already run by Stage-1 Fast-Gate) to block accidental secrets, CRLF line endings, or `unsafe` Rust.
+     - When managing Git commits or PRs for the host project, never stage or commit changes inside `_agents/` or `.agents/` submodules. Scopes must strictly target host workspace changes (`git add <host-files>`, ignoring submodule directories; never run blind `git add .` or `git add -A`).
+   - **Pull Request Lifecycle & CI Polling Guardrail**:
+     - Draft structured PR descriptions deterministically via `generate-pr-summary.ps1` (`generate-pr-summary.sh`) before `gh pr create`.
+     - **Strict Polling & Sleep Guardrail**: When monitoring CI (`gh pr checks`), never execute tight polling loops or shell sleep commands (`Start-Sleep`, `sleep`). Use `gh pr checks --watch` or a single scheduled timer (`DurationSeconds=75`).
+     - Merge via `gh pr merge --squash --delete-branch` followed by `git checkout main` and `git pull origin main`.
+   - **Atypical State & Safety Gate**: If working on `main` (without override), in detached HEAD, with merge conflicts, or unexpected binaries, pause and recommend `ask-git-troubleshooter`.
    - **Proactive Next-Step Offering**: Actively recommend the next logical successor action once a stage completes.
    - **Adaptive Gate Resolution**: When the prompt directly instructs or parameterizes an action (e.g. "commit with message ..."), execute directly without redundant re-confirmation, falling back to a mandatory gate only upon anomalies or out-of-scope changes.
    - **Clean Release Tagging Invariant**: Release tags (`vX.Y.Z`) are placed directly on the active HEAD commit on `main`. Standalone metadata commits directly on `main` during release tagging are strictly prohibited.

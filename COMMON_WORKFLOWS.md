@@ -262,21 +262,27 @@ pwsh -NoProfile -File ./scripts/diagnose-git-state.ps1
 
 ## 8. Architecture Synchronization from Git Deltas
 
-Keeps `ARCHITECTURE.md` and `docs/architecture/modules/*.md` synchronized with production commits without reading the whole repository.
+Keeps `ARCHITECTURE.md` and `docs/architecture/modules/*.md` synchronized with production commits without reading the whole repository. Supports both **in-repository** storage (`internal`, default) and **external zero-footprint** storage (`external`, stored in `.git/config` under `arch-sync.doc-dir`).
+
+### Optional: Configure External Zero-Footprint Storage
+```powershell
+# Store architecture docs outside the repository (0 git footprint)
+pwsh -NoProfile -File ./scripts/get-arch-diff.ps1 -SetDocDir "C:\arch-docs\my-project" -SetMode external
+```
 
 ### Step 1: Pre-Filter Git Deltas (Zero-Token CLI)
 ```powershell
 pwsh -NoProfile -File ./scripts/get-arch-diff.ps1
 ```
 
-### Step 2: Synchronize Specifications
+### Step 2: Synchronize Specifications & Advance Checkpoint
 * **Antigravity (AGY)**:
   ```text
   /ask-contract-specialist Synchronize module architecture documentation based on recent git commits.
   ```
 * **GitHub Copilot**:
   ```text
-  Consult skills/ask-contract-specialist/SKILL.md and update docs/architecture/modules based on the delta from get-arch-diff.ps1.
+  Consult skills/ask-contract-specialist/SKILL.md, update the architecture documentation at the resolved doc_dir based on get-arch-diff.ps1, and advance the checkpoint via -UpdateCheckpoint.
   ```
 
 ---
