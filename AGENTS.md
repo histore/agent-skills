@@ -65,6 +65,9 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 16. **Purpose-Driven Execution & Anti-Ceremony Guardrail (No Process for Process's Sake)**:
     - Every tool call must serve a tangible purpose. Zero Git operations and zero test execution on read-only tasks. No test execution for markdown, docs, comments, or static text assets. Small fixes and refactorings bypass requirement registration and architecture sync.
     - **MCP & External Tool Governance (Local-First Priority)**: Deterministic local scripts (`scripts/*.ps1`, `scripts/*.sh`) always take precedence over external MCP tools. Read-only MCP queries are auto-approved; state-mutating MCP calls follow Atomic Lifecycle Action Governance.
+17. **Evidence-Based LLM Evolution & Anti-Churn Policy**:
+    - **Allowed & Desired Evolution**: Adaptations to real changes in LLM behavior, new model families/tiers in `rules/model-tiers.json`, new platform capabilities, or refined prompt guardrails against observed model failure modes are explicitly supported.
+    - **No Speculative Structural Churn**: The `1 + 4` V2 role structure (`ask-control` + 4 On-Demand Capability Packs) is structurally saturated. During package reviews or audits, do NOT propose splitting phases (`Developer`, `Architekt`, `Verifikation`, `CommitManager`) back into standalone skills or inventing speculative restructurings when `test-skills.ps1` and `run-evals.ps1` pass 100%. Every change must maintain 100% cross-file synchronization verified by `test-skills.ps1`.
 
 ## Subagent Roles & Governance Mappings
 Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json):

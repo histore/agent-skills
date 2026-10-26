@@ -77,3 +77,18 @@ The toolkit is structured in strict accordance with Clean Architecture principle
   - SemVer and release calculators (`calculate-semver`, `generate-changelog`)
   - Living specs inspector & scaffolding (`inspect-feature-specs`)
   - Unified quality gates runner (`run-all-gates`)
+
+---
+
+## 3. Architectural Decisions (ADR), Evidence-Based Evolution & Anti-Churn Policy
+
+1. **Structural Baseline Saturation (`1 + 4` V2 Invariant)**:
+   - The consolidation into **1 Unified Core Engineer (`ask-control`) + 4 On-Demand Specialist Capability Packs** (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`) is an intentional, permanent architectural decision optimized for modern LLM context windows and KV-cache prefix reuse.
+   - Internal execution phases (`Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`) are **in-thread persona phases** within `ask-control` and must **never** be split back into standalone `SKILL.md` directories.
+2. **Evidence-Based LLM Behavioral Evolution (Allowed & Desired)**:
+   - The toolkit actively evolves when **real LLM behaviors, model generations, or client platform capabilities change** (e.g., updating model catalogs and reasoning budgets in `rules/model-tiers.json`, refining prompt guardrails against newly observed LLM failure modes, or adapting to new IDE/CLI tool APIs).
+3. **Prohibition of Speculative Structural Churn (No Action-Bias Overhauls)**:
+   - When asked to review or audit this package, AI agents must **not** invent speculative structural reorganizations, role splits, or new capability packs merely out of conversational "suggestion bias".
+   - If `scripts/test-skills.ps1` and `scripts/run-evals.ps1` pass 100% and no concrete LLM behavioral issue or platform change is present, the agent must confirm that the structural baseline is **saturated and consistent**, proposing changes strictly where empirical LLM behavior or explicit user requirements justify them.
+4. **100% Cross-File SSOT Synchronization Gate**:
+   - Any adaptation to roles, skills, or governance rules must update all affected files atomically and pass the dynamic Single-Source-of-Truth (SSOT) check in `scripts/test-skills.ps1` (zero orphan `ask-*` references, zero legacy V1 role names across all repository files).

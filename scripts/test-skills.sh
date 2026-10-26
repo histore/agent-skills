@@ -112,23 +112,23 @@ for skill_path in "$SKILLS_DIR"/*; do
     fi
 done
 
-# 3. Check for Ghost / Orphan Roles
-echo -e "\n\033[33m3. Checking for ghost / orphan roles in markdown documentation...\033[0m"
-GHOST_PATTERNS=("TerminalEngineSpecialist" "Tiebreaker")
+# 3. Check for Ghost / Orphan Roles & SSOT Synchronization
+echo -e "\n\033[33m3. Checking for ghost / orphan roles and SSOT synchronization in markdown documentation...\033[0m"
+GHOST_PATTERNS=("TerminalEngineSpecialist" "Tiebreaker" "RequirementEngineer" "CodeReviewer" "SecurityAuditor" "DevOpsEngineer" "LocalizationSpecialist" "DatabaseSpecialist" "ApiContractSpecialist" "PerformanceOptimizer" "RefactoringSpecialist" "DocumentationSpecialist" "ArchitectureSync" "UIDesigner" "CodeExplainer" "PRManager")
+FOUND_GHOSTS=()
 for pattern in "${GHOST_PATTERNS[@]}"; do
-    FOUND_FILES=()
     while IFS= read -r match_file; do
         if [ -n "$match_file" ]; then
-            FOUND_FILES+=("$match_file")
+            FOUND_GHOSTS+=("$match_file ($pattern)")
         fi
     done < <(grep -rnw --exclude-dir=".git" --include="*.md" "$REPO_ROOT" -e "$pattern" 2>/dev/null | cut -d: -f1 | sort -u || true)
-
-    if [ ${#FOUND_FILES[@]} -eq 0 ]; then
-        assert_condition 0 "Zero occurrences of ghost role '$pattern'" "Found ghost role '$pattern'"
-    else
-        assert_condition 1 "Zero occurrences of ghost role '$pattern'" "Found ghost role '$pattern' in: ${FOUND_FILES[*]}"
-    fi
 done
+
+if [ ${#FOUND_GHOSTS[@]} -eq 0 ]; then
+    assert_condition 0 "Zero occurrences of retired V1 or ghost roles across all markdown files" "Found retired/ghost roles"
+else
+    assert_condition 1 "Zero occurrences of retired V1 or ghost roles across all markdown files" "Found retired/ghost roles in: ${FOUND_GHOSTS[*]}"
+fi
 
 # 4. Check for CRLF line endings
 echo -e "\n\033[33m4. Checking line endings (must be LF)...\033[0m"

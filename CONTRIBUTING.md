@@ -9,9 +9,9 @@ Thank you for contributing to this project. To maintain high architectural integ
    - Do NOT introduce project-specific, language-specific, or library-specific hardcodings (e.g. specific frameworks, languages, or package managers).
    - Technologies must be dynamically discovered from project configuration files and architecture specifications.
 
-2. **Core Roles vs. Domain Specialists**:
-   - **Core Lifecycle Roles** (`Control`, `RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`) define the standard workflow, supported by **Lifecycle Specialists** (e.g. `ReleaseManager`, `Troubleshooter`, `ArchitectureSync`, `GitTroubleshooter`, `DevOpsEngineer`, `RefactoringSpecialist`, `DocumentationSpecialist`, `CodeExplainer`, `CodeReviewer`).
-   - **Domain Specialists** (`UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`) are bound to technical domains, not frameworks. They are invoked conditionally on-demand or consulted by other skills.
+2. **Unified Core Lifecycle vs. On-Demand Specialist Capability Packs (V2 Architecture)**:
+   - **Unified Core Lifecycle Engineer** (`Control` / `ask-control`) defines the standard workflow (Planning, Architecture Contracts, Inner-Loop TDD, Two-Stage Verification Gate, Atomic Commit & PR Governance) within a single continuous session.
+   - **On-Demand Specialist Capability Packs** (`Troubleshooter` / `ask-troubleshooter`, `GitTroubleshooter` / `ask-git-troubleshooter`, `ContractSpecialist` / `ask-contract-specialist`, `ReleaseManager` / `ask-release-manager`) are bound to technical domains, not specific frameworks. They are invoked conditionally on-demand when deep domain specialization is required.
 
 3. **Documentation Language**:
    - All documentation files, markdown guides, and source code comments must be written in English.

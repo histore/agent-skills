@@ -11,7 +11,7 @@ This document defines the functional and non-functional requirements specific to
 - **Module Name**: `<Module Name>`
 - **Scope Identifier**: `<SCOPE>` (e.g. `AUTH`, `CORE`, `UI`, `STORAGE`, `API`)
 - **Architecture Contract**: `docs/architecture/modules/<module>.md`
-- **Primary Domain Specialist**: `<UIDesigner | DatabaseSpecialist | ApiContractSpecialist | SecurityAuditor | PerformanceOptimizer | None>`
+- **Primary Capability Pack**: `<ask-control | ask-contract-specialist | ask-troubleshooter | ask-release-manager | ask-git-troubleshooter>`
 
 ---
 

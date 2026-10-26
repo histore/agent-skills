@@ -74,11 +74,11 @@ Typical domain or application service features requiring contracts, unit tests, 
 /ask-control Implement a new ExportService supporting JSON and CSV formats.
 ```
 *Workflow*:
-1. `RequirementEngineer`: Acceptance criteria (Given-When-Then).
-2. `Architekt`: Service interfaces and Clean Architecture boundary contracts.
-3. `Developer`: Inner-Loop TDD authoring unit tests before production code.
-4. `Verifikation`: Stage 1 machine checks + Stage 2 traceability review.
-5. `CommitManager`: Conventional commit proposal & interactive confirmation.
+1. `ContractSpecialist` / `Control`: Acceptance criteria (Given-When-Then).
+2. `Architekt` (Phase): Service interfaces and Clean Architecture boundary contracts.
+3. `Developer` (Phase): Inner-Loop TDD authoring unit tests before production code.
+4. `Verifikation` (Phase): Stage 1 machine checks + Stage 2 traceability review.
+5. `CommitManager` (Phase): Conventional commit proposal & interactive confirmation.
 
 ### GitHub Copilot
 ```text

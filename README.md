@@ -59,7 +59,7 @@ Four domain-specific capability packs engaged conditionally when deep specializa
 Whenever an agent explores, analyzes, or debugs a codebase, it must strictly proceed in four steps:
 
 1. **Check Current Modular Architecture Baseline**: Check `ARCHITECTURE.md`, module specifications (`docs/architecture/modules/*.md`), and `.arch-sync.json`.
-2. **Synchronize Architecture if Needed**: If documentation is missing or outdated compared to recent commits, run `ArchitectureSync` (`get-arch-diff.ps1` / `get-arch-diff.sh`) to synchronize affected module documents.
+2. **Synchronize Architecture if Needed**: If documentation is missing or outdated compared to recent commits, run `ContractSpecialist` (`ask-contract-specialist` via `get-arch-diff.ps1` / `get-arch-diff.sh`) to synchronize affected module documents.
 3. **Deduce State from Modular Documentation**: Derive system structure, contracts, dependencies, and state flows directly from the relevant modular architecture specification (`docs/architecture/modules/<module>.md`).
 4. **Targeted Code Inspection Only for Critical Details**: Read concrete source code files strictly when specific low-level implementation details (e.g. algorithmic nuance, interop declarations, precise event binding lines) are indispensable.
 

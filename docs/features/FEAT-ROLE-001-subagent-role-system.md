@@ -55,11 +55,11 @@ Provides the V2 Architecture: 1 Unified Core Lifecycle Engineer (`ask-control`) 
 
 ## 7. Traceability & Verification
 - **Test Suite**: `scripts/test-skills.ps1` (Suites 1–3)
-- **Status**: Verified 100% pass across all 23 roles.
+- **Status**: Verified 100% pass across all 5 V2 capability packs.
 
 ---
 
 ## 8. Revision & Delta History
 | Date | Version / Status | Nature of Change | Author / Approver |
 | :--- | :--- | :--- | :--- |
-| 2026-10-24 | `VERIFIED` | Baseline freeze of 23 specialized subagent roles | User / Antigravity |
+| 2026-10-24 | `VERIFIED` | Baseline freeze of 5 consolidated V2 subagent capability packs | User / Antigravity |

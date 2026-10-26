@@ -102,24 +102,49 @@ foreach ($sDir in $skillDirs) {
     }
 }
 
-# 3. Check for Ghost / Orphan Roles across all markdown files
-Write-Host "`n3. Checking for ghost / orphan roles in markdown documentation..." -ForegroundColor Yellow
+# 3. Check for Ghost / Orphan Roles & Dynamic SSOT Cross-File Synchronization across all markdown files
+Write-Host "`n3. Checking for ghost / orphan roles and SSOT synchronization in markdown documentation..." -ForegroundColor Yellow
 $ghostRolePatterns = @(
     "TerminalEngineSpecialist",
-    "Tiebreaker"
+    "Tiebreaker",
+    "RequirementEngineer",
+    "CodeReviewer",
+    "SecurityAuditor",
+    "DevOpsEngineer",
+    "LocalizationSpecialist",
+    "DatabaseSpecialist",
+    "ApiContractSpecialist",
+    "PerformanceOptimizer",
+    "RefactoringSpecialist",
+    "DocumentationSpecialist",
+    "ArchitectureSync",
+    "UIDesigner",
+    "CodeExplainer",
+    "PRManager"
 )
 
+$validSkillNames = @($skillDirs | ForEach-Object { $_.Name }) + @("ask-skills")
 $markdownFiles = Get-ChildItem -Path $repoRoot -Recurse -File -Filter "*.md" | Where-Object { $_.FullName -notmatch '\\\.git\\' }
-foreach ($pattern in $ghostRolePatterns) {
-    $matchesFound = @()
-    foreach ($file in $markdownFiles) {
-        $lines = Get-Content -Path $file.FullName -Raw -Encoding UTF8
+$ghostMatchesFound = [System.Collections.Generic.List[string]]::new()
+$orphanSkillRefs = [System.Collections.Generic.List[string]]::new()
+
+foreach ($file in $markdownFiles) {
+    $lines = Get-Content -Path $file.FullName -Raw -Encoding UTF8
+    $relFile = $file.FullName.Replace($repoRoot + "\", "")
+    foreach ($pattern in $ghostRolePatterns) {
         if ($lines -match "\b$pattern\b") {
-            $matchesFound += $file.FullName.Replace($repoRoot + "\", "")
+            $ghostMatchesFound.Add("$relFile ($pattern)")
         }
     }
-    Assert-Condition ($matchesFound.Count -eq 0) "Zero occurrences of ghost role '$pattern'" "Found ghost role '$pattern' in: $($matchesFound -join ', ')"
+    $askRefs = [regex]::Matches($lines, '\bask-[a-z0-9-]+\b') | ForEach-Object { $_.Value } | Select-Object -Unique
+    foreach ($ref in $askRefs) {
+        if ($ref -notin $validSkillNames) {
+            $orphanSkillRefs.Add("$relFile ($ref)")
+        }
+    }
 }
+Assert-Condition ($ghostMatchesFound.Count -eq 0) "Zero occurrences of retired V1 or ghost roles across all markdown files" "Found retired/ghost roles in: $($ghostMatchesFound -join ', ')"
+Assert-Condition ($orphanSkillRefs.Count -eq 0) "All 'ask-*' skill references across markdown files match active skills/ directories" "Found orphan skill references in: $($orphanSkillRefs -join ', ')"
 
 # 4. Check for CRLF line endings
 Write-Host "`n4. Checking line endings (must be LF)..." -ForegroundColor Yellow

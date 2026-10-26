@@ -1,26 +1,26 @@
 {
-  "docs/features/FEAT-SPEC-001-living-modular-docs.md": {
-    "id": "FEAT-SPEC-001",
-    "hash": "7f6998594f0f7692c435d8011988a291aaceac21de27b30585212ec7a898c38c",
-    "phase": "0",
-    "status": "VERIFIED"
-  },
   "docs/features/FEAT-TOOL-001-zero-token-scripts.md": {
     "id": "FEAT-TOOL-001",
-    "hash": "508ee17b2ac2b1ce2155101c57e2f5cd99a638b94a65104135eb96ada5eefeb0",
     "phase": "0",
+    "hash": "508ee17b2ac2b1ce2155101c57e2f5cd99a638b94a65104135eb96ada5eefeb0",
     "status": "VERIFIED"
   },
-  "docs/features/FEAT-ROLE-001-subagent-role-system.md": {
-    "id": "FEAT-ROLE-001",
-    "hash": "08d963cfb5f99fe3dcf4be8a4855e68174bfce9c3ccd943f0d5de90076352100",
+  "docs/features/FEAT-SPEC-001-living-modular-docs.md": {
+    "id": "FEAT-SPEC-001",
     "phase": "0",
+    "hash": "7f6998594f0f7692c435d8011988a291aaceac21de27b30585212ec7a898c38c",
     "status": "VERIFIED"
   },
   "docs/features/FEAT-GOV-001-governance-and-orchestration.md": {
     "id": "FEAT-GOV-001",
-    "hash": "61ee082c20fedbe804fd32c3f9f757791552fa800df23bc164c1fb0af615cf3d",
     "phase": "0",
+    "hash": "61ee082c20fedbe804fd32c3f9f757791552fa800df23bc164c1fb0af615cf3d",
+    "status": "VERIFIED"
+  },
+  "docs/features/FEAT-ROLE-001-subagent-role-system.md": {
+    "id": "FEAT-ROLE-001",
+    "phase": "0",
+    "hash": "c6d88df64af05fb468fd42aaa58e05e34dfcfa89edb7f5f6c2ffcae18ecfe336",
     "status": "VERIFIED"
   }
 }
