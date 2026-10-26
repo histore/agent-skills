@@ -620,6 +620,24 @@ else
     assert_condition 1 "docs/templates/CONCEPT_TEMPLATE.md exists" "docs/templates/CONCEPT_TEMPLATE.md missing"
 fi
 
+# 43. Validate setup-agent-skills --init-docs and Next-Gen LLM Governance invariants
+echo -e "\n\033[33m43. Validating project onboarding (--init-docs) and Next-Gen LLM Governance...\033[0m"
+if grep -q "MCP & External Tool Governance" "$REPO_ROOT/AGENTS.md"; then
+    assert_condition 0 "AGENTS.md enforces MCP & External Tool Governance" "AGENTS.md missing MCP governance"
+else
+    assert_condition 1 "AGENTS.md enforces MCP & External Tool Governance" "AGENTS.md missing MCP governance"
+fi
+if grep -q 'Workspace: "share"' "$REPO_ROOT/skills/ask-control/SKILL.md"; then
+    assert_condition 0 "ask-control documents isolated parallel worktrees" "ask-control missing parallel worktrees"
+else
+    assert_condition 1 "ask-control documents isolated parallel worktrees" "ask-control missing parallel worktrees"
+fi
+if grep -q "Accessibility (a11y)" "$REPO_ROOT/skills/ask-contract-specialist/SKILL.md"; then
+    assert_condition 0 "ask-contract-specialist documents UI/UX & Accessibility (a11y)" "ask-contract-specialist missing a11y"
+else
+    assert_condition 1 "ask-contract-specialist documents UI/UX & Accessibility (a11y)" "ask-contract-specialist missing a11y"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

@@ -84,8 +84,14 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   ```
   *(Note: Always uses deterministic script lookups without recursive disk scans).*
 
-### 6. Internationalization & UI Tokens (i18n & l10n)
+### 6. Internationalization, UI/UX Design Tokens & Multimodal Accessibility (i18n / l10n / a11y)
 - **Zero Hardcoded Strings**: All user-facing UI text extracted into bilingual resource files in German (`de`) and English (`en`).
+- **UI/UX Design Tokens & Clean Presentation Layer**:
+  - Enforce semantic design tokens (colors, typography, spacing, elevation) over magic numbers or inline hex values.
+  - Keep Views/Components declarative and humble (MVVM / Presenter pattern); business state and validation logic reside strictly in testable ViewModels/Presenters.
+- **Accessibility (a11y) & Multimodal Grounding**:
+  - Enforce keyboard navigation, deterministic tab/focus order, high-contrast support, and semantic roles (`ARIA` attributes in Web, `AutomationProperties` in Avalonia/WPF/MAUI).
+  - When multimodal inputs (wireframes, screenshots, DOM trees) are provided or modified, verify visual layout consistency, responsive overflow behavior, and state indicators (loading, empty, error states).
 - **Validation**: Audit i18n coverage deterministically:
   ```powershell
   $i18nScript = @("./_agents/scripts/audit-i18n.ps1", "./.agents/scripts/audit-i18n.ps1", "./scripts/audit-i18n.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1

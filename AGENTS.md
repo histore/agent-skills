@@ -17,7 +17,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
    - **On-Demand Specialist Capability Packs**: Four high-value specialist packs engage selectively on-demand:
      - `Troubleshooter` (`ask-troubleshooter`): Systematic Root Cause Analysis, reproduction tests, adversarial code review, Fowler refactoring, and performance profiling.
      - `GitTroubleshooter` (`ask-git-troubleshooter`): Safety-first Git recovery, 3-way merge/rebase conflict resolution, reflog recovery, and safety backups.
-     - `ContractSpecialist` (`ask-contract-specialist`): Living feature specifications, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, and i18n.
+     - `ContractSpecialist` (`ask-contract-specialist`): Living feature specifications, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, UI/UX tokens, a11y, and i18n.
      - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security CVE audits, and Git release tags.
 5. **Automated Testing, Quality & Inner-Loop TDD**:
    - **Profile 0 (Direct Response - Informational / Read-Only / Trivial)**: Answer directly. **Zero Git operations and zero test execution.**
@@ -30,7 +30,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
      - **Stage 2 (Concise Traceability Gate)**: `Verifikation` audits acceptance criteria, Clean Architecture, and correctness.
    - **Test Integrity & Circuit Breaker**: Adjust test fixtures to match contracts, but never weaken or delete assertions. The `Developer` test-fix loop is capped at a maximum of 3 iterations before escalating. All tests follow AAA and require 100% pass rate (0 failures).
    - **Synthetic Evaluation Suite (Eval-Harness)**: Asserted via `evals/eval-cases.json` and `scripts/run-evals.ps1` (`run-evals.sh`).
-6. **Internationalization & Localization (i18n / l10n)**: 0% hardcoded user strings; bilingual resources in German (`de`) and English (`en`).
+6. **Internationalization, UI/UX Tokens & Accessibility (i18n / l10n / a11y)**: 0% hardcoded user strings; bilingual resources in German (`de`) and English (`en`); semantic UI/UX design tokens, keyboard accessibility, and multimodal visual verification where applicable.
 7. **Requirements Governance & Modular Architecture**:
    - Small projects (< ~30–50 items) use single `REQUIREMENTS.md`. Scaled systems partition into `docs/requirements/modules/<module>.md` with `REQUIREMENTS.md` as Hub/Registry.
    - **Living Modular Documentation**: Grow specs as isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md`). Updates touch only the single feature file and append a line to `docs/ROADMAP.md` (zero-full-diff guarantee).
@@ -50,7 +50,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
     - **Compound Phased Execution & Zero-Reload Invariant (Default Strategy)**: Single-context phased persona transitions preserve prefix continuity, unlocking 75–90% KV-cache discounts.
       - **Zero-Reload Core Invariant**: In Profile 0/A/B, core rules for planning, contracts, Inner-Loop TDD, verification, and atomic commits are embedded here. Do NOT spend tool calls reading skill files for core tasks; load `SKILL.md` strictly for the 4 On-Demand Specialists.
       - **Zero-Probe Environment Detection**: Determine environment (`multi_agent` if `invoke_subagent` present, else `sequential_persona`) directly from tool declarations without executing `detect-models.ps1` during normal tasks.
-    - **Selective Subagent Forking (`invoke_subagent`)**: Reserved strictly for divergent research; dispatch `research` subagents with `Model: "flash"`.
+    - **Selective Subagent Forking & Parallel Worktrees (`invoke_subagent`)**: Reserved primarily for divergent research (`research` with `Model: "flash"`). For complex Profile C tasks with independent modules or A/B prototyping, isolated worktrees (`Workspace: "share"`) may be used for parallel implementation.
     - **Terminal & Context Hygiene**: Run PowerShell with `-NoProfile` and testrunners in quiet mode (`-q`, `--verbosity quiet`). Telemetry recorded via `scripts/record-telemetry.ps1`.
 12. **Branch & PR Process Model**: Dedicated branches (`feat/`, `fix/`, `refactor/`). Squash-and-merge via PRs after developer testing and passing CI.
     - **Purpose-Bound Git Operations**: Git status/branch checks execute ONLY when committing, pushing, or creating PRs, never proactively during read-only queries or edits.
@@ -64,6 +64,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 15. **Adaptive Governance Strictness Levels**: `Standard` (Default), `Enterprise` (strict formal coverage), `Legacy` (pragmatic compiler-first), `Prototype` (speed-first MVP).
 16. **Purpose-Driven Execution & Anti-Ceremony Guardrail (No Process for Process's Sake)**:
     - Every tool call must serve a tangible purpose. Zero Git operations and zero test execution on read-only tasks. No test execution for markdown, docs, comments, or static text assets. Small fixes and refactorings bypass requirement registration and architecture sync.
+    - **MCP & External Tool Governance (Local-First Priority)**: Deterministic local scripts (`scripts/*.ps1`, `scripts/*.sh`) always take precedence over external MCP tools. Read-only MCP queries are auto-approved; state-mutating MCP calls follow Atomic Lifecycle Action Governance.
 
 ## Subagent Roles & Governance Mappings
 Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json):

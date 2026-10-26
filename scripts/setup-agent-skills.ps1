@@ -13,11 +13,13 @@
     Configures agent-skills globally in the user's home directory (~/.gemini/config).
 .PARAMETER SkipCopilot
     Skips creating or updating .github/copilot-instructions.md in the target project.
+.PARAMETER InitDocs
+    Scaffolds initial living documentation (ARCHITECTURE.md, docs/ROADMAP.md, docs/features/, docs/concepts/drafts/) in the target project if not present.
 .PARAMETER Force
     Overwrites existing links or files if they already exist.
 .EXAMPLE
-    # Integrate into another project
-    pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject "C:\projekte\my-app"
+    # Integrate into another project and bootstrap living docs
+    pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject "C:\projekte\my-app" -InitDocs
 
 .EXAMPLE
     # Install globally for all projects
@@ -37,6 +39,9 @@ param(
 
     [Parameter(Mandatory = $false)]
     [switch]$SkipCopilot,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InitDocs,
 
     [Parameter(Mandatory = $false)]
     [switch]$Force
@@ -135,7 +140,7 @@ All specialist skills and zero-token automation scripts are located in:
 When encountering specialized tasks requiring deep domain expertise, consult the corresponding capability pack on demand:
 - **Diagnostics, bug RCA, code review, refactoring & profiling**: $skillsSlash/ask-troubleshooter/SKILL.md
 - **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: $skillsSlash/ask-git-troubleshooter/SKILL.md
-- **Contracts, living specs, API contracts, DB migrations & i18n**: $skillsSlash/ask-contract-specialist/SKILL.md
+- **Contracts, living specs, API contracts, DB migrations, UI/UX tokens, a11y & i18n**: $skillsSlash/ask-contract-specialist/SKILL.md
 - **Release management, CI/CD, SemVer calculation & security audits**: $skillsSlash/ask-release-manager/SKILL.md
 "@
 
@@ -196,6 +201,79 @@ When encountering specialized tasks requiring deep domain expertise, consult the
         } else {
             Copy-Item -LiteralPath $copilotTemplate -Destination $destCopilot -Force
             Write-Host "  [OK] Provisioned $destCopilot (Lite Copilot instructions)" -ForegroundColor Green
+        }
+    }
+
+    # 3. Optional: Bootstrap Living Modular Documentation (-InitDocs)
+    if ($InitDocs) {
+        Write-Host "`nBootstrapping Living Modular Documentation in Target Project..." -ForegroundColor Yellow
+        $projectName = Split-Path -Leaf $targetFullPath
+        $dateStr = (Get-Date).ToString("yyyy-MM-dd")
+        $detectedStacks = "Auto-detected"
+        $detectScript = Join-Path $PSScriptRoot "detect-tech-stack.ps1"
+        if (Test-Path $detectScript) {
+            try {
+                $stackInfo = pwsh -NoProfile -ExecutionPolicy Bypass -File $detectScript -ProjectRoot $targetFullPath -JsonOutput | ConvertFrom-Json
+                if ($stackInfo.stack -and $stackInfo.stack -ne "unknown") {
+                    $detectedStacks = "$($stackInfo.stack) ($($stackInfo.language))"
+                }
+            } catch { }
+        }
+
+        foreach ($subDir in @("docs\features", "docs\concepts\drafts", "docs\concepts\archive", "docs\architecture\modules")) {
+            $fullSubDir = Join-Path $targetFullPath $subDir
+            if (-not (Test-Path $fullSubDir)) {
+                New-Item -ItemType Directory -Path $fullSubDir -Force | Out-Null
+                Write-Host "  [OK] Created directory: $subDir" -ForegroundColor Green
+            }
+        }
+
+        $archFile = Join-Path $targetFullPath "ARCHITECTURE.md"
+        if ((Test-Path $archFile) -and (-not $Force)) {
+            Write-Host "  [SKIP] ARCHITECTURE.md already exists" -ForegroundColor Yellow
+        } else {
+            $archContent = @"
+# System Architecture Baseline: $projectName
+
+> **Status**: APPROVED  
+> **Last Synchronized**: $dateStr  
+> **Detected Tech Stack**: $detectedStacks  
+
+## 1. Clean Architecture & Layer Boundaries
+
+Dependencies point strictly inward:
+- **Domain Layer**: Entities, Value Objects, Domain Invariants (zero external framework dependencies).
+- **Application Layer**: Use Cases, Service Contracts, DTOs, Port Interfaces.
+- **Adapters / Presentation Layer**: Controllers, ViewModels, Presenters, Persistence Mappers.
+- **Infrastructure / Drivers Layer**: UI Frameworks, Database Providers, External APIs, CLI/OS Drivers.
+
+## 2. Modular Specifications
+- Living Feature Specifications: [docs/ROADMAP.md](docs/ROADMAP.md)
+- Module Architecture Specs: ``docs/architecture/modules/``
+"@
+            [System.IO.File]::WriteAllText($archFile, ($archContent -replace "`r?`n", "`n"), [System.Text.Encoding]::UTF8)
+            Write-Host "  [OK] Scaffolded ARCHITECTURE.md (Stack: $detectedStacks)" -ForegroundColor Green
+        }
+
+        $roadmapFile = Join-Path $targetFullPath "docs\ROADMAP.md"
+        if ((Test-Path $roadmapFile) -and (-not $Force)) {
+            Write-Host "  [SKIP] docs/ROADMAP.md already exists" -ForegroundColor Yellow
+        } else {
+            $roadmapContent = @"
+# Project Roadmap & Living Feature Index (``docs/ROADMAP.md``)
+
+> **System Baseline**: $projectName  
+> **Architecture Specification**: [ARCHITECTURE.md](../ARCHITECTURE.md)  
+
+---
+
+## 1. Feature Registry & Lifecycle Tracker
+
+| Phase | Feature ID | Title | Status | Scope | Specification File | Target Release |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+"@
+            [System.IO.File]::WriteAllText($roadmapFile, ($roadmapContent -replace "`r?`n", "`n"), [System.Text.Encoding]::UTF8)
+            Write-Host "  [OK] Scaffolded docs/ROADMAP.md" -ForegroundColor Green
         }
     }
 

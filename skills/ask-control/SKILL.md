@@ -25,7 +25,7 @@ Act as the universal central orchestrator and unified core engineer for all soft
    - **Compound Execution & Zero-Reload Invariant (Default Strategy)**:
      - Core development workflows execute as **Compound Phased Execution** within a single, continuous conversation thread. This preserves prompt prefix continuity, unlocking 75–90% KV-cache discounts and eliminating subagent cold-start overhead.
      - **Unified Core Engineering**: Planning, architecture contracts, Inner-Loop TDD, two-stage verification, and atomic Git lifecycle actions are handled directly within this core role. Read specialist `SKILL.md` files strictly when engaging on-demand specialist capability packs.
-     - **Selective Subagent Forking (`invoke_subagent`)**: Reserved strictly for **divergent research**, broad multi-file searches, web lookups, or independent background sidecars. Dispatch `research` subagents with `Model: "flash"` (ECO) to conserve flagship quota.
+     - **Selective Subagent Forking & Parallel Worktrees (`invoke_subagent`)**: Reserved primarily for **divergent research**, broad multi-file searches, web lookups, or independent background sidecars (`research` dispatched with `Model: "flash"` / ECO to conserve flagship quota). For complex Profile C architectures with independent subsystems or A/B prototyping, `Control` may dispatch write-enabled subagents in isolated worktrees (`Workspace: "share"`), reviewing and merging verified changes cleanly.
    - **Terminal Hygiene & Context Noise Prevention**:
      - Execute PowerShell commands with `-NoProfile` to eliminate profile warnings.
      - Run testrunners in quiet mode (`dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`) so passing test noise does not consume context window tokens.
@@ -85,12 +85,13 @@ Act as the universal central orchestrator and unified core engineer for all soft
    - **Proactive Next-Step Offering**: Actively recommend the next logical successor action once a stage completes.
    - **Adaptive Gate Resolution**: When the prompt directly instructs or parameterizes an action (e.g. "commit with message ..."), execute directly without redundant re-confirmation, falling back to a mandatory gate only upon anomalies or out-of-scope changes.
    - **Clean Release Tagging Invariant**: Release tags (`vX.Y.Z`) are placed directly on the active HEAD commit on `main`. Standalone metadata commits directly on `main` during release tagging are strictly prohibited.
+   - **MCP & External Tool Governance (Local-First Priority)**: Deterministic zero-token scripts in `scripts/` always take precedence over external MCP server tools for repository, build, lint, or Git operations. Read-only MCP queries (documentation, schema inspection) are auto-approved; state-mutating MCP calls (database writes, remote issue/PR mutations) strictly obey Atomic Lifecycle Action Governance.
 
 6. **On-Demand Specialist Capability Packs**:
    Coordinate with 4 specialized capability packs when the task explicitly requires deep domain expertise:
    - **`ask-troubleshooter`**: Deep diagnostics, Root Cause Analysis (RCA), failing reproduction test authoring, adversarial code review, safe Fowler refactoring, and performance profiling (`benchmark-startup.ps1`).
    - **`ask-git-troubleshooter`**: Safety-first Git recovery, 3-way merge/rebase conflict resolution, reflog recovery, and deterministic safety snapshots (`create-safety-backup.ps1`, `diagnose-git-state.ps1`).
-   - **`ask-contract-specialist`**: Living feature specs & concept tracks (`inspect-feature-specs.ps1`), requirements governance, API contracts (OpenAPI/gRPC via `lint-api-contracts.ps1`), DB migrations (`lint-db-migrations.ps1`), architecture synchronization (`get-arch-diff.ps1`), and i18n localization (`audit-i18n.ps1`).
+   - **`ask-contract-specialist`**: Living feature specs & concept tracks (`inspect-feature-specs.ps1`), requirements governance, API contracts (OpenAPI/gRPC via `lint-api-contracts.ps1`), DB migrations (`lint-db-migrations.ps1`), architecture synchronization (`get-arch-diff.ps1`), UI/UX design tokens & accessibility (a11y), and i18n localization (`audit-i18n.ps1`).
    - **`ask-release-manager`**: SemVer calculation (`calculate-semver.ps1`), automated changelog generation (`generate-changelog.ps1`), CI/CD workflow auditing (`lint-ci-workflows.ps1`), security CVE audits (`run-security-audit.ps1`, `scan-guardrails.ps1`), and release tag pushes.
 
 7. **Dynamic Model & Reasoning Allocation (Quota Protection)**:

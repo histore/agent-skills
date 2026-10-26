@@ -120,35 +120,35 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 
 | Script | Relevant Role(s) | Functionality |
 | :--- | :--- | :--- |
-| `detect-models.ps1/.sh` | `Control` | Probes active environment, model catalog, and cost-guardrail thresholds with 24-hour persistent local disk caching. |
-| `detect-tech-stack.ps1/.sh` | `Control`, `Developer` | Auto-detects programming languages, build systems, package managers, and test runners. |
-| `run-fast-gate.ps1/.sh` | `Verifikation`, `Developer` | Stage 1 Zero-Token compiler, linter, and quiet test suite fast gate. |
-| `run-all-gates.ps1/.sh` | `Verifikation`, `Control` | Unified quality gates orchestrator running all static zero-token linters and Stage 1 fast gate. |
-| `lint-clean-architecture.ps1/.sh` | `CodeReviewer`, `Verifikation` | Evaluates declarative layer import boundaries ([`rules/clean-architecture.json`](rules/clean-architecture.json)) and code metric limits. |
-| `scan-guardrails.ps1/.sh` | `SecurityAuditor`, `CommitManager` | Pre-commit scanner enforcing Safe Rust (0 `unsafe`), secret leak prevention, and terminal hygiene. |
-| `lint-requirements.ps1/.sh` | `RequirementEngineer` | Validates requirement formatting, duplicate detection, and allocates scoped IDs (`REQ-<SCOPE>-XXX`). |
-| `calculate-semver.ps1/.sh` | `ReleaseManager` | Parses Conventional Commits to deterministically calculate next SemVer tag (`major`, `minor`, `patch`). |
-| `generate-changelog.ps1/.sh` | `ReleaseManager`, `DocumentationSpecialist` | Generates Keep-a-Changelog compatible release notes from git commits since last tag. |
-| `audit-i18n.ps1/.sh` | `LocalizationSpecialist` | Verifies key parity between German (`de`) and English (`en`) localization resource files. |
-| `generate-pr-summary.ps1/.sh` | `PRManager` | Generates structured PR descriptions, commit listings, and test evidence summaries. |
-| `diagnose-git-state.ps1/.sh` | `GitTroubleshooter` | Analyzes branch state, dirty working tree, diverged commits, and merge/rebase status. |
-| `create-safety-backup.ps1/.sh` | `GitTroubleshooter` | Creates zero-data-loss backup branches and stashes prior to destructive Git operations. |
-| `run-security-audit.ps1/.sh` | `SecurityAuditor`, `DevOpsEngineer` | Universal dependency CVE audit runner (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`). |
-| `check-test-coverage.ps1/.sh` | `Tester`, `Verifikation` | Parses Cobertura XML, LCOV, and coverage JSON to assert coverage threshold compliance. |
-| `collect-test-failures.ps1/.sh` | `Tester`, `Troubleshooter` | Parses JUnit/TRX test reports and extracts compacted failure messages and stack traces. |
-| `benchmark-startup.ps1/.sh` | `PerformanceOptimizer` | Measures cold/warm CLI or application startup latency (min, avg, median, p95, max). |
-| `lint-db-migrations.ps1/.sh` | `DatabaseSpecialist` | Lints database migrations for versioning, `.up.sql`/`.down.sql` symmetry, and destructive DDL statements. |
-| `lint-api-contracts.ps1/.sh` | `ApiContractSpecialist` | Validates OpenAPI schema structure, internal `$ref` pointers, Protobuf tags, and GraphQL schemas. |
-| `find-orphaned-assets.ps1/.sh` | `RefactoringSpecialist`, `DocumentationSpecialist` | Detects unreferenced media files and unindexed modular documentation files. |
-| `lint-ci-workflows.ps1/.sh` | `DevOpsEngineer` | Lints GitHub Actions workflows for syntax, least-privilege `permissions:`, and `-NoProfile` hygiene. |
-| `lint-docs.ps1/.sh` | `DocumentationSpecialist` | Validates relative markdown links (ignoring fenced/inline code) and modular architecture parity. |
-| `inspect-feature-specs.ps1/.sh` | `RequirementEngineer`, `Architekt` | Living modular feature spec inspector, concept scaffolding (`-NewConcept`), and state checkpoint hash tracker. |
-| `get-arch-diff.ps1/.sh` | `ArchitectureSync` | Identifies modified host files since last sync commit, strictly excluding submodules. |
-| `record-telemetry.ps1/.sh` | `Control` | Zero-overhead lifecycle event and duration recorder. |
-| `show-telemetry.ps1/.sh` | `Control` | Formats local telemetry run history. |
-| `run-evals.ps1/.sh` | `Control` | Runs synthetic evaluation cases ([`evals/eval-cases.json`](evals/eval-cases.json)) against governance and skill file invariants. |
-| `setup-agent-skills.ps1/.sh` | Setup / Admin | Automates integration of agent-skills globally (user level) or into target projects (project level) for Antigravity and Copilot. |
-| `test-skills.ps1/.sh` | CI / Quality Gate | Comprehensive 41-step test harness validating all skills, scripts, links, and line endings. |
+| `detect-models.ps1/.sh` | `ask-control` | Probes active environment, model catalog, and cost-guardrail thresholds with 24-hour persistent local disk caching. |
+| `detect-tech-stack.ps1/.sh` | `ask-control` | Auto-detects programming languages, build systems, package managers, and test runners. |
+| `run-fast-gate.ps1/.sh` | `ask-control` | Stage 1 Zero-Token compiler, linter, and quiet test suite fast gate. |
+| `run-all-gates.ps1/.sh` | `ask-control` | Unified quality gates orchestrator running all static zero-token linters and Stage 1 fast gate. |
+| `lint-clean-architecture.ps1/.sh` | `ask-control`, `ask-troubleshooter` | Evaluates declarative layer import boundaries ([`rules/clean-architecture.json`](rules/clean-architecture.json)) and code metric limits. |
+| `scan-guardrails.ps1/.sh` | `ask-release-manager`, `ask-control` | Pre-commit scanner enforcing Safe Rust (0 `unsafe`), secret leak prevention, and terminal hygiene. |
+| `lint-requirements.ps1/.sh` | `ask-contract-specialist` | Validates requirement formatting, duplicate detection, and allocates scoped IDs (`REQ-<SCOPE>-XXX`). |
+| `calculate-semver.ps1/.sh` | `ask-release-manager` | Parses Conventional Commits to deterministically calculate next SemVer tag (`major`, `minor`, `patch`). |
+| `generate-changelog.ps1/.sh` | `ask-release-manager` | Generates Keep-a-Changelog compatible release notes from git commits since last tag. |
+| `audit-i18n.ps1/.sh` | `ask-contract-specialist` | Verifies key parity between German (`de`) and English (`en`) localization resource files. |
+| `generate-pr-summary.ps1/.sh` | `ask-control` | Generates structured PR descriptions, commit listings, and test evidence summaries. |
+| `diagnose-git-state.ps1/.sh` | `ask-git-troubleshooter` | Analyzes branch state, dirty working tree, diverged commits, and merge/rebase status. |
+| `create-safety-backup.ps1/.sh` | `ask-git-troubleshooter` | Creates zero-data-loss backup branches and stashes prior to destructive Git operations. |
+| `run-security-audit.ps1/.sh` | `ask-release-manager` | Universal dependency CVE audit runner (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`). |
+| `check-test-coverage.ps1/.sh` | `ask-control` | Parses Cobertura XML, LCOV, and coverage JSON to assert coverage threshold compliance. |
+| `collect-test-failures.ps1/.sh` | `ask-troubleshooter`, `ask-control` | Parses JUnit/TRX test reports and extracts compacted failure messages and stack traces. |
+| `benchmark-startup.ps1/.sh` | `ask-troubleshooter` | Measures cold/warm CLI or application startup latency (min, avg, median, p95, max). |
+| `lint-db-migrations.ps1/.sh` | `ask-contract-specialist` | Lints database migrations for versioning, `.up.sql`/`.down.sql` symmetry, and destructive DDL statements. |
+| `lint-api-contracts.ps1/.sh` | `ask-contract-specialist` | Validates OpenAPI schema structure, internal `$ref` pointers, Protobuf tags, and GraphQL schemas. |
+| `find-orphaned-assets.ps1/.sh` | `ask-troubleshooter`, `ask-contract-specialist` | Detects unreferenced media files and unindexed modular documentation files. |
+| `lint-ci-workflows.ps1/.sh` | `ask-release-manager` | Lints GitHub Actions workflows for syntax, least-privilege `permissions:`, and `-NoProfile` hygiene. |
+| `lint-docs.ps1/.sh` | `ask-contract-specialist` | Validates relative markdown links (ignoring fenced/inline code) and modular architecture parity. |
+| `inspect-feature-specs.ps1/.sh` | `ask-contract-specialist`, `ask-control` | Living modular feature spec inspector, concept scaffolding (`-NewConcept`), and state checkpoint hash tracker. |
+| `get-arch-diff.ps1/.sh` | `ask-contract-specialist` | Identifies modified host files since last sync commit, strictly excluding submodules. |
+| `record-telemetry.ps1/.sh` | `ask-control` | Zero-overhead lifecycle event and duration recorder. |
+| `show-telemetry.ps1/.sh` | `ask-control` | Formats local telemetry run history. |
+| `run-evals.ps1/.sh` | `ask-control` | Runs synthetic evaluation cases ([`evals/eval-cases.json`](evals/eval-cases.json)) against governance and skill file invariants. |
+| `setup-agent-skills.ps1/.sh` | Setup / Admin | Automates integration of agent-skills globally (user level) or into target projects (with optional `-InitDocs` scaffolding). |
+| `test-skills.ps1/.sh` | CI / Quality Gate | Comprehensive test harness validating all skills, scripts, links, and line endings. |
 
 ## Lifecycle Action Execution Governance
 
@@ -230,6 +230,7 @@ Creates the directory link (`_agents` and/or `.agents`) pointing to this reposit
 - `-TargetProject <dir>` / `-p, --project <dir>`: Path to the target project directory.
 - `-Global` / `-g, --global`: Installs globally in the user configuration.
 - `-FolderType <type>` / `-t, --folder-type <type>`: `_agents` (default), `.agents`, or `both`.
+- `-InitDocs` / `--init-docs`: Auto-detects target project stack and scaffolds `ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/features/`, and `docs/concepts/drafts/`.
 - `-SkipCopilot` / `--skip-copilot`: Skips creating `.github/copilot-instructions.md`.
 - `-Force` / `-f, --force`: Overwrites existing symlinks/junctions or files.
 
@@ -295,13 +296,13 @@ Enables all 5 capability packs, model tier mappings, and the `ask-control` orche
 GitHub Copilot operates in **Sequential Persona Mode** (`Control` -> `Developer` -> `Verifikation` -> `CommitManager`) and can be configured globally or per project.
 
 > [!TIP]
-> **Copilot Efficiency & Lean Skill Selection**:
-> Unlike multi-agent platforms (Antigravity/AGY) that dynamically spawn lightweight parallel subagents (`invoke_subagent`), Copilot executes in a single persistent context window. To optimize token expenditure and prevent unhelpful latency, Copilot relies on a lean, high-signal selection of 12 On-Demand Specialist skills. Core lifecycle roles (`Control`, `Architekt`, `Developer`, `Verifikation`, `CommitManager`) are embedded directly into `.github/copilot-instructions.md` (Zero-Reload Invariant), while ceremony-heavy or subagent-dependent tasks (interactive PR polling, standalone test-runner roles, verbose in-code doc comments) are seamlessly streamlined into the core developer loop.
+> **Copilot Efficiency & V2 Capability Pack Selection**:
+> Unlike multi-agent platforms (Antigravity/AGY) that dynamically spawn lightweight parallel subagents (`invoke_subagent`), Copilot executes in a single persistent context window. To optimize token expenditure and prevent unhelpful latency, Copilot relies on the V2 Architecture's **1 Unified Core Engineer + 4 On-Demand Specialist Capability Packs**. Core lifecycle engineering (`Control`, contracts, Inner-Loop TDD, verification, atomic commits) is embedded directly into `.github/copilot-instructions.md` (Zero-Reload Invariant), while the 4 consolidated specialist capability packs are loaded strictly on demand.
 
 #### A. User Level (Global Machine Scope)
 
 ##### 1. User-Level Copilot Instructions (`~/.copilot/instructions/agent-skills.instructions.md`)
-To ensure that Copilot adheres to Clean Code and Clean Architecture while reliably resolving on-demand specialist skills from any project directory, instructions on user level are maintained as a dedicated reference instruction file with a YAML frontmatter `applyTo: "**/*"`:
+To ensure that Copilot adheres to Clean Code and Clean Architecture while reliably resolving on-demand specialist capability packs from any project directory, instructions on user level are maintained as a dedicated reference instruction file with a YAML frontmatter `applyTo: "**/*"`:
 
 ```yaml
 ---
@@ -322,19 +323,11 @@ All specialist skills and zero-token automation scripts are located in:
 - Skills Root Directory: C:/path/to/agent-skills/skills/
 - Also accessible via personal skills: ~/.agents/skills/ or ~/.copilot/skills/
 
-When encountering specialized tasks, load and follow the corresponding guide on demand:
-- **Requirements & living feature specs**: C:/path/to/agent-skills/skills/ask-requirement-engineer/SKILL.md
-- **Architecture sync from git deltas**: C:/path/to/agent-skills/skills/ask-architecture-sync/SKILL.md
-- **Git anomalies & conflicts**: C:/path/to/agent-skills/skills/ask-git-troubleshooter/SKILL.md
-- **Root cause analysis & bugs**: C:/path/to/agent-skills/skills/ask-troubleshooter/SKILL.md
-- **Adversarial code review**: C:/path/to/agent-skills/skills/ask-code-reviewer/SKILL.md
-- **Safe Fowler refactoring**: C:/path/to/agent-skills/skills/ask-refactoring-specialist/SKILL.md
-- **CI/CD & Docker workflows**: C:/path/to/agent-skills/skills/ask-devops-engineer/SKILL.md
-- **Release & SemVer calculation**: C:/path/to/agent-skills/skills/ask-release-manager/SKILL.md
-- **Security & vulnerability audits**: C:/path/to/agent-skills/skills/ask-security-auditor/SKILL.md
-- **API specifications & contracts**: C:/path/to/agent-skills/skills/ask-api-contract-specialist/SKILL.md
-- **Database migrations & ORM**: C:/path/to/agent-skills/skills/ask-database-specialist/SKILL.md
-- **Internationalization (i18n)**: C:/path/to/agent-skills/skills/ask-localization-specialist/SKILL.md
+When encountering specialized tasks requiring deep domain expertise, consult the corresponding capability pack on demand:
+- **Diagnostics, bug RCA, code review, refactoring & profiling**: C:/path/to/agent-skills/skills/ask-troubleshooter/SKILL.md
+- **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: C:/path/to/agent-skills/skills/ask-git-troubleshooter/SKILL.md
+- **Contracts, living specs, API contracts, DB migrations, UI/UX tokens, a11y & i18n**: C:/path/to/agent-skills/skills/ask-contract-specialist/SKILL.md
+- **Release management, CI/CD, SemVer calculation & security audits**: C:/path/to/agent-skills/skills/ask-release-manager/SKILL.md
 ```
 
 ##### 2. VS Code Copilot Chat Setup

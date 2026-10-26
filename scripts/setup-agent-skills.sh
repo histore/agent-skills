@@ -12,6 +12,7 @@ TARGET_PROJECT=""
 FOLDER_TYPE="_agents"
 GLOBAL_MODE=false
 SKIP_COPILOT=false
+INIT_DOCS=false
 FORCE=false
 
 print_usage() {
@@ -22,6 +23,7 @@ print_usage() {
   echo "  -g, --global             Install globally in user home (~/.gemini/config)"
   echo "  -t, --folder-type <type> Link name: '_agents' (default), '.agents', or 'both'"
   echo "  --skip-copilot           Skip creating .github/copilot-instructions.md"
+  echo "  --init-docs              Scaffold initial ARCHITECTURE.md and docs/ROADMAP.md in target project"
   echo "  -f, --force              Overwrite existing links or files"
   echo "  -h, --help               Show this help message"
 }
@@ -42,6 +44,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-copilot)
       SKIP_COPILOT=true
+      shift
+      ;;
+    --init-docs)
+      INIT_DOCS=true
       shift
       ;;
     -f|--force)
@@ -122,7 +128,7 @@ All specialist skills and zero-token automation scripts are located in:
 When encountering specialized tasks requiring deep domain expertise, consult the corresponding capability pack on demand:
 - **Diagnostics, bug RCA, code review, refactoring & profiling**: ${REPO_ROOT}/skills/ask-troubleshooter/SKILL.md
 - **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: ${REPO_ROOT}/skills/ask-git-troubleshooter/SKILL.md
-- **Contracts, living specs, API contracts, DB migrations & i18n**: ${REPO_ROOT}/skills/ask-contract-specialist/SKILL.md
+- **Contracts, living specs, API contracts, DB migrations, UI/UX tokens, a11y & i18n**: ${REPO_ROOT}/skills/ask-contract-specialist/SKILL.md
 - **Release management, CI/CD, SemVer calculation & security audits**: ${REPO_ROOT}/skills/ask-release-manager/SKILL.md
 EOF
   echo "  [OK] Generated Copilot user instructions: ${USER_INSTRUCTIONS_FILE}"
@@ -175,6 +181,60 @@ else
     else
       cp -f "$COPILOT_TEMPLATE" "$DEST_COPILOT"
       echo "  [OK] Provisioned ${DEST_COPILOT} (Lite Copilot instructions)"
+    fi
+  fi
+
+  # 3. Optional: Bootstrap Living Modular Documentation (--init-docs)
+  if [[ "$INIT_DOCS" == true ]]; then
+    echo ""
+    echo "Bootstrapping Living Modular Documentation in Target Project..."
+    PROJECT_NAME="$(basename "$TARGET_DIR")"
+    DATE_STR="$(date +%Y-%m-%d)"
+    mkdir -p "${TARGET_DIR}/docs/features" "${TARGET_DIR}/docs/concepts/drafts" "${TARGET_DIR}/docs/concepts/archive" "${TARGET_DIR}/docs/architecture/modules"
+
+    ARCH_FILE="${TARGET_DIR}/ARCHITECTURE.md"
+    if [[ -f "$ARCH_FILE" && "$FORCE" != true ]]; then
+      echo "  [SKIP] ARCHITECTURE.md already exists"
+    else
+      cat <<EOF > "$ARCH_FILE"
+# System Architecture Baseline: ${PROJECT_NAME}
+
+> **Status**: APPROVED  
+> **Last Synchronized**: ${DATE_STR}  
+
+## 1. Clean Architecture & Layer Boundaries
+
+Dependencies point strictly inward:
+- **Domain Layer**: Entities, Value Objects, Domain Invariants (zero external framework dependencies).
+- **Application Layer**: Use Cases, Service Contracts, DTOs, Port Interfaces.
+- **Adapters / Presentation Layer**: Controllers, ViewModels, Presenters, Persistence Mappers.
+- **Infrastructure / Drivers Layer**: UI Frameworks, Database Providers, External APIs, CLI/OS Drivers.
+
+## 2. Modular Specifications
+- Living Feature Specifications: [docs/ROADMAP.md](docs/ROADMAP.md)
+- Module Architecture Specs: \`docs/architecture/modules/\`
+EOF
+      echo "  [OK] Scaffolded ARCHITECTURE.md"
+    fi
+
+    ROADMAP_FILE="${TARGET_DIR}/docs/ROADMAP.md"
+    if [[ -f "$ROADMAP_FILE" && "$FORCE" != true ]]; then
+      echo "  [SKIP] docs/ROADMAP.md already exists"
+    else
+      cat <<EOF > "$ROADMAP_FILE"
+# Project Roadmap & Living Feature Index (\`docs/ROADMAP.md\`)
+
+> **System Baseline**: ${PROJECT_NAME}  
+> **Architecture Specification**: [ARCHITECTURE.md](../ARCHITECTURE.md)  
+
+---
+
+## 1. Feature Registry & Lifecycle Tracker
+
+| Phase | Feature ID | Title | Status | Scope | Specification File | Target Release |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+EOF
+      echo "  [OK] Scaffolded docs/ROADMAP.md"
     fi
   fi
 

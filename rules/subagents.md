@@ -4,9 +4,9 @@
 1. **Compound Phased Execution & KV-Cache Continuity (Default)**:
    - Core development workflows execute within a **continuous conversation thread** via phased persona transitions.
    - Preserving prefix continuity unlocks **75–90% prompt caching / KV-cache discounts** across turns and eliminates subagent serialization and cold-start overhead.
-2. **Selective Subagent Forking for Divergent Exploration**:
-   - `invoke_subagent` is reserved strictly for noisy, divergent tasks (e.g. broad repository scans via `research`, external web lookups, or background tasks).
-   - Isolates exploratory search noise from the primary thread, returning concise executive summaries.
+2. **Selective Subagent Forking & Parallel Workspace Isolation**:
+   - `invoke_subagent` is reserved primarily for noisy, divergent tasks (e.g. broad repository scans via `research` with `Model: "flash"`, external web lookups, or background tasks) to isolate search noise from the primary KV-cache prefix.
+   - **Parallel Worktree Execution (`Workspace: "share"` / `"branch"`)**: For complex Profile C architectures or A/B prototyping where genuinely independent modules can be developed or benchmarked in parallel without file-lock collisions, `Control` may dispatch write-enabled subagents in isolated worktrees (`Workspace: "share"`), reviewing and merging verified changes back into the primary workspace.
 3. **Universal Model Tiering & Execution Modes**:
    - Tier mappings, model classes, and budgets defined in [`rules/model-tiers.json`](model-tiers.json).
    - **Task-Complexity-Driven Model Allocation (Dynamic Right-Sizing into 3 Classes)**:
@@ -90,14 +90,18 @@
       - **Purpose-Bound Git Operations**: Git commands (`git status`, branch switching, etc.) are strictly forbidden unless a git-persisted action (commit, push, branch creation, PR) is actively being executed or explicitly requested by the user. Do not check git status proactively during simple file edits.
       - **Context-Relevant Testing**: Test runners and compilation gates are executed strictly when executable production code has been modified and relevant automated tests exist or need to be authored. Do NOT run test suites for documentation, markdown files, comments, static text assets, simple scripts without test suites, or when tests are unrelated to the edited file.
       - **Lightweight Trivial Changes**: Bug fixes, minor tweaks, configuration adjustments, and refactorings do not require bureaucratic upfront ceremonies (e.g. creating formal `REQ-` entries or checking `.arch-sync.json` drift) unless explicitly requested or when architectural boundaries are structurally changed.
+      - **MCP & External Tool Governance (Local-First Priority)**: Deterministic local scripts (`scripts/*.ps1`, `scripts/*.sh`) always take precedence over external MCP server calls for repository, build, lint, or Git operations. Read-only MCP tools (documentation, schema inspection) are permitted on demand; state-mutating MCP operations (database writes, remote issue/PR mutations) strictly obey Atomic Lifecycle Action Governance.
 
 ---
 
 ## Subagent Roles & Governance Mappings
-All 23 specialized subagent roles, their cognitive tiers, reference models, and thinking budgets are declaratively maintained in the Single Source of Truth: [`rules/model-tiers.json`](model-tiers.json).
-- **Core Lifecycle Roles**: `Control`, `RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`.
-- **Lifecycle Specialists (On-Demand)**: `Troubleshooter`, `GitTroubleshooter`, `CodeExplainer`, `RefactoringSpecialist`, `DocumentationSpecialist`, `ArchitectureSync`, `DevOpsEngineer`, `ReleaseManager`, `CodeReviewer`.
-- **Domain Specialists (On-Demand)**: `UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`.
+All 5 consolidated subagent capability packs, their cognitive tiers, reference models, and thinking budgets are declaratively maintained in the Single Source of Truth: [`rules/model-tiers.json`](model-tiers.json).
+- **Core Lifecycle Engineer**: `Control` (`ask-control` — Unified Core Lifecycle Engineer & Orchestrator: Planning, Contracts, Inner-Loop TDD, Two-Stage Quality Gate, Lifecycle Git).
+- **On-Demand Specialist Capability Packs**:
+  - `Troubleshooter` (`ask-troubleshooter`): Systematic RCA, reproduction tests, adversarial code review, safe Fowler refactoring, performance profiling.
+  - `GitTroubleshooter` (`ask-git-troubleshooter`): Git safety, 3-way merge/rebase conflict resolution, reflog recovery, safety backups.
+  - `ContractSpecialist` (`ask-contract-specialist`): Living feature specs, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, UI/UX tokens, a11y, and i18n.
+  - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security CVE audits, Git release tags.
 
 Operational execution instructions are defined exclusively in each role's skill specification in [`skills/`](../skills/).
 

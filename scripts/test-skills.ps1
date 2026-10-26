@@ -757,6 +757,35 @@ if (Test-Path $inspectFeatPs1) {
     }
 }
 
+# 43. Validate setup-agent-skills -InitDocs onboarding and Next-Gen LLM Governance invariants
+Write-Host "`n43. Validating project onboarding (-InitDocs) and Next-Gen LLM Governance..." -ForegroundColor Yellow
+$setupPs1 = Join-Path $repoRoot "scripts\setup-agent-skills.ps1"
+$setupSh = Join-Path $repoRoot "scripts\setup-agent-skills.sh"
+Assert-Condition (Test-Path $setupPs1) "scripts/setup-agent-skills.ps1 exists" "scripts/setup-agent-skills.ps1 not found"
+Assert-Condition (Test-Path $setupSh) "scripts/setup-agent-skills.sh exists" "scripts/setup-agent-skills.sh not found"
+
+$agentsContent = Get-Content -Path (Join-Path $repoRoot "AGENTS.md") -Raw -Encoding UTF8
+Assert-Condition ($agentsContent -match 'MCP & External Tool Governance') "AGENTS.md enforces MCP & External Tool Governance (Local-First Priority)" "AGENTS.md missing MCP & External Tool Governance"
+Assert-Condition ($controlContent -match 'Workspace:\s*"share"') "ask-control documents isolated parallel worktrees (Workspace: share)" "ask-control missing parallel worktree documentation"
+Assert-Condition ($contractContent -match 'Accessibility \(a11y\)') "ask-contract-specialist documents UI/UX Design Tokens & Multimodal Accessibility (a11y)" "ask-contract-specialist missing UI/UX & Accessibility section"
+
+if (Test-Path $setupPs1) {
+    $tempProj = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+    New-Item -ItemType Directory -Path $tempProj | Out-Null
+    try {
+        pwsh -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -TargetProject $tempProj -InitDocs -SkipCopilot | Out-Null
+        $hasInitArch = Test-Path (Join-Path $tempProj "ARCHITECTURE.md")
+        $hasInitRoadmap = Test-Path (Join-Path $tempProj "docs\ROADMAP.md")
+        Assert-Condition ($hasInitArch -and $hasInitRoadmap) "setup-agent-skills.ps1 -InitDocs scaffolds ARCHITECTURE.md and docs/ROADMAP.md" "setup-agent-skills.ps1 -InitDocs failed to scaffold docs"
+    } finally {
+        $linkItem = Get-Item -LiteralPath (Join-Path $tempProj "_agents") -Force -ErrorAction SilentlyContinue
+        if ($linkItem -and ($linkItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+            $linkItem.Delete()
+        }
+        if (Test-Path $tempProj) { Remove-Item -LiteralPath $tempProj -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

@@ -7,7 +7,7 @@ Classify every incoming request before acting and modulate your thinking budget 
 - **Profile 0 (Direct Response - Q&A, Explanations, Read-Only)**: Answer directly and concisely (**Class ECO**, minimal reasoning). **Zero Git commands (`git status`, `git diff`) and zero test execution.**
 - **Profile A (Fast-Track - Bugfixes, Tweaks, Small Features, Docs)**: Bypass formal requirement/architecture ceremony (**Class ECO**). Transition directly: `### [Phase: Developer]` (targeted Inner-Loop TDD) -> `### [Phase: Verifikation]` -> `### [Phase: CommitManager]` (if requested). Omit tests/builds for markdown, comments, or non-executable files.
 - **Profile B (Standard Feature)**: Execute sequentially (**Class BALANCED**, medium reasoning): `### [Phase: Architekt]` (contract) -> `### [Phase: Developer]` (Inner-Loop TDD) -> `### [Phase: Verifikation]` (Two-Stage Gate).
-- **Profile C (Complex / Architectural Redesign / Deep Deadlocks)**: **Class PREMIUM** (extended reasoning). **Mandatory Quota Protection User Gate**: Before consuming large token volumes on Profile C tasks, pause and offer:
+- **Profile C (Complex / Architectural Redesign / Deep Deadlocks)**: **Class PREMIUM** (extended reasoning). **Mandatory Quota Protection User Gate**: Before consuming large token volumes on Profile C tasks, pause and offer `[1] Premium`, `[2] Balanced`, or `[3] Eco` (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`).
 - **Zero-Reload Invariant**: Do **NOT** spend tool calls loading core skill files during Profile 0/A/B tasks; core lifecycle engineering rules are fully defined in this instruction file. Load `SKILL.md` files strictly for the 4 On-Demand Specialists (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`).
 
 ## 2. Core Engineering & Verification Invariants
@@ -36,12 +36,14 @@ Classify every incoming request before acting and modulate your thinking budget 
    - **Lazy Loading (Zero-Full-Parse Invariant)**: Read **only** the central index (`docs/ROADMAP.md` or `REQUIREMENTS.md`) or query via `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase <Phase>` and load strictly the single target spec file.
 8. **Relative Paths Invariant in Documentation**:
    - In all documentation (`*.md`), **always use relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-*.md`). Absolute paths (`C:\...`, `/home/...`, `file:///...`) are strictly forbidden in committed docs.
+9. **MCP & External Tool Governance (Local-First Priority)**:
+   - Deterministic zero-token scripts (`scripts/*.ps1`, `scripts/*.sh`) always take precedence over external MCP servers for local repository, build, lint, or Git operations. Read-only MCP queries (documentation, schema lookups) are auto-approved; state-mutating MCP calls (DB mutations, remote issue/PR writes) require explicit user intent matching Atomic Lifecycle Governance.
 
 ## 3. On-Demand Specialist Workflows (V2 Capability Packs)
 When encountering specialized tasks requiring deep domain expertise, consult the consolidated capability pack guides in `skills/` (or `.agents/skills/` / `_agents/skills/`) on demand:
 - **Diagnostics, bug RCA, code review, refactoring & profiling**: `skills/ask-troubleshooter/SKILL.md`
 - **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: `skills/ask-git-troubleshooter/SKILL.md`
-- **Contracts, living specs, API contracts, DB migrations & i18n**: `skills/ask-contract-specialist/SKILL.md`
+- **Contracts, living specs, API contracts, DB migrations, UI/UX tokens, a11y & i18n**: `skills/ask-contract-specialist/SKILL.md`
 - **Release management, CI/CD, SemVer calculation & security audits**: `skills/ask-release-manager/SKILL.md`
 
 > [!NOTE]
