@@ -56,8 +56,8 @@ if ($CheckSync -or $ExecuteTagAndPush) {
 }
 
 # 2. Get highest SemVer tag reliably
-$rawTags = (git -C $RepoRoot tag -l "v[0-9]*" --sort=-v:refname 2>$null)
-$latestTag = if ($rawTags -and $rawTags.Count -gt 0) { $rawTags[0] } else { $null }
+$rawTags = @(git -C $RepoRoot tag -l "v[0-9]*" --sort=-v:refname 2>$null | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+$latestTag = if ($rawTags.Count -gt 0) { [string]$rawTags[0] } else { $null }
 
 if (-not $latestTag) {
     $latestTag = "v0.0.0"
