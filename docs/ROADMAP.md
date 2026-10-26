@@ -9,8 +9,7 @@
 ## 1. Execution Phases
 
 - **Phase 0: Baseline Architecture & Tooling (VERIFIED)**:
-  - Core Governance, Dynamic Model Allocation & Adaptive Execution Profiles
-  - Complete 23-Role Specialized Catalog (Core Lifecycle, Lifecycle Specialists, Domain Specialists)
+  - V2 Architecture: Unified Core Lifecycle Engineer & 4 On-Demand Specialist Capability Packs
   - Deterministic Zero-Token Script Toolkit & Quality Gate Orchestration
   - Living Modular Documentation, Lazy Loading & Hash-Based Spec Freeze
 - **Phase 1: Dynamic Project Extension (PLANNED)**:

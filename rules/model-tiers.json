@@ -89,7 +89,7 @@
     "compound_execution": {
       "description": "Default primary execution strategy: Single-context continuous execution with phased persona switching (Plan -> Inner-Loop TDD -> Verify -> Commit). Maximizes prompt caching / KV-cache reuse (75-90% token discount) and eliminates multi-agent serialization latency.",
       "client_support": ["antigravity", "copilot", "cursor", "claude_code", "generic_llm"],
-      "zero_reload_core_roles": "In Profile A and Profile B compound execution, core role directives (Architekt, Developer, Verifikation, CommitManager) are already embedded in AGENTS.md / ask-control. Do NOT spend tool calls reading their SKILL.md files; load SKILL.md files only for on-demand specialists or complex edge cases.",
+      "zero_reload_core_roles": "In Profile 0, Profile A, and Profile B compound execution, core lifecycle phases (specifications, Inner-Loop TDD, two-stage verification, atomic commits) are handled directly by the Unified Core Engineer (ask-control / AGENTS.md). Load SKILL.md files strictly for the 4 On-Demand Specialists (ask-troubleshooter, ask-git-troubleshooter, ask-contract-specialist, ask-release-manager).",
       "subagent_policy": "invoke_subagent is reserved strictly for divergent research, broad exploratory repository searches, or independent background sidecars. Exploratory research subagents ('research') should be dispatched with Model='flash' (ECO) to avoid burning flagship quota on file grepping.",
       "phase_reasoning_budgets": {
         "specification_and_architecture": "high",
@@ -108,26 +108,26 @@
           "fallback_model_class": "flash",
           "exception_model_class": "pro",
           "reasoning_budget": "high_extended",
-          "roles": ["Control", "Troubleshooter", "CodeExplainer", "GitTroubleshooter"]
+          "roles": ["Control", "Troubleshooter", "GitTroubleshooter"]
         },
         "tier_2_analytical": {
           "model_class": "inherit",
           "fallback_model_class": "flash",
           "exception_model_class": "pro",
           "reasoning_budget": "high",
-          "roles": ["Architekt", "RequirementEngineer", "Verifikation", "UIDesigner", "PerformanceOptimizer", "SecurityAuditor", "DatabaseSpecialist", "ApiContractSpecialist", "CodeReviewer"]
+          "roles": ["ContractSpecialist"]
         },
         "tier_3_balanced": {
           "model_class": "inherit",
           "fallback_model_class": "flash",
           "reasoning_budget": "low",
-          "roles": ["Developer", "Tester", "LocalizationSpecialist", "DocumentationSpecialist", "RefactoringSpecialist", "ArchitectureSync", "DevOpsEngineer"]
+          "roles": []
         },
         "tier_4_fast_deterministic": {
           "model_class": "flash",
           "fallback_model_class": "flash_lite",
           "reasoning_budget": "low_minimal",
-          "roles": ["CommitManager", "PRManager", "ReleaseManager"]
+          "roles": ["ReleaseManager"]
         }
       }
     },

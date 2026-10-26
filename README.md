@@ -13,68 +13,46 @@ All skills and rules are designed to be general and reusable across diverse soft
 ```text
 agent-skills/
 ├── AGENTS.md               # Master guidelines and subagent governance rules
+├── COMMON_WORKFLOWS.md     # Engineering workflows & invocation cheat sheet (AGY & Copilot)
+├── ARCHITECTURE.md         # System architecture baseline
 ├── rules/
 │   ├── clean-architecture.json # Declarative Clean Architecture layer rules and metric thresholds
 │   ├── model-tiers.json    # Universal model tier mapping and thinking budgets
 │   └── subagents.md        # Architectural rules and context-isolation protocol
 ├── scripts/                # Zero-token deterministic automation, linting, and verification scripts
-└── skills/                 # 23 specialized subagent skills
-    ├── ask-api-contract-specialist/
-    ├── ask-architect/
-    ├── ask-architecture-sync/
-    ├── ask-code-explainer/
-    ├── ask-code-reviewer/
-    ├── ask-commit-manager/
-    ├── ask-control/
-    ├── ask-database-specialist/
-    ├── ask-developer/
-    ├── ask-devops-engineer/
-    ├── ask-documentation-specialist/
-    ├── ask-git-troubleshooter/
-    ├── ask-localization-specialist/
-    ├── ask-performance-optimizer/
-    ├── ask-pr-manager/
-    ├── ask-refactoring-specialist/
-    ├── ask-release-manager/
-    ├── ask-requirement-engineer/
-    ├── ask-security-auditor/
-    ├── ask-tester/
-    ├── ask-troubleshooter/
-    ├── ask-ui-designer/
-    └── ask-verification/
+└── skills/                 # 5 Consolidated Capability Packs
+    ├── ask-control/                # Unified Core Lifecycle Engineer & Orchestrator
+    ├── ask-troubleshooter/         # Diagnostics, Bug RCA, Adversarial Review, Refactoring & Profiling
+    ├── ask-git-troubleshooter/     # Git Safety, Conflicts & Recovery (Zero Data Loss)
+    ├── ask-contract-specialist/    # Living Specs, API Contracts, DB Migrations, Arch Sync & i18n
+    └── ask-release-manager/        # Release Automation, DevOps, SemVer & Security Audits
 ```
 
-## Available Subagent Roles
+> [!TIP]
+> **Daily Development Cheat Sheet**:
+> For practical prompt patterns, dual-system command mappings, and execution workflows comparing Google Antigravity and GitHub Copilot, see [COMMON_WORKFLOWS.md](COMMON_WORKFLOWS.md).
 
-### Core Lifecycle Roles (Standard Workflow)
-1. **Control**: Central workflow orchestrator, adaptive execution profile dispatcher (Fast-Track, Standard, Complex), model tier/reasoning manager, loop circuit breaker, and coordinator of the Developer Testing & Review gate.
-2. **RequirementEngineer** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 / Gemini 3.8 Flash (High)`): Translates user requirements into Given-When-Then acceptance criteria, managing single-file or modular requirements scaling (`docs/requirements/modules/*.md`), namespaced IDs, and duplicate/conflict detection (Tier 1 for Complex/Architectural profiles).
-3. **Architekt** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 / Gemini 3.8 Flash (High)`): Defines contracts, interfaces, dependency management, and layer boundaries following Clean Architecture. Authors modular specifications and optional skeleton stubs for complex decoupling (Tier 1 for Complex/Architectural profiles).
-4. **Developer** (`Tier 3 | Balanced Reasoning` - Ref: `Gemini 3.8 Flash (Medium) / Claude Sonnet 5.5 (Medium)`): Implements production code and unit tests via **Inner-Loop TDD** (Red-Green-Refactor), adhering to Clean Code, targeted test feedback loops (max 3 iterations), and test integrity guardrails.
-5. **Tester** (`Tier 3 | Balanced Reasoning` - Ref: `Gemini 3.8 Flash (Medium) / Claude Sonnet 5.5 (Medium)`): Designs and implements integration test suites, boundary stress tests, and reproduction tests, certifying 100% pass rates post-implementation via the native quiet test runner (AAA pattern, 0 failures).
-6. **Verifikation** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 / Gemini 3.8 Flash (High)`): Two-Stage Quality Gate: deterministic machine checks (build, lint, testrunner) followed by concise requirements, architectural traceability, and logical correctness audit (consulting `CodeReviewer` for deep adversarial defect analysis when needed).
-7. **CommitManager** (`Tier 4 | Fast Deterministic` - Ref: `Gemini 3.8 Flash (Low)`): Manages Git commit and push actions with atomic isolation, state-driven prerequisite resolution, interactive message confirmation, and proactive next-step recommendations.
-8. **PRManager** (`Tier 4 | Fast Deterministic` - Ref: `Gemini 3.8 Flash (Low)`): Manages the Pull Request lifecycle (`gh pr create`, delayed-polling CI checks, squash-merge, and proactive next steps) strictly on-demand after developer approval.
+## Available Roles & Capability Packs (V2 Architecture)
 
-### General Support Roles (Lifecycle Specialists)
-9. **Troubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Claude Opus 5.5 / Gemini 3.8 Flash (High)`): Diagnoses bugs, analyzes call stacks and event hierarchies, identifies root causes, and specifies minimal failing reproduction tests for Inner-Loop or Tester TDD handoffs.
-10. **RefactoringSpecialist** (`Tier 3 | Balanced Reasoning` - Ref: `Gemini 3.8 Flash (Medium) / Claude Sonnet 5.5 (Medium)`): On-demand specialist auditing code smells and technical debt, designing and executing safe, test-backed Fowler refactorings.
-11. **DocumentationSpecialist** (`Tier 3 | Balanced Reasoning` - Ref: `Gemini 3.8 Flash (Medium)`): On-demand specialist authoring API doc comments, user manuals, CHANGELOG.md, and in-app help guides in English.
-12. **ReleaseManager** (`Tier 4 | Fast Deterministic` - Ref: `Gemini 3.8 Flash (Low)`): Manages deployment pipelines, packaging, SemVer tag calculation, branch/sync prerequisite validation, and tag creation & push upon user approval.
-13. **CodeExplainer** (`Tier 1 | High/Extended Thinking` - Ref: `Claude Opus 5.5 / Gemini 3.8 Flash (High)`): Analyzes and explains source code, control/data flows, and architectural decisions in the user's OS language, inserting didactic comments directly into code files (in English by default, or in a user-specified language).
-14. **ArchitectureSync** (`Tier 3 | Balanced Reasoning` - Ref: `Gemini 3.8 Flash (Medium)`): Incrementally audits and synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/*.md`) from git deltas, using zero-token pre-filtering scripts (`get-arch-diff`) to eliminate context bloat.
-15. **GitTroubleshooter** (`Tier 1 | High/Extended Thinking` - Ref: `Claude Opus 5.5 / Gemini 3.8 Flash (High)`): Diagnoses repository anomalies, resolves complex three-way merge, rebase, and cherry-pick conflicts, safely recovers lost commits or detached states via reflog, and enforces a strict zero-data-loss safety protocol (backup snapshots, automated build & test gates).
-16. **DevOpsEngineer** (`Tier 3 | Balanced Reasoning` - Ref: `Gemini 3.8 Flash (Medium) / Claude Sonnet 5.5 (Medium)`): Authors and maintains CI/CD automation workflows (GitHub Actions), multi-stage Dockerfiles, compose environments, build matrices, and deployment configurations.
-17. **CodeReviewer** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 (High) / Gemini 3.8 Flash (High)`): Adversarial static code reviewer specialized in hunting subtle bugs, edge-case regressions, logic flaws, race conditions, resource leaks, and unhandled boundary states in diffs, PRs, or target source files.
+### 1. Unified Core Lifecycle Engineer (`ask-control`)
+- **Control** (`Tier 1 | Extended Thinking` / `Tier 3 | Low-Minimal` during Inner-Loop implementation):
+  Universal central workflow orchestrator and full-lifecycle software engineer. Executes end-to-end development phases via **Compound Phased Execution** in Antigravity or **Sequential Persona Transitions** in GitHub Copilot:
+  - **Dynamic Tech Stack Discovery**: Dynamically identifies project language, framework, and test runners without hardcoded assumptions.
+  - **T-Shirt Sizing & Execution Profiles**: Profile 0 (Direct Response, zero git/tests), Profile A (Fast-Track Developer Inner-Loop TDD), Profile B (Standard feature engineering with contracts), Profile C (Complex architecture redesigns).
+  - **Inner-Loop TDD**: Author targeted unit tests (AAA pattern), implement Clean Code, in-place refactor, adhere to 3-iteration circuit breaker, and enforce Safe Rust (zero `unsafe`).
+  - **Two-Stage Quality Gate**: Single-command deterministic Stage-1 fast-gate (`pwsh -NoProfile -File ./scripts/run-fast-gate.ps1`), followed by Stage-2 concise requirement and Clean Architecture verification.
+  - **Lifecycle Action Governance**: Atomic Git commits and PR creation with host workspace scoping and submodule isolation (`_agents`/`.agents`).
 
-### Domain Specialists (On-Demand / Consulted by Skills)
-Domain specialists are **not** part of the default linear workflow. They are engaged conditionally by `Control` when appropriate for the task, or consulted directly by other skills (Developer, Architekt, Troubleshooter, Verifikation) to resolve domain-specific details:
-18. **UIDesigner** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 / Gemini 3.8 Flash (High)`): UI/UX ergonomics, interaction flows, layout hierarchy, and design tokens for the project's UI environment.
-19. **LocalizationSpecialist** (`Tier 3 | Balanced Reasoning` - Ref: `Gemini 3.8 Flash (Medium)`): i18n audits, 0% hardcoded strings, and bilingual dictionaries (`de`/`en`) in the project's localization format.
-20. **PerformanceOptimizer** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 (High) / Gemini 3.8 Flash (High)`): Low-level profiling, allocation reduction, memory leak prevention, and throughput optimization.
-21. **SecurityAuditor** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 (High) / Gemini 3.8 Flash (High)`): Command execution safety, secret leak prevention, dependency CVE audits via ecosystem tools, path traversal prevention, and secure serialization.
-22. **DatabaseSpecialist** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 (High) / Gemini 3.8 Flash (High)`): Database schema design, ORM persistence mappings, reversible migrations, indexing strategies, and N+1 query avoidance.
-23. **ApiContractSpecialist** (`Tier 2 | High Reasoning` - Ref: `Claude Sonnet 5.5 / Gemini 3.8 Flash (High)`): API design and contract governance specialist for OpenAPI 3.x, gRPC/Protobuf, GraphQL, RFC 7807 Problem Details, and non-breaking contract evolution.
+### 2. On-Demand Specialist Capability Packs
+Four domain-specific capability packs engaged conditionally when deep specialization is required:
+1. **Troubleshooter** (`ask-troubleshooter`, `Tier 1 | Deep Reasoning`):
+   Consolidated diagnostics and code health: systematic root cause analysis (RCA), failing reproduction test specifications (Phase RED), adversarial code review (hunting edge-case regressions, concurrency hazards, memory leaks), safe Fowler refactoring, and startup/throughput profiling (`benchmark-startup.ps1`).
+2. **GitTroubleshooter** (`ask-git-troubleshooter`, `Tier 1 | Deep Reasoning`):
+   Git safety and recovery: diagnoses repository anomalies (`diagnose-git-state.ps1`), creates pre-mutation safety snapshots (`create-safety-backup.ps1`), resolves 3-way merge/rebase conflicts, recovers detached states via reflog, and enforces a strict zero-data-loss invariant.
+3. **ContractSpecialist** (`ask-contract-specialist`, `Tier 2 | Analytical`):
+   System specifications and contracts: authors living feature specs (`docs/features/FEAT-*.md`) and concept tracks (`concept > req > impl` and `concept > impl`) via `inspect-feature-specs.ps1`, requirements governance (`lint-requirements.ps1`), REST OpenAPI / gRPC Protobuf contracts (`lint-api-contracts.ps1`), database migrations and ORM models (`lint-db-migrations.ps1`), incremental architecture synchronization (`get-arch-diff.ps1`), and bilingual i18n audits (`audit-i18n.ps1`).
+4. **ReleaseManager** (`ask-release-manager`, `Tier 4 | Fast Deterministic`):
+   Release automation, DevOps, and security: calculates SemVer bumps (`calculate-semver.ps1`), generates release notes and `CHANGELOG.md` (`generate-changelog.ps1`), audits GitHub Actions workflows and Dockerfiles (`lint-ci-workflows.ps1`), runs dependency CVE and secret security audits (`run-security-audit.ps1`, `scan-guardrails.ps1`), and creates clean Git release tags on `main`.
 
 ## Four-Step Codebase Analysis Protocol
 
@@ -88,6 +66,16 @@ Whenever an agent explores, analyzes, or debugs a codebase, it must strictly pro
 > [!IMPORTANT]
 > **Modular Architecture Depth & Context Isolation**:
 > Architecture documents must be sufficiently detailed (interfaces, records, state transitions, threading guarantees) so that broad, whole-repository code scans are prevented. At the same time, maintaining separate files per module (`docs/architecture/modules/<module>.md`) ensures that agents only load the single relevant module into context, preventing the agent's context window from continuously filling up.
+
+## Living Modular Documentation & Concept Lifecycle
+
+Specifications grow incrementally as isolated files, preventing full-file diffs and context exhaustion. Both **Google Antigravity** and **GitHub Copilot** support two identical lifecycle tracks:
+
+- **Plural Standard (`docs/concepts/`)**: Exploratory RFCs start in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`) and archive to `docs/concepts/archive/` (`inspect-feature-specs.ps1 -ArchiveConcept`). Tooling provides transparent backward compatibility for singular `docs/concept/`.
+- **Track A (`concept > req > impl`)**: Standard and complex features distill refined concepts into formal specifications (`docs/features/FEAT-*.md` with Given-When-Then acceptance criteria). Implementation agents (`Developer`, `Tester`, `Verifikation`) read strictly the single target feature spec and never read concept drafts.
+- **Track B (`concept > impl`)**: Fast-track exploratory prototypes or internal developer tools archive the approved concept draft immediately and implement directly via Developer Inner-Loop TDD, bypassing formal `FEAT-*.md` overhead while strictly maintaining Clean Code, Clean Architecture, unit test authoring, and compiler gates.
+
+For practical prompt patterns across both tracks, see [COMMON_WORKFLOWS.md](COMMON_WORKFLOWS.md).
 
 ## Universal Model Tiering & Compound Execution Strategy
 
@@ -154,6 +142,7 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 | `find-orphaned-assets.ps1/.sh` | `RefactoringSpecialist`, `DocumentationSpecialist` | Detects unreferenced media files and unindexed modular documentation files. |
 | `lint-ci-workflows.ps1/.sh` | `DevOpsEngineer` | Lints GitHub Actions workflows for syntax, least-privilege `permissions:`, and `-NoProfile` hygiene. |
 | `lint-docs.ps1/.sh` | `DocumentationSpecialist` | Validates relative markdown links (ignoring fenced/inline code) and modular architecture parity. |
+| `inspect-feature-specs.ps1/.sh` | `RequirementEngineer`, `Architekt` | Living modular feature spec inspector, concept scaffolding (`-NewConcept`), and state checkpoint hash tracker. |
 | `get-arch-diff.ps1/.sh` | `ArchitectureSync` | Identifies modified host files since last sync commit, strictly excluding submodules. |
 | `record-telemetry.ps1/.sh` | `Control` | Zero-overhead lifecycle event and duration recorder. |
 | `show-telemetry.ps1/.sh` | `Control` | Formats local telemetry run history. |
@@ -249,7 +238,7 @@ Creates the directory link (`_agents` and/or `.agents`) pointing to this reposit
 ### Manual Setup: Google Antigravity (AGY / Gemini)
 
 #### A. User Level (Global Machine Scope)
-Enables all 23 skills, model tier mappings, and the `ask-control` orchestrator globally across all projects on your workstation.
+Enables all 5 capability packs, model tier mappings, and the `ask-control` orchestrator globally across all projects on your workstation.
 
 1. **Link Skills and Rules into User Gemini Config**:
    - **Windows (PowerShell)**:
@@ -305,6 +294,10 @@ Enables all 23 skills, model tier mappings, and the `ask-control` orchestrator g
 
 GitHub Copilot operates in **Sequential Persona Mode** (`Control` -> `Developer` -> `Verifikation` -> `CommitManager`) and can be configured globally or per project.
 
+> [!TIP]
+> **Copilot Efficiency & Lean Skill Selection**:
+> Unlike multi-agent platforms (Antigravity/AGY) that dynamically spawn lightweight parallel subagents (`invoke_subagent`), Copilot executes in a single persistent context window. To optimize token expenditure and prevent unhelpful latency, Copilot relies on a lean, high-signal selection of 12 On-Demand Specialist skills. Core lifecycle roles (`Control`, `Architekt`, `Developer`, `Verifikation`, `CommitManager`) are embedded directly into `.github/copilot-instructions.md` (Zero-Reload Invariant), while ceremony-heavy or subagent-dependent tasks (interactive PR polling, standalone test-runner roles, verbose in-code doc comments) are seamlessly streamlined into the core developer loop.
+
 #### A. User Level (Global Machine Scope)
 
 ##### 1. User-Level Copilot Instructions (`~/.copilot/instructions/agent-skills.instructions.md`)
@@ -330,15 +323,17 @@ All specialist skills and zero-token automation scripts are located in:
 - Also accessible via personal skills: ~/.agents/skills/ or ~/.copilot/skills/
 
 When encountering specialized tasks, load and follow the corresponding guide on demand:
+- **Requirements & living feature specs**: C:/path/to/agent-skills/skills/ask-requirement-engineer/SKILL.md
+- **Architecture sync from git deltas**: C:/path/to/agent-skills/skills/ask-architecture-sync/SKILL.md
 - **Git anomalies & conflicts**: C:/path/to/agent-skills/skills/ask-git-troubleshooter/SKILL.md
 - **Root cause analysis & bugs**: C:/path/to/agent-skills/skills/ask-troubleshooter/SKILL.md
 - **Adversarial code review**: C:/path/to/agent-skills/skills/ask-code-reviewer/SKILL.md
 - **Safe Fowler refactoring**: C:/path/to/agent-skills/skills/ask-refactoring-specialist/SKILL.md
+- **CI/CD & Docker workflows**: C:/path/to/agent-skills/skills/ask-devops-engineer/SKILL.md
 - **Release & SemVer calculation**: C:/path/to/agent-skills/skills/ask-release-manager/SKILL.md
 - **Security & vulnerability audits**: C:/path/to/agent-skills/skills/ask-security-auditor/SKILL.md
 - **API specifications & contracts**: C:/path/to/agent-skills/skills/ask-api-contract-specialist/SKILL.md
 - **Database migrations & ORM**: C:/path/to/agent-skills/skills/ask-database-specialist/SKILL.md
-- **CI/CD & Docker workflows**: C:/path/to/agent-skills/skills/ask-devops-engineer/SKILL.md
 - **Internationalization (i18n)**: C:/path/to/agent-skills/skills/ask-localization-specialist/SKILL.md
 ```
 

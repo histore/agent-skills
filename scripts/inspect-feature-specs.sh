@@ -103,8 +103,12 @@ for t in "$REPO_ROOT/docs/templates/CONCEPT_TEMPLATE.md" \
     fi
 done
 
-CONCEPTS_DRAFT_DIR="$REPO_ROOT/docs/concepts/drafts"
-CONCEPTS_ARCHIVE_DIR="$REPO_ROOT/docs/concepts/archive"
+CONCEPTS_DIR_NAME="concepts"
+if [ -d "$REPO_ROOT/docs/concept" ] && [ ! -d "$REPO_ROOT/docs/concepts" ]; then
+    CONCEPTS_DIR_NAME="concept"
+fi
+CONCEPTS_DRAFT_DIR="$REPO_ROOT/docs/$CONCEPTS_DIR_NAME/drafts"
+CONCEPTS_ARCHIVE_DIR="$REPO_ROOT/docs/$CONCEPTS_DIR_NAME/archive"
 
 # Action: Scaffolding a new concept draft
 if [ "$ACTION" = "new-concept" ]; then
@@ -166,9 +170,9 @@ EOF
     fi
 
     if [ "$JSON_OUTPUT" -eq 1 ]; then
-        echo "{\"status\":\"created\",\"id\":\"$CID\",\"title\":\"$NEW_TITLE\",\"file\":\"docs/concepts/drafts/$FILE_NAME\"}"
+        echo "{\"status\":\"created\",\"id\":\"$CID\",\"title\":\"$NEW_TITLE\",\"file\":\"docs/$CONCEPTS_DIR_NAME/drafts/$FILE_NAME\"}"
     else
-        echo "Created concept draft: docs/concepts/drafts/$FILE_NAME"
+        echo "Created concept draft: docs/$CONCEPTS_DIR_NAME/drafts/$FILE_NAME"
     fi
     exit 0
 fi
@@ -192,9 +196,9 @@ if [ "$ACTION" = "archive-concept" ]; then
     rm -f "$MATCHING_FILE"
 
     if [ "$JSON_OUTPUT" -eq 1 ]; then
-        echo "{\"status\":\"archived\",\"id\":\"$FILTER_ID\",\"source\":\"docs/concepts/drafts/$BASE_NAME\",\"destination\":\"docs/concepts/archive/$BASE_NAME\"}"
+        echo "{\"status\":\"archived\",\"id\":\"$FILTER_ID\",\"source\":\"docs/$CONCEPTS_DIR_NAME/drafts/$BASE_NAME\",\"destination\":\"docs/$CONCEPTS_DIR_NAME/archive/$BASE_NAME\"}"
     else
-        echo "Archived concept: docs/concepts/archive/$BASE_NAME"
+        echo "Archived concept: docs/$CONCEPTS_DIR_NAME/archive/$BASE_NAME"
     fi
     exit 0
 fi

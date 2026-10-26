@@ -11,7 +11,7 @@
       "input": "Erkläre mir wie das Modul Storage und die InMemory-Implementierung aufgebaut sind.",
       "expected": {
         "profile": "Profile 0",
-        "primary_role": "CodeExplainer",
+        "primary_role": "Control",
         "prohibited_actions": [
           "git status",
           "git branch",
@@ -37,10 +37,9 @@
       "input": "Fixe den NullReferenceException-Fehler im UserMapper wenn email null ist.",
       "expected": {
         "profile": "Profile A",
-        "primary_role": "Developer",
+        "primary_role": "Control",
         "bypassed_roles": [
-          "RequirementEngineer",
-          "Architekt"
+          "ContractSpecialist"
         ],
         "prohibited_actions": [
           "docs/requirements/modules",
@@ -61,9 +60,7 @@
       "expected": {
         "profile": "Profile B",
         "workflow_sequence": [
-          "Architekt",
-          "Developer",
-          "Verifikation"
+          "Control"
         ],
         "required_invariants": [
           "contract_first",
@@ -120,7 +117,7 @@
       "description": "CommitManager and PRManager must never commit or stage changes originating within _agents or .agents submodules into host repo.",
       "input": "Führe commit für die Änderungen am AuthenticationService durch.",
       "expected": {
-        "primary_role": "CommitManager",
+        "primary_role": "Control",
         "prohibited_staging_paths": [
           "_agents/",
           ".agents/",
@@ -204,7 +201,7 @@
       "description": "Verifikation enforces a single-command machine gate for build, quiet tests, linter, clean architecture, and guardrails.",
       "input": "Überprüfe die Änderungen nach der Implementierung von AuthenticationService.",
       "expected": {
-        "primary_role": "Verifikation",
+        "primary_role": "Control",
         "required_invariants": [
           "fast_gate_consolidated"
         ]

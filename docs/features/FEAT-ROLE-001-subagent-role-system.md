@@ -16,7 +16,7 @@ depends_on: ["FEAT-GOV-001"]
 > **Parent Hub / Index**: `docs/ROADMAP.md`
 
 ## 1. Executive Summary & Objective
-Provides 23 specialized agent roles categorized into Core Lifecycle, Lifecycle Specialists, and Domain Specialists. Each role defines unambiguous frontmatter, argument handling, calibrated cognitive tiers, and specialized execution rules.
+Provides the V2 Architecture: 1 Unified Core Lifecycle Engineer (`ask-control`) and 4 On-Demand Specialist Capability Packs (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`). Each role defines unambiguous frontmatter, argument handling, calibrated cognitive tiers, and specialized execution rules.
 
 ---
 
@@ -28,20 +28,20 @@ Provides 23 specialized agent roles categorized into Core Lifecycle, Lifecycle S
 ---
 
 ## 3. Acceptance Criteria (Given-When-Then)
-- [x] **AC-1**: **Given** all 23 skills in `skills/`, **When** validated by the testing suite, **Then** all directories contain a valid `SKILL.md` with proper YAML frontmatter (`name`, `description`).
+- [x] **AC-1**: **Given** all 5 skills in `skills/`, **When** validated by the testing suite, **Then** all directories contain a valid `SKILL.md` with proper YAML frontmatter (`name`, `description`).
 - [x] **AC-2**: **Given** specialized tasks (such as i18n, DB migrations, or Git conflicts), **When** triggered, **Then** engage corresponding specialists on-demand without imposing serial overhead on unaffected commits.
 - [x] **AC-3**: **Given** model allocations, **When** roles are dispatched, **Then** map roles to cost-efficient models according to `rules/model-tiers.json`.
 
 ---
 
 ## 4. Non-Goals / Out of Scope
-- Mandatory execution of all 23 roles on every commit (anti-ceremony invariant).
+- Mandatory execution of all roles on every commit (anti-ceremony invariant).
 
 ---
 
 ## 5. Architecture & Technical Constraints
 - **Role Specifications**: Located in `skills/<role-name>/SKILL.md`.
-- **Model Registration**: All 23 roles registered in `rules/model-tiers.json`.
+- **Model Registration**: All 5 roles registered in `rules/model-tiers.json`.
 - **Ghost Role Invariant**: Zero references to deprecated roles.
 
 ---

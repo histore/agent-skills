@@ -59,7 +59,7 @@ if ($modelTiersExist) {
             $tierDispatch.tier_3_balanced.roles +
             $tierDispatch.tier_4_fast_deterministic.roles
         )
-        Assert-Condition ($registeredRoles.Count -eq 23) "All 23 roles are registered in model-tiers.json (Found $($registeredRoles.Count))" "Expected 23 roles in model-tiers.json, but found $($registeredRoles.Count)"
+        Assert-Condition ($registeredRoles.Count -eq 5) "All 5 roles are registered in model-tiers.json (Found $($registeredRoles.Count))" "Expected 5 roles in model-tiers.json, but found $($registeredRoles.Count)"
 
         # Validate Cost-Efficiency Policy
         $hasCostEfficiency = ($null -ne $modelTiersData.cost_efficiency_policy -and $modelTiersData.cost_efficiency_policy.default_to_cost_efficient -eq $true)
@@ -75,10 +75,10 @@ if ($modelTiersExist) {
     }
 }
 
-# 2. Validate all 23 skills in skills/ directory
+# 2. Validate all 5 skills in skills/ directory
 Write-Host "`n2. Validating skills directory structure and frontmatter..." -ForegroundColor Yellow
 $skillDirs = Get-ChildItem -Path $skillsDir -Directory | Sort-Object Name
-Assert-Condition ($skillDirs.Count -eq 23) "Exactly 23 skill directories found in skills/ (Found $($skillDirs.Count))" "Expected 23 skill directories, but found $($skillDirs.Count)"
+Assert-Condition ($skillDirs.Count -eq 5) "Exactly 5 skill directories found in skills/ (Found $($skillDirs.Count))" "Expected 5 skill directories, but found $($skillDirs.Count)"
 
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -230,8 +230,8 @@ if (Test-Path $archDiffSh) {
 }
 Assert-Condition $hasShExclusion "get-arch-diff.sh excludes _agents and .agents submodules" "get-arch-diff.sh missing _agents or .agents exclusion"
 
-# 9. Validate model tier references in all 23 skills
-Write-Host "`n9. Validating model tier references in all 23 skills..." -ForegroundColor Yellow
+# 9. Validate model tier references in all 5 skills
+Write-Host "`n9. Validating model tier references in all 5 skills..." -ForegroundColor Yellow
 $missingTierRef = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -242,9 +242,9 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingTierRef.Count -eq 0) "All 23 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference: $($missingTierRef -join ', ')"
+Assert-Condition ($missingTierRef.Count -eq 0) "All 5 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference: $($missingTierRef -join ', ')"
 
-# 10. Validate Tooling & Path Compatibility and host project orientation in all 23 skills
+# 10. Validate Tooling & Path Compatibility and host project orientation in all 5 skills
 Write-Host "`n10. Validating Tooling & Path Compatibility and host project orientation..." -ForegroundColor Yellow
 $missingPathCompat = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
@@ -258,10 +258,10 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingPathCompat.Count -eq 0) "All 23 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: $($missingPathCompat -join ', ')"
+Assert-Condition ($missingPathCompat.Count -eq 0) "All 5 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: $($missingPathCompat -join ', ')"
 
-# 11. Validate Submodule Asset Resolution in all 23 skills
-Write-Host "`n11. Validating Submodule Asset Resolution in all 23 skills..." -ForegroundColor Yellow
+# 11. Validate Submodule Asset Resolution in all 5 skills
+Write-Host "`n11. Validating Submodule Asset Resolution in all 5 skills..." -ForegroundColor Yellow
 $missingAssetRes = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -272,26 +272,26 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingAssetRes.Count -eq 0) "All 23 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: $($missingAssetRes -join ', ')"
+Assert-Condition ($missingAssetRes.Count -eq 0) "All 5 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: $($missingAssetRes -join ', ')"
 
-# 12. Validate deterministic script lookups in ask-architecture-sync (No recursive disk scans)
-Write-Host "`n12. Validating deterministic script lookups in ask-architecture-sync..." -ForegroundColor Yellow
-$archSyncSkill = Join-Path $skillsDir "ask-architecture-sync\SKILL.md"
-$archSyncContent = Get-Content -Path $archSyncSkill -Raw -Encoding UTF8
-$hasRecursivePs1 = ($archSyncContent -match 'Get-ChildItem.*-Recurse')
-$hasRecursiveSh = ($archSyncContent -match 'find\s+\.\s+-name')
-Assert-Condition (-not $hasRecursivePs1) "ask-architecture-sync does not use recursive Get-ChildItem scans" "ask-architecture-sync still uses recursive Get-ChildItem"
-Assert-Condition (-not $hasRecursiveSh) "ask-architecture-sync does not use recursive find scans" "ask-architecture-sync still uses recursive find"
+# 12. Validate deterministic script lookups in ask-contract-specialist (No recursive disk scans)
+Write-Host "`n12. Validating deterministic script lookups in ask-contract-specialist..." -ForegroundColor Yellow
+$contractSkill = Join-Path $skillsDir "ask-contract-specialist\SKILL.md"
+$contractContent = Get-Content -Path $contractSkill -Raw -Encoding UTF8
+$hasRecursivePs1 = ($contractContent -match 'Get-ChildItem.*-Recurse')
+$hasRecursiveSh = ($contractContent -match 'find\s+\.\s+-name')
+Assert-Condition (-not $hasRecursivePs1) "ask-contract-specialist does not use recursive Get-ChildItem scans" "ask-contract-specialist still uses recursive Get-ChildItem"
+Assert-Condition (-not $hasRecursiveSh) "ask-contract-specialist does not use recursive find scans" "ask-contract-specialist still uses recursive find"
 
 # 13. Validate safe Rust requirement (no unsafe) in governance & skills
 Write-Host "`n13. Validating safe Rust requirement (no unsafe) across governance and skills..." -ForegroundColor Yellow
 $rustAuditFiles = @(
     (Join-Path $repoRoot "AGENTS.md"),
     (Join-Path $repoRoot "rules\subagents.md"),
-    (Join-Path $skillsDir "ask-architect\SKILL.md"),
-    (Join-Path $skillsDir "ask-developer\SKILL.md"),
-    (Join-Path $skillsDir "ask-security-auditor\SKILL.md"),
-    (Join-Path $skillsDir "ask-verification\SKILL.md")
+    (Join-Path $skillsDir "ask-control\SKILL.md"),
+    (Join-Path $skillsDir "ask-troubleshooter\SKILL.md"),
+    (Join-Path $skillsDir "ask-contract-specialist\SKILL.md"),
+    (Join-Path $skillsDir "ask-release-manager\SKILL.md")
 )
 $missingSafeRust = [System.Collections.Generic.List[string]]::new()
 foreach ($f in $rustAuditFiles) {
@@ -311,12 +311,12 @@ $gitTroubleContent = Get-Content -Path $gitTroubleSkill -Raw -Encoding UTF8
 $hasBranchDef = ($gitTroubleContent -match '\$branch\s*=\s*\(git branch --show-current\)')
 Assert-Condition $hasBranchDef "GitTroubleshooter properly resolves `$branch before creating safety snapshot" "GitTroubleshooter uses undefined `$branch in safety snapshot"
 
-# 15. Validate CommitManager submodule isolation guardrail
-Write-Host "`n15. Validating CommitManager submodule isolation guardrail..." -ForegroundColor Yellow
-$commitMgrSkill = Join-Path $skillsDir "ask-commit-manager\SKILL.md"
-$commitMgrContent = Get-Content -Path $commitMgrSkill -Raw -Encoding UTF8
-$hasSubIsolation = ($commitMgrContent -match 'Submodule Isolation Guardrail')
-Assert-Condition $hasSubIsolation "CommitManager enforces Submodule Isolation Guardrail" "CommitManager missing Submodule Isolation Guardrail"
+# 15. Validate Control submodule isolation guardrail
+Write-Host "`n15. Validating Control submodule isolation guardrail..." -ForegroundColor Yellow
+$controlMgrSkill = Join-Path $skillsDir "ask-control\SKILL.md"
+$controlMgrContent = Get-Content -Path $controlMgrSkill -Raw -Encoding UTF8
+$hasSubIsolation = ($controlMgrContent -match 'Submodule Isolation Guardrail')
+Assert-Condition $hasSubIsolation "Control enforces Submodule Isolation Guardrail" "Control missing Submodule Isolation Guardrail"
 
 # 16. Validate get-arch-diff git config host repository scoping (-C flag)
 Write-Host "`n16. Validating get-arch-diff git config host repository scoping..." -ForegroundColor Yellow
@@ -337,15 +337,10 @@ Assert-Condition (-not $hasUnsafeTrim) "ReleaseManager avoids unsafe direct Trim
 $hasSubmoduleStatusIgnore = ($releaseMgrContent -match '--ignore-submodules=dirty' -or $releaseMgrContent -match '_agents')
 Assert-Condition $hasSubmoduleStatusIgnore "ReleaseManager handles submodule dirty status gracefully" "ReleaseManager does not handle submodule dirty status"
 
-# 18. Validate CommitManager and PRManager host workspace change scoping
-Write-Host "`n18. Validating CommitManager and PRManager host workspace change scoping..." -ForegroundColor Yellow
-$hasCommitHostScope = ($commitMgrContent -match 'host workspace' -or $commitMgrContent -match 'host project')
-Assert-Condition $hasCommitHostScope "CommitManager scopes uncommitted changes to host workspace" "CommitManager missing host workspace scoping"
-
-$prMgrSkill = Join-Path $skillsDir "ask-pr-manager\SKILL.md"
-$prMgrContent = Get-Content -Path $prMgrSkill -Raw -Encoding UTF8
-$hasPrHostScope = ($prMgrContent -match 'host project changes')
-Assert-Condition $hasPrHostScope "PRManager scopes uncommitted changes to host project" "PRManager missing host project scoping"
+# 18. Validate Control host workspace change scoping
+Write-Host "`n18. Validating Control host workspace change scoping..." -ForegroundColor Yellow
+$hasCommitHostScope = ($controlMgrContent -match 'host workspace' -or $controlMgrContent -match 'host project')
+Assert-Condition $hasCommitHostScope "Control scopes uncommitted changes to host workspace" "Control missing host workspace scoping"
 
 # 19. Validate Control deterministic detect-models path resolution
 Write-Host "`n19. Validating Control deterministic detect-models path resolution..." -ForegroundColor Yellow

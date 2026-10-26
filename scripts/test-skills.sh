@@ -41,10 +41,10 @@ if [ -f "$MODEL_TIERS_FILE" ]; then
         if jq empty "$MODEL_TIERS_FILE" 2>/dev/null; then
             assert_condition 0 "model-tiers.json is valid JSON" "model-tiers.json has invalid JSON syntax"
             ROLE_COUNT=$(jq '.execution_modes.multi_agent.tier_dispatch | [.[].roles[]] | length' "$MODEL_TIERS_FILE")
-            if [ "$ROLE_COUNT" -eq 23 ]; then
-                assert_condition 0 "All 23 roles are registered in model-tiers.json" "Expected 23 roles, found $ROLE_COUNT"
+            if [ "$ROLE_COUNT" -eq 5 ]; then
+                assert_condition 0 "All 5 roles are registered in model-tiers.json" "Expected 5 roles, found $ROLE_COUNT"
             else
-                assert_condition 1 "All 23 roles are registered in model-tiers.json" "Expected 23 roles, found $ROLE_COUNT"
+                assert_condition 1 "All 5 roles are registered in model-tiers.json" "Expected 5 roles, found $ROLE_COUNT"
             fi
 
             # Validate Cost-Efficiency Policy
@@ -78,10 +78,10 @@ fi
 # 2. Validate skills directory
 echo -e "\n\033[33m2. Validating skills directory structure and frontmatter...\033[0m"
 SKILL_COUNT=$(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l)
-if [ "$SKILL_COUNT" -eq 23 ]; then
-    assert_condition 0 "Exactly 23 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 23 directories"
+if [ "$SKILL_COUNT" -eq 5 ]; then
+    assert_condition 0 "Exactly 5 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 5 directories"
 else
-    assert_condition 1 "Exactly 23 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 23 skill directories, found $SKILL_COUNT"
+    assert_condition 1 "Exactly 5 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 5 skill directories, found $SKILL_COUNT"
 fi
 
 for skill_path in "$SKILLS_DIR"/*; do
@@ -245,8 +245,8 @@ else
     assert_condition 1 "get-arch-diff.sh regex correctly matches and excludes _agents and .agents submodules" "get-arch-diff.sh missing or flawed exclusions"
 fi
 
-# 9. Validate model tier references in all 23 skills
-echo -e "\n\033[33m9. Validate model tier references in all 23 skills...\033[0m"
+# 9. Validate model tier references in all 5 skills
+echo -e "\n\033[33m9. Validate model tier references in all 5 skills...\033[0m"
 MISSING_TIER_REF=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
     skill_name=$(basename "$skill_dir")
@@ -259,12 +259,12 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_TIER_REF[@]} -eq 0 ]; then
-    assert_condition 0 "All 23 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference"
+    assert_condition 0 "All 5 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference"
 else
-    assert_condition 1 "All 23 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json: ${MISSING_TIER_REF[*]}"
+    assert_condition 1 "All 5 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json: ${MISSING_TIER_REF[*]}"
 fi
 
-# 10. Validate Tooling & Path Compatibility and host project orientation in all 23 skills
+# 10. Validate Tooling & Path Compatibility and host project orientation in all 5 skills
 echo -e "\n\033[33m10. Validating Tooling & Path Compatibility and host project orientation...\033[0m"
 MISSING_PATH_COMPAT=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
@@ -280,13 +280,13 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_PATH_COMPAT[@]} -eq 0 ]; then
-    assert_condition 0 "All 23 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation"
+    assert_condition 0 "All 5 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation"
 else
-    assert_condition 1 "All 23 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: ${MISSING_PATH_COMPAT[*]}"
+    assert_condition 1 "All 5 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: ${MISSING_PATH_COMPAT[*]}"
 fi
 
-# 11. Validate Submodule Asset Resolution in all 23 skills
-echo -e "\n\033[33m11. Validating Submodule Asset Resolution in all 23 skills...\033[0m"
+# 11. Validate Submodule Asset Resolution in all 5 skills
+echo -e "\n\033[33m11. Validating Submodule Asset Resolution in all 5 skills...\033[0m"
 MISSING_ASSET_RES=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
     skill_name=$(basename "$skill_dir")
@@ -299,18 +299,18 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_ASSET_RES[@]} -eq 0 ]; then
-    assert_condition 0 "All 23 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution"
+    assert_condition 0 "All 5 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution"
 else
-    assert_condition 1 "All 23 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: ${MISSING_ASSET_RES[*]}"
+    assert_condition 1 "All 5 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: ${MISSING_ASSET_RES[*]}"
 fi
 
-# 12. Validate deterministic script lookups in ask-architecture-sync (No recursive disk scans)
-echo -e "\n\033[33m12. Validating deterministic script lookups in ask-architecture-sync...\033[0m"
-ARCH_SYNC_FILE="$REPO_ROOT/skills/ask-architecture-sync/SKILL.md"
+# 12. Validate deterministic script lookups in ask-contract-specialist (No recursive disk scans)
+echo -e "\n\033[33m12. Validating deterministic script lookups in ask-contract-specialist...\033[0m"
+ARCH_SYNC_FILE="$REPO_ROOT/skills/ask-contract-specialist/SKILL.md"
 if grep -E -q 'Get-ChildItem.*-Recurse|find[[:space:]]+\.[[:space:]]+-name' "$ARCH_SYNC_FILE"; then
-    assert_condition 1 "ask-architecture-sync avoids recursive filesystem scans" "ask-architecture-sync contains recursive scans"
+    assert_condition 1 "ask-contract-specialist avoids recursive filesystem scans" "ask-contract-specialist contains recursive scans"
 else
-    assert_condition 0 "ask-architecture-sync avoids recursive filesystem scans" "ask-architecture-sync contains recursive scans"
+    assert_condition 0 "ask-contract-specialist avoids recursive filesystem scans" "ask-contract-specialist contains recursive scans"
 fi
 
 # 13. Validate safe Rust requirement (no unsafe) in governance & skills
@@ -318,10 +318,10 @@ echo -e "\n\033[33m13. Validating safe Rust requirement (no unsafe) across gover
 RUST_AUDIT_FILES=(
     "$REPO_ROOT/AGENTS.md"
     "$REPO_ROOT/rules/subagents.md"
-    "$REPO_ROOT/skills/ask-architect/SKILL.md"
-    "$REPO_ROOT/skills/ask-developer/SKILL.md"
-    "$REPO_ROOT/skills/ask-security-auditor/SKILL.md"
-    "$REPO_ROOT/skills/ask-verification/SKILL.md"
+    "$REPO_ROOT/skills/ask-control/SKILL.md"
+    "$REPO_ROOT/skills/ask-troubleshooter/SKILL.md"
+    "$REPO_ROOT/skills/ask-contract-specialist/SKILL.md"
+    "$REPO_ROOT/skills/ask-release-manager/SKILL.md"
 )
 MISSING_SAFE_RUST=()
 for rf in "${RUST_AUDIT_FILES[@]}"; do
@@ -347,13 +347,13 @@ else
     assert_condition 1 "GitTroubleshooter properly resolves \$branch before creating safety snapshot" "GitTroubleshooter uses undefined \$branch"
 fi
 
-# 15. Validate CommitManager submodule isolation guardrail
-echo -e "\n\033[33m15. Validating CommitManager submodule isolation guardrail...\033[0m"
-COMMIT_MGR_FILE="$REPO_ROOT/skills/ask-commit-manager/SKILL.md"
-if grep -q 'Submodule Isolation Guardrail' "$COMMIT_MGR_FILE"; then
-    assert_condition 0 "CommitManager enforces Submodule Isolation Guardrail" "CommitManager missing Submodule Isolation Guardrail"
+# 15. Validate Control submodule isolation guardrail
+echo -e "\n\033[33m15. Validating Control submodule isolation guardrail...\033[0m"
+CONTROL_FILE="$REPO_ROOT/skills/ask-control/SKILL.md"
+if grep -q 'Submodule Isolation Guardrail' "$CONTROL_FILE"; then
+    assert_condition 0 "Control enforces Submodule Isolation Guardrail" "Control missing Submodule Isolation Guardrail"
 else
-    assert_condition 1 "CommitManager enforces Submodule Isolation Guardrail" "CommitManager missing Submodule Isolation Guardrail"
+    assert_condition 1 "Control enforces Submodule Isolation Guardrail" "Control missing Submodule Isolation Guardrail"
 fi
 
 # 16. Validate get-arch-diff git config host repository scoping (-C flag)
@@ -387,19 +387,12 @@ else
     assert_condition 1 "ReleaseManager handles submodule dirty status gracefully" "ReleaseManager does not handle submodule dirty status"
 fi
 
-# 18. Validate CommitManager and PRManager host workspace change scoping
-echo -e "\n\033[33m18. Validating CommitManager and PRManager host workspace change scoping...\033[0m"
-if grep -E -q '(host workspace|host project)' "$COMMIT_MGR_FILE"; then
-    assert_condition 0 "CommitManager scopes uncommitted changes to host workspace" "CommitManager missing host workspace scoping"
+# 18. Validate Control host workspace change scoping
+echo -e "\n\033[33m18. Validating Control host workspace change scoping...\033[0m"
+if grep -E -q '(host workspace|host project)' "$CONTROL_FILE"; then
+    assert_condition 0 "Control scopes uncommitted changes to host workspace" "Control missing host workspace scoping"
 else
-    assert_condition 1 "CommitManager scopes uncommitted changes to host workspace" "CommitManager missing host workspace scoping"
-fi
-
-PR_MGR_FILE="$REPO_ROOT/skills/ask-pr-manager/SKILL.md"
-if grep -q 'host project changes' "$PR_MGR_FILE"; then
-    assert_condition 0 "PRManager scopes uncommitted changes to host project" "PRManager missing host project scoping"
-else
-    assert_condition 1 "PRManager scopes uncommitted changes to host project" "PRManager missing host project scoping"
+    assert_condition 1 "Control scopes uncommitted changes to host workspace" "Control missing host workspace scoping"
 fi
 
 # 19. Validate Control deterministic detect-models path resolution

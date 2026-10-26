@@ -119,17 +119,11 @@ All specialist skills and zero-token automation scripts are located in:
 - Skills Root Directory: ${REPO_ROOT}/skills/
 - Also accessible via personal skills: ~/.agents/skills/ or ~/.copilot/skills/
 
-When encountering specialized tasks, load and follow the corresponding guide on demand:
-- **Git anomalies & conflicts**: ${REPO_ROOT}/skills/ask-git-troubleshooter/SKILL.md
-- **Root cause analysis & bugs**: ${REPO_ROOT}/skills/ask-troubleshooter/SKILL.md
-- **Adversarial code review**: ${REPO_ROOT}/skills/ask-code-reviewer/SKILL.md
-- **Safe Fowler refactoring**: ${REPO_ROOT}/skills/ask-refactoring-specialist/SKILL.md
-- **Release & SemVer calculation**: ${REPO_ROOT}/skills/ask-release-manager/SKILL.md
-- **Security & vulnerability audits**: ${REPO_ROOT}/skills/ask-security-auditor/SKILL.md
-- **API specifications & contracts**: ${REPO_ROOT}/skills/ask-api-contract-specialist/SKILL.md
-- **Database migrations & ORM**: ${REPO_ROOT}/skills/ask-database-specialist/SKILL.md
-- **CI/CD & Docker workflows**: ${REPO_ROOT}/skills/ask-devops-engineer/SKILL.md
-- **Internationalization (i18n)**: ${REPO_ROOT}/skills/ask-localization-specialist/SKILL.md
+When encountering specialized tasks requiring deep domain expertise, consult the corresponding capability pack on demand:
+- **Diagnostics, bug RCA, code review, refactoring & profiling**: ${REPO_ROOT}/skills/ask-troubleshooter/SKILL.md
+- **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: ${REPO_ROOT}/skills/ask-git-troubleshooter/SKILL.md
+- **Contracts, living specs, API contracts, DB migrations & i18n**: ${REPO_ROOT}/skills/ask-contract-specialist/SKILL.md
+- **Release management, CI/CD, SemVer calculation & security audits**: ${REPO_ROOT}/skills/ask-release-manager/SKILL.md
 EOF
   echo "  [OK] Generated Copilot user instructions: ${USER_INSTRUCTIONS_FILE}"
 

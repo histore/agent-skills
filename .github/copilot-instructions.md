@@ -8,8 +8,7 @@ Classify every incoming request before acting and modulate your thinking budget 
 - **Profile A (Fast-Track - Bugfixes, Tweaks, Small Features, Docs)**: Bypass formal requirement/architecture ceremony (**Class ECO**). Transition directly: `### [Phase: Developer]` (targeted Inner-Loop TDD) -> `### [Phase: Verifikation]` -> `### [Phase: CommitManager]` (if requested). Omit tests/builds for markdown, comments, or non-executable files.
 - **Profile B (Standard Feature)**: Execute sequentially (**Class BALANCED**, medium reasoning): `### [Phase: Architekt]` (contract) -> `### [Phase: Developer]` (Inner-Loop TDD) -> `### [Phase: Verifikation]` (Two-Stage Gate).
 - **Profile C (Complex / Architectural Redesign / Deep Deadlocks)**: **Class PREMIUM** (extended reasoning). **Mandatory Quota Protection User Gate**: Before consuming large token volumes on Profile C tasks, pause and offer:
-  `[1] PREMIUM (Empfohlen - Maximale Analysetiefe)` | `[2] BALANCED (~70% Quota-Ersparnis)` | `[3] ECO (Minimaler Verbrauch)` (unless already specified via `--eco`, `--balanced`, `--premium`).
-- **Zero-Reload Invariant**: Do **NOT** read core skill files (`ask-developer`, `ask-verification`, `ask-commit-manager`) via tool calls during Profile 0/A/B tasks; their rules are fully defined below. Load `SKILL.md` files only for On-Demand Specialists.
+- **Zero-Reload Invariant**: Do **NOT** spend tool calls loading core skill files during Profile 0/A/B tasks; core lifecycle engineering rules are fully defined in this instruction file. Load `SKILL.md` files strictly for the 4 On-Demand Specialists (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`).
 
 ## 2. Core Engineering & Verification Invariants
 1. **Clean Code & SOLID**:
@@ -31,20 +30,20 @@ Classify every incoming request before acting and modulate your thinking budget 
    - Never run destructive Git commands (`git reset --hard`, `git push --force`) without explicit user instruction. Never stage or commit changes inside `_agents/` or `.agents/` submodules during host project commits.
 7. **Living Modular Documentation & Lazy Loading Protocol**:
    - Grow specifications incrementally as isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md` or `docs/requirements/modules/<module>.md`).
-   - **Concept Distillation & Isolation**: Draft concepts in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`), review/refine with user, distill to `FEAT-*.md` (escalate contradictions to user), and archive to `docs/concepts/archive/`. Downstream implementation roles (`Developer`, `Tester`, `Verifikation`) never inspect concept files.
+   - **Concept Workflows & Isolation**: Draft concepts in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`) and review/refine with user. Standard is plural `docs/concepts/` (`drafts/` and `archive/`), with tooling compatibility for singular `docs/concept/`. Supports two identical tracks:
+     1. **`concept > req > impl` (Standard / Complex Features)**: Distill draft into `docs/features/FEAT-*.md` (escalating contradictions to user) and archive to `docs/concepts/archive/` (`inspect-feature-specs.ps1 -ArchiveConcept`). Downstream implementation roles (`Developer`, `Tester`, `Verifikation`) never inspect concept files directly.
+     2. **`concept > impl` (Fast-Track / Prototypes)**: Approved draft serves directly as working contract, is archived to `docs/concepts/archive/`, and implemented directly via Developer Inner-Loop TDD.
    - **Lazy Loading (Zero-Full-Parse Invariant)**: Read **only** the central index (`docs/ROADMAP.md` or `REQUIREMENTS.md`) or query via `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase <Phase>` and load strictly the single target spec file.
 8. **Relative Paths Invariant in Documentation**:
    - In all documentation (`*.md`), **always use relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-*.md`). Absolute paths (`C:\...`, `/home/...`, `file:///...`) are strictly forbidden in committed docs.
 
-## 3. On-Demand Specialist Workflows (Load Only When Needed)
-Consult these specialized guides in `skills/` (or `.agents/skills/` / `_agents/skills/`) strictly when the task involves their domain:
-- **Requirements & living feature specs**: `skills/ask-requirement-engineer/SKILL.md`
-- **Architecture sync from git deltas**: `skills/ask-architecture-sync/SKILL.md` (`get-arch-diff.ps1`)
-- **Git anomalies / merge conflicts**: `skills/ask-git-troubleshooter/SKILL.md`
-- **Root cause analysis (complex bugs)**: `skills/ask-troubleshooter/SKILL.md`
-- **Adversarial bug & concurrency review**: `skills/ask-code-reviewer/SKILL.md`
-- **Release calculation & SemVer tags**: `skills/ask-release-manager/SKILL.md`
-- **Security & vulnerability audits**: `skills/ask-security-auditor/SKILL.md`
-- **API specifications & contract design**: `skills/ask-api-contract-specialist/SKILL.md`
-- **Database migrations & ORM modeling**: `skills/ask-database-specialist/SKILL.md`
-- **Internationalization (i18n)**: `skills/ask-localization-specialist/SKILL.md`
+## 3. On-Demand Specialist Workflows (V2 Capability Packs)
+When encountering specialized tasks requiring deep domain expertise, consult the consolidated capability pack guides in `skills/` (or `.agents/skills/` / `_agents/skills/`) on demand:
+- **Diagnostics, bug RCA, code review, refactoring & profiling**: `skills/ask-troubleshooter/SKILL.md`
+- **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: `skills/ask-git-troubleshooter/SKILL.md`
+- **Contracts, living specs, API contracts, DB migrations & i18n**: `skills/ask-contract-specialist/SKILL.md`
+- **Release management, CI/CD, SemVer calculation & security audits**: `skills/ask-release-manager/SKILL.md`
+
+> [!NOTE]
+> **Copilot Efficiency & V2 Architecture Rationale**: The V2 Architecture consolidates 23 legacy micro-roles into 1 Core Lifecycle Engineer (`ask-control`, defined in this file) and 4 high-value On-Demand Capability Packs. In Copilot single-thread persona mode, routine development workflows (planning, contract design, Inner-Loop TDD, two-stage verification, atomic commits) execute with zero reload ceremony, while the 4 specialist packs provide deep domain expertise strictly on demand.
+

@@ -12,10 +12,13 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 2. **Clean Code & Best Practices**: SOLID, DRY, KISS, YAGNI, Boy Scout Rule, English comments. In Rust codebases, `unsafe` blocks must not be used.
    - **Relative Paths Invariant**: All documentation (`*.md`), specifications, and feature links MUST strictly use **relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-001.md`). Absolute local paths (`C:\...`, `/home/...`, `file:///...`) are strictly prohibited in committed files.
 3. **Dynamic Tech Stack Specialization**: Discover language, framework, and test commands dynamically without hardcoded assumptions.
-4. **Core Workflow vs. Domain & Lifecycle Specialists**:
-   - **Core Lifecycle Roles**: `Control`, `RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`.
-   - **Default Entry Point Invariant**: All tasks begin with `Control` (`ask-control`). In Copilot (Sequential Persona Mode), personas transition sequentially (`Control` -> `Developer` -> `Verifikation` -> `CommitManager`) within the thread.
-   - **On-Demand Specialist Invocation**: Specialists (`Troubleshooter`, `GitTroubleshooter`, `CodeReviewer`, `RefactoringSpecialist`, `ArchitectureSync`, `DocumentationSpecialist`, `DevOpsEngineer`, `UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`, `ReleaseManager`) engage selectively on-demand.
+4. **Core Lifecycle vs. On-Demand Specialist Capability Packs**:
+   - **Unified Core Lifecycle Engineer**: `Control` (`ask-control`). In both multi-agent (Antigravity) and single-thread (Copilot Sequential Persona Mode), `Control` executes planning, contracts, Inner-Loop TDD, two-stage verification, and atomic Git lifecycle actions directly.
+   - **On-Demand Specialist Capability Packs**: Four high-value specialist packs engage selectively on-demand:
+     - `Troubleshooter` (`ask-troubleshooter`): Systematic Root Cause Analysis, reproduction tests, adversarial code review, Fowler refactoring, and performance profiling.
+     - `GitTroubleshooter` (`ask-git-troubleshooter`): Safety-first Git recovery, 3-way merge/rebase conflict resolution, reflog recovery, and safety backups.
+     - `ContractSpecialist` (`ask-contract-specialist`): Living feature specifications, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, and i18n.
+     - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security CVE audits, and Git release tags.
 5. **Automated Testing, Quality & Inner-Loop TDD**:
    - **Profile 0 (Direct Response - Informational / Read-Only / Trivial)**: Answer directly. **Zero Git operations and zero test execution.**
    - **Profile A (Fast-Track - Bugs, Tweaks, Small Features)**: Direct developer loop (`Developer` -> `Verifikation` -> `CommitManager`). Tests run only when executable code was modified; omitted for markdown, docs, comments, or non-testable files.
@@ -31,7 +34,9 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 7. **Requirements Governance & Modular Architecture**:
    - Small projects (< ~30–50 items) use single `REQUIREMENTS.md`. Scaled systems partition into `docs/requirements/modules/<module>.md` with `REQUIREMENTS.md` as Hub/Registry.
    - **Living Modular Documentation**: Grow specs as isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md`). Updates touch only the single feature file and append a line to `docs/ROADMAP.md` (zero-full-diff guarantee).
-   - **Concept Distillation & Isolation**: Draft in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`), review/refine with user, distill to `FEAT-*.md` (escalating contradictions to user), and archive to `docs/concepts/archive/`. Downstream implementation roles never read concept files.
+   - **Concept Workflows & Isolation**: Draft in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`), review/refine with user. Plural standard is `docs/concepts/` (matching `docs/features/`), with tooling compatibility for singular `docs/concept/`. Supports two identical tracks across all clients:
+     1. **`concept > req > impl` (Standard / Complex Features)**: Distill draft into `docs/features/FEAT-*.md` (escalating contradictions to user) and archive to `docs/concepts/archive/` (`inspect-feature-specs.ps1 -ArchiveConcept`). Downstream implementation roles never read concept files.
+     2. **`concept > impl` (Fast-Track / Prototypes)**: Approved draft serves directly as working contract, is archived to `docs/concepts/archive/`, and implemented directly via Developer Inner-Loop TDD.
    - **Lazy Loading Protocol**: Query features via `scripts/inspect-feature-specs.ps1` or read only the Hub index to load strictly the single affected file. Scoped IDs: `REQ-<SCOPE>-XXX` (`PROPOSED`, `APPROVED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `DEPRECATED`).
 8. **User Decision on Conflicts**: Escalate discrepancies, distillation contradictions, or requirement conflicts directly to user.
 9. **Immutability of Existing Requirements**: Modified only with explicit user instruction.
@@ -43,13 +48,13 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
       - **PREMIUM**: Profile C complex architectures/deadlocks. **Subject to Mandatory Quota Protection User Gate**.
     - **Quota Protection User Gate**: For Profile C / Premium tasks, `Control` pauses and offers `[1] Premium`, `[2] Balanced`, `[3] Eco` to protect quota (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`).
     - **Compound Phased Execution & Zero-Reload Invariant (Default Strategy)**: Single-context phased persona transitions preserve prefix continuity, unlocking 75–90% KV-cache discounts.
-      - **Zero-Reload Core Roles**: In Profile 0/A/B, core rules for `Architekt`, `Developer`, `Verifikation`, and `CommitManager` are embedded here. Do NOT spend tool calls reading their `SKILL.md` files; load `SKILL.md` strictly for On-Demand Specialists.
+      - **Zero-Reload Core Invariant**: In Profile 0/A/B, core rules for planning, contracts, Inner-Loop TDD, verification, and atomic commits are embedded here. Do NOT spend tool calls reading skill files for core tasks; load `SKILL.md` strictly for the 4 On-Demand Specialists.
       - **Zero-Probe Environment Detection**: Determine environment (`multi_agent` if `invoke_subagent` present, else `sequential_persona`) directly from tool declarations without executing `detect-models.ps1` during normal tasks.
     - **Selective Subagent Forking (`invoke_subagent`)**: Reserved strictly for divergent research; dispatch `research` subagents with `Model: "flash"`.
     - **Terminal & Context Hygiene**: Run PowerShell with `-NoProfile` and testrunners in quiet mode (`-q`, `--verbosity quiet`). Telemetry recorded via `scripts/record-telemetry.ps1`.
 12. **Branch & PR Process Model**: Dedicated branches (`feat/`, `fix/`, `refactor/`). Squash-and-merge via PRs after developer testing and passing CI.
     - **Purpose-Bound Git Operations**: Git status/branch checks execute ONLY when committing, pushing, or creating PRs, never proactively during read-only queries or edits.
-13. **Four-Step Codebase Analysis Protocol**: Check baseline (`ARCHITECTURE.md`) -> Sync if needed (`ArchitectureSync`) -> Deduce state from module docs -> Targeted code inspection only when essential. Localized fixes inspect the single file directly.
+13. **Four-Step Codebase Analysis Protocol**: Check baseline (`ARCHITECTURE.md`) -> Sync if needed (`ask-contract-specialist`) -> Deduce state from module docs -> Targeted code inspection only when essential. Localized fixes inspect the single file directly.
 14. **Lifecycle Action Execution Governance (Commit, Push, PR Merge, Release)**:
     - **Strict Atomic Action**: Execute only what was requested (commit does not auto-push).
     - **State-Driven Prerequisites**: Automatically resolve prerequisites (e.g. commit uncommitted changes before push).
@@ -62,9 +67,12 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 
 ## Subagent Roles & Governance Mappings
 Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json):
-- **Core Lifecycle**: `Control`, `RequirementEngineer`, `Architekt`, `Developer`, `Tester`, `Verifikation`, `CommitManager`, `PRManager`.
-- **Lifecycle Specialists**: `Troubleshooter`, `GitTroubleshooter`, `CodeExplainer`, `RefactoringSpecialist`, `DocumentationSpecialist`, `ArchitectureSync`, `DevOpsEngineer`, `ReleaseManager`, `CodeReviewer`.
-- **Domain Specialists**: `UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`.
+- **Core Lifecycle**: `Control` (Unified Core Lifecycle Engineer & Orchestrator: Planning, Contracts, Inner-Loop TDD, Two-Stage Quality Gate, Lifecycle Git).
+- **On-Demand Specialist Capability Packs**:
+  - `Troubleshooter` (`ask-troubleshooter`): RCA, reproduction tests, adversarial review, Fowler refactoring, performance profiling.
+  - `GitTroubleshooter` (`ask-git-troubleshooter`): Git safety, merge/rebase conflict resolution, reflog recovery, safety backups.
+  - `ContractSpecialist` (`ask-contract-specialist`): Living feature specs, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, i18n.
+  - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security audits, Git release tags.
 
 ## Context Isolation & Compaction Protocol
 - Pass downstream agents only the strictly necessary scoped context.

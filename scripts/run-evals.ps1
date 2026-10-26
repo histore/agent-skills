@@ -191,27 +191,27 @@ foreach ($tc in $cases) {
                 }
             }
             "inner_loop_tdd" {
-                $devSkill = Join-Path $repoRoot "skills\ask-developer\SKILL.md"
-                if (-not (Test-Path $devSkill) -or (Get-Content $devSkill -Raw -Encoding UTF8) -notmatch 'Inner-Loop TDD') {
-                    $failures.Add("Invariant 'inner_loop_tdd' missing in ask-developer/SKILL.md")
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Inner-Loop TDD') {
+                    $failures.Add("Invariant 'inner_loop_tdd' missing in ask-control/SKILL.md")
                 }
             }
             "no_unsafe_blocks" {
-                $devSkill = Join-Path $repoRoot "skills\ask-developer\SKILL.md"
-                if (-not (Test-Path $devSkill) -or (Get-Content $devSkill -Raw -Encoding UTF8) -notmatch 'unsafe') {
-                    $failures.Add("Invariant 'no_unsafe_blocks' missing in ask-developer/SKILL.md")
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'unsafe') {
+                    $failures.Add("Invariant 'no_unsafe_blocks' missing in ask-control/SKILL.md")
                 }
             }
             "submodule_boundary_isolation" {
-                $commitSkill = Join-Path $repoRoot "skills\ask-commit-manager\SKILL.md"
-                if (-not (Test-Path $commitSkill) -or (Get-Content $commitSkill -Raw -Encoding UTF8) -notmatch 'Submodule Isolation Guardrail') {
-                    $failures.Add("Invariant 'submodule_boundary_isolation' missing in ask-commit-manager/SKILL.md")
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Submodule Isolation Guardrail') {
+                    $failures.Add("Invariant 'submodule_boundary_isolation' missing in ask-control/SKILL.md")
                 }
             }
             "circuit_breaker_triggered" {
-                $devSkill = Join-Path $repoRoot "skills\ask-developer\SKILL.md"
-                if (-not (Test-Path $devSkill) -or (Get-Content $devSkill -Raw -Encoding UTF8) -notmatch 'maximum of 3') {
-                    $failures.Add("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-developer/SKILL.md")
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'maximum of 3') {
+                    $failures.Add("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-control/SKILL.md")
                 }
             }
             "quota_protection_gate" {
@@ -226,9 +226,9 @@ foreach ($tc in $cases) {
                 }
             }
             "fast_gate_consolidated" {
-                $verifSkill = Join-Path $repoRoot "skills\ask-verification\SKILL.md"
-                if (-not (Test-Path $verifSkill) -or (Get-Content $verifSkill -Raw -Encoding UTF8) -notmatch 'Consolidated Deterministic Fast-Gate') {
-                    $failures.Add("Invariant 'fast_gate_consolidated' missing in ask-verification/SKILL.md")
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Consolidated Deterministic Fast-Gate') {
+                    $failures.Add("Invariant 'fast_gate_consolidated' missing in ask-control/SKILL.md")
                 }
             }
         }

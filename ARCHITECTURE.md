@@ -49,17 +49,20 @@ The toolkit is structured in strict accordance with Clean Architecture principle
 ## 2. Core Subsystems
 
 ### 2.1 Governance & Adaptive Execution Engine
-- **Single Source of Truth**: `rules/model-tiers.json` defines all 23 roles across 4 cognitive tiers (Eco, Balanced, Premium).
+- **Single Source of Truth**: `rules/model-tiers.json` defines all 5 roles across cognitive tiers (Eco, Balanced, Premium).
 - **Execution Profiles**:
   - `Profile 0 (Direct Response)`: Informational only; zero git/test operations.
   - `Profile A (Fast-Track)`: Bug fixes and small tweaks; targeted Inner-Loop TDD; 70–80% token savings.
   - `Profile B (Standard)`: Architectural contract -> Inner-Loop TDD -> Verification Quality Gate.
   - `Profile C (Complex)`: Deep architectural analysis, integration testing, modular contracts, subject to Quota Protection User Gate.
 
-### 2.2 Role Catalog (23 Specialized Personas)
-- **Core Lifecycle**: `ask-control`, `ask-requirement-engineer`, `ask-architect`, `ask-developer`, `ask-tester`, `ask-verification`, `ask-commit-manager`, `ask-pr-manager`.
-- **Lifecycle Specialists**: `ask-troubleshooter`, `ask-git-troubleshooter`, `ask-code-explainer`, `ask-refactoring-specialist`, `ask-documentation-specialist`, `ask-architecture-sync`, `ask-devops-engineer`, `ask-release-manager`, `ask-code-reviewer`.
-- **Domain Specialists**: `ask-ui-designer`, `ask-localization-specialist`, `ask-performance-optimizer`, `ask-security-auditor`, `ask-database-specialist`, `ask-api-contract-specialist`.
+### 2.2 Role Catalog (5 Consolidated Capability Packs)
+- **Core Lifecycle**: `ask-control` (Unified Core Lifecycle Engineer & Orchestrator: Planning, Contracts, Inner-Loop TDD, Two-Stage Quality Gate, Lifecycle Git).
+- **On-Demand Specialist Capability Packs**:
+  - `ask-troubleshooter`: Systematic Diagnostics, Bug RCA, Reproduction Tests, Adversarial Code Review, Fowler Refactoring, Performance Profiling.
+  - `ask-git-troubleshooter`: Git Safety, Merge/Rebase Conflict Resolution, Reflog Recovery, Safety Backups.
+  - `ask-contract-specialist`: Living Feature Specifications, Concept Tracks, Requirements Governance, API Contracts, DB Migrations, Architecture Sync, i18n.
+  - `ask-release-manager`: Release Automation, SemVer Bump Calculation, Changelog Generation, CI/CD Workflows, Security CVE Audits, Git Release Tags.
 
 ### 2.3 Living Modular Documentation & Lazy Loading
 - **Hub-and-Spoke Pattern**: Central `docs/ROADMAP.md` acts as the lightweight registry.

@@ -150,16 +150,18 @@ for c in cases:
             failures.append("Invariant 'zero_git_operations' missing in AGENTS.md")
         elif inv == 'zero_test_execution' and 'zero test execution' not in agents_content:
             failures.append("Invariant 'zero_test_execution' missing in AGENTS.md")
-        elif inv == 'inner_loop_tdd' and 'Inner-Loop TDD' not in read_skill('ask-developer'):
-            failures.append("Invariant 'inner_loop_tdd' missing in ask-developer/SKILL.md")
-        elif inv == 'no_unsafe_blocks' and 'unsafe' not in read_skill('ask-developer'):
-            failures.append("Invariant 'no_unsafe_blocks' missing in ask-developer/SKILL.md")
-        elif inv == 'submodule_boundary_isolation' and 'Submodule Isolation Guardrail' not in read_skill('ask-commit-manager'):
-            failures.append("Invariant 'submodule_boundary_isolation' missing in ask-commit-manager/SKILL.md")
-        elif inv == 'circuit_breaker_triggered' and 'maximum of 3' not in read_skill('ask-developer'):
-            failures.append("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-developer/SKILL.md")
+        elif inv == 'inner_loop_tdd' and 'Inner-Loop TDD' not in read_skill('ask-control'):
+            failures.append("Invariant 'inner_loop_tdd' missing in ask-control/SKILL.md")
+        elif inv == 'no_unsafe_blocks' and 'unsafe' not in read_skill('ask-control'):
+            failures.append("Invariant 'no_unsafe_blocks' missing in ask-control/SKILL.md")
+        elif inv == 'submodule_boundary_isolation' and 'Submodule Isolation Guardrail' not in read_skill('ask-control'):
+            failures.append("Invariant 'submodule_boundary_isolation' missing in ask-control/SKILL.md")
+        elif inv == 'circuit_breaker_triggered' and 'maximum of 3' not in read_skill('ask-control'):
+            failures.append("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-control/SKILL.md")
         elif inv == 'quota_protection_gate' and 'Quota Protection User Gate' not in read_skill('ask-control'):
             failures.append("Invariant 'quota_protection_gate' missing in ask-control/SKILL.md")
+        elif inv == 'fast_gate_consolidated' and 'Consolidated Deterministic Fast-Gate' not in read_skill('ask-control'):
+            failures.append("Invariant 'fast_gate_consolidated' missing in ask-control/SKILL.md")
 
     is_pass = len(failures) == 0
     if is_pass:

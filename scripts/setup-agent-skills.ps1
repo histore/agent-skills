@@ -132,17 +132,11 @@ All specialist skills and zero-token automation scripts are located in:
 - Skills Root Directory: $skillsSlash
 - Also accessible via personal skills: ~/.agents/skills/ or ~/.copilot/skills/
 
-When encountering specialized tasks, load and follow the corresponding guide on demand:
-- **Git anomalies & conflicts**: $skillsSlash/ask-git-troubleshooter/SKILL.md
-- **Root cause analysis & bugs**: $skillsSlash/ask-troubleshooter/SKILL.md
-- **Adversarial code review**: $skillsSlash/ask-code-reviewer/SKILL.md
-- **Safe Fowler refactoring**: $skillsSlash/ask-refactoring-specialist/SKILL.md
-- **Release & SemVer calculation**: $skillsSlash/ask-release-manager/SKILL.md
-- **Security & vulnerability audits**: $skillsSlash/ask-security-auditor/SKILL.md
-- **API specifications & contracts**: $skillsSlash/ask-api-contract-specialist/SKILL.md
-- **Database migrations & ORM**: $skillsSlash/ask-database-specialist/SKILL.md
-- **CI/CD & Docker workflows**: $skillsSlash/ask-devops-engineer/SKILL.md
-- **Internationalization (i18n)**: $skillsSlash/ask-localization-specialist/SKILL.md
+When encountering specialized tasks requiring deep domain expertise, consult the corresponding capability pack on demand:
+- **Diagnostics, bug RCA, code review, refactoring & profiling**: $skillsSlash/ask-troubleshooter/SKILL.md
+- **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: $skillsSlash/ask-git-troubleshooter/SKILL.md
+- **Contracts, living specs, API contracts, DB migrations & i18n**: $skillsSlash/ask-contract-specialist/SKILL.md
+- **Release management, CI/CD, SemVer calculation & security audits**: $skillsSlash/ask-release-manager/SKILL.md
 "@
 
     [System.IO.File]::WriteAllText($userInstructionsFile, ($instructionContent -replace "`r?`n", "`n"), [System.Text.Encoding]::UTF8)

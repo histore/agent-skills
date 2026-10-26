@@ -90,7 +90,8 @@ if (-not $RepoRoot) {
 $featuresDir = Join-Path $RepoRoot "docs\features"
 $roadmapFile = Join-Path $RepoRoot "docs\ROADMAP.md"
 $stateFile = Join-Path $RepoRoot "docs\.spec-state.json"
-$conceptsDir = Join-Path $RepoRoot "docs\concepts"
+$conceptsDirName = if ((Test-Path (Join-Path $RepoRoot "docs\concept")) -and -not (Test-Path (Join-Path $RepoRoot "docs\concepts"))) { "concept" } else { "concepts" }
+$conceptsDir = Join-Path $RepoRoot "docs\$conceptsDirName"
 $conceptsDraftDir = Join-Path $conceptsDir "drafts"
 $conceptsArchiveDir = Join-Path $conceptsDir "archive"
 
@@ -232,13 +233,13 @@ Target Layer: Core Domain / Application
         status = "created"
         id = $cId
         title = $Title
-        file = "docs/concepts/drafts/$fileName"
+        file = "docs/$conceptsDirName/drafts/$fileName"
     }
 
     if ($JsonOutput) {
         $result | ConvertTo-Json -Compress
     } else {
-        Write-Host "Created concept draft: docs/concepts/drafts/$fileName" -ForegroundColor Green
+        Write-Host "Created concept draft: docs/$conceptsDirName/drafts/$fileName" -ForegroundColor Green
     }
     exit 0
 }
@@ -274,14 +275,14 @@ if ($ArchiveConcept) {
     $result = [PSCustomObject]@{
         status = "archived"
         id = $ArchiveConcept
-        source = "docs/concepts/drafts/$($sourceFile.Name)"
-        destination = "docs/concepts/archive/$($sourceFile.Name)"
+        source = "docs/$conceptsDirName/drafts/$($sourceFile.Name)"
+        destination = "docs/$conceptsDirName/archive/$($sourceFile.Name)"
     }
 
     if ($JsonOutput) {
         $result | ConvertTo-Json -Compress
     } else {
-        Write-Host "Archived concept: docs/concepts/archive/$($sourceFile.Name)" -ForegroundColor Green
+        Write-Host "Archived concept: docs/$conceptsDirName/archive/$($sourceFile.Name)" -ForegroundColor Green
     }
     exit 0
 }

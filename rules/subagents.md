@@ -36,24 +36,21 @@
    - **Two-Stage Quality Gate (Shift-Left Validation)**:
      - **Stage 1 (Deterministic Fast-Gate - Zero Tokens)**: Native build (`dotnet build`, `cargo check`), project linter, and quiet native test runner (0 errors, 100% pass) executed deterministically via `run-fast-gate.ps1` (`run-fast-gate.sh`), followed by `check-test-coverage.ps1` (`check-test-coverage.sh`) when coverage reports are present. If failing, immediately return for remediation without consuming LLM tokens on semantic analysis. Only triggered when testable code changes were made.
      - **Stage 2 (Concise Traceability Gate)**: `Verifikation` audits acceptance criteria fulfillment and Clean Architecture boundaries (enforced deterministically via `lint-clean-architecture.ps1` and [`rules/clean-architecture.json`](clean-architecture.json)).
-   - **Test Integrity Guardrail**: Replaces rigid test immutability. The Developer may refine test fixtures, signatures, and assertions to align with real contracts and idiomatic types. Weakening, bypassing, or deleting assertions to fake green tests is strictly forbidden.
    - **Circuit Breaker**: The `Developer`'s local targeted feedback loop (`Code` -> `Run Targeted Tests` -> `Fix`) is limited to a maximum of 3 cycles before escalation.
-   - **On-Demand Specialists**: Domain specialists (`UIDesigner`, `LocalizationSpecialist`, `PerformanceOptimizer`, `SecurityAuditor`, `DatabaseSpecialist`, `ApiContractSpecialist`) and Lifecycle Specialists (`RefactoringSpecialist`, `DocumentationSpecialist`, `ArchitectureSync`) are **not** mandatory serial steps. They are invoked conditionally when explicitly needed.
+   - **On-Demand Specialist Capability Packs**: Four high-value specialist capability packs engage selectively on-demand:
+     - `Troubleshooter` (`ask-troubleshooter`): Root Cause Analysis, reproduction tests, adversarial code review, safe Fowler refactoring, performance profiling.
+     - `GitTroubleshooter` (`ask-git-troubleshooter`): Git safety, 3-way merge/rebase conflict resolution, reflog recovery, safety backups.
+     - `ContractSpecialist` (`ask-contract-specialist`): Living feature specs, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, i18n.
+     - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security audits, Git release tags.
 6. **Systematic Root Cause Analysis & Reproduction TDD**:
-   - The `Troubleshooter` diagnoses bugs, analyzes event hierarchies and call stacks, and delivers an explicit reproduction test specification to `Developer` (for Fast-Track bugfixes) or `Tester` (for Complex pipelines) before or alongside the code fix.
+   - `Troubleshooter` diagnoses bugs, analyzes event hierarchies and call stacks, and delivers an explicit reproduction test specification (Phase RED) before or alongside the code fix.
 7. **Full Internationalization (i18n & l10n)**:
-   - For user-facing interfaces, the `LocalizationSpecialist` enforces 0% hardcoded UI strings, managing bilingual German (`de`) and English (`en`) resource files in the project's native localization format.
+   - Enforced via `ContractSpecialist` (0% hardcoded UI strings, bilingual German `de` and English `en` resource files).
 8. **Performance, Security, Persistence, DevOps & Code Health**:
-   - `PerformanceOptimizer` enforces zero-allocation patterns, memory leak prevention, and throughput optimizations.
-   - `SecurityAuditor` audits command safety, path traversal prevention, dependency CVEs via project ecosystem audit tools, and secure serialization.
-   - `DatabaseSpecialist` governs schema design, migrations, indexing, and ORM persistence architecture.
-   - `ApiContractSpecialist` governs REST/OpenAPI, gRPC/Protobuf, and non-breaking contract evolution.
-   - `DevOpsEngineer` manages CI/CD automation (GitHub Actions), Docker containerization, and build matrices.
-   - `RefactoringSpecialist` audits and remediates technical debt and code smells on-demand.
-   - `DocumentationSpecialist` maintains API doc comments, user manuals, CHANGELOG.md, and in-app help guides in English on-demand.
-   - `ArchitectureSync` incrementally synchronizes system architecture (`ARCHITECTURE.md` and `docs/architecture/modules/`) when git deltas warrant it.
-   - `ReleaseManager` manages packaging, SemVer tags, and manifests.
-   - `GitTroubleshooter` manages repository anomalies, 3-way merge/rebase conflict resolutions, and state recovery under zero-data-loss invariants.
+   - `Troubleshooter` enforces zero-allocation patterns, memory leak prevention, Fowler refactoring, and adversarial review.
+   - `ContractSpecialist` governs API contracts (OpenAPI/gRPC), database migrations, and incremental architecture synchronization (`get-arch-diff.ps1`).
+   - `ReleaseManager` governs CI/CD automation, security CVE audits, and clean Git release tagging on `main`.
+   - `GitTroubleshooter` governs repository anomalies, 3-way merge/rebase conflict resolutions, and state recovery under zero-data-loss invariants.
 9. **Strict Requirements Governance & Modular Architecture**:
    - **Check Against Existing Requirements**: Every new requirement must be validated against existing requirements.
    - **Single-File vs. Modular Hub-and-Spoke Architecture**:
