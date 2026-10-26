@@ -49,8 +49,16 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$copilotTemplate = Join-Path $repoRoot ".github" "copilot-instructions.md"
+$rawRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$repoItem = Get-Item -LiteralPath $rawRepoRoot -Force
+if (($repoItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and $repoItem.Target) {
+    $targetCandidate = if ($repoItem.Target -is [array]) { $repoItem.Target[0] } else { $repoItem.Target }
+    if (Test-Path $targetCandidate) {
+        $rawRepoRoot = (Resolve-Path $targetCandidate).Path
+    }
+}
+$repoRoot = $rawRepoRoot.TrimEnd('\', '/')
+$copilotTemplate = Join-Path $repoRoot ".github\copilot-instructions.md"
 
 function Create-DirectoryLink {
     param(
@@ -59,15 +67,27 @@ function Create-DirectoryLink {
         [bool]$Overwrite
     )
 
+    if ($LinkPath.TrimEnd('\', '/') -ieq $TargetPath.TrimEnd('\', '/')) {
+        Write-Host "  [OK] Path is already the source repository: $LinkPath" -ForegroundColor Green
+        return
+    }
+
     if (Test-Path $LinkPath) {
+        $existingItem = Get-Item -LiteralPath $LinkPath -Force
+        if (($existingItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and $existingItem.Target) {
+            $existingTarget = if ($existingItem.Target -is [array]) { $existingItem.Target[0] } else { $existingItem.Target }
+            if ($existingTarget.TrimEnd('\', '/') -ieq $TargetPath.TrimEnd('\', '/')) {
+                Write-Host "  [OK] Link already points to target: $LinkPath -> $TargetPath" -ForegroundColor Green
+                return
+            }
+        }
         if (-not $Overwrite) {
             Write-Host "  [SKIP] Link already exists: $LinkPath (use -Force to overwrite)" -ForegroundColor Yellow
             return
         }
         Write-Host "  [REMOVE] Existing link/directory: $LinkPath" -ForegroundColor DarkGray
-        $item = Get-Item -LiteralPath $LinkPath -Force
-        if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
-            $item.Delete()
+        if ($existingItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+            $existingItem.Delete()
         } else {
             Remove-Item -LiteralPath $LinkPath -Recurse -Force
         }

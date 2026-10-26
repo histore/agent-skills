@@ -67,8 +67,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 create_symlink() {
-  local link_path="$1"
-  local target_path="$2"
+  local link_path="${1%/}"
+  local target_path="${2%/}"
+
+  if [[ "$link_path" == "$target_path" ]]; then
+    echo "  [OK] Path is already the source repository: ${link_path}"
+    return 0
+  fi
 
   if [[ -L "$link_path" || -d "$link_path" ]]; then
     if [[ "$FORCE" != true ]]; then
