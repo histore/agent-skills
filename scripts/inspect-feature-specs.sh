@@ -161,10 +161,15 @@ created: "$TODAY"
 ## 3. High-Level Architecture
 Target Layer: Core Domain / Application
 
-## 4. Open Questions & Review Checklist
+## 4. Phased Implementation Plan
+- Phase 1: Foundation & Core Contracts (MVP)
+- Phase 2: Feature Integration & Adapters
+- Phase 3: Rollout, Migration & Hardening
+
+## 5. Open Questions & Review Checklist
 - [ ] Q-1: <Clarification needed>
 
-## 5. Distillation Target Preview
+## 6. Distillation Target Preview
 - Preview AC-1: Given, When, Then
 EOF
     fi

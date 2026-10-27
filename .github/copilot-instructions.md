@@ -30,9 +30,21 @@ Classify every incoming request before acting and modulate your thinking budget 
    - Never run destructive Git commands (`git reset --hard`, `git push --force`) without explicit user instruction. Never stage or commit changes inside `_agents/` or `.agents/` submodules during host project commits.
 7. **Living Modular Documentation & Lazy Loading Protocol**:
    - Grow specifications incrementally as isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md` or `docs/requirements/modules/<module>.md`).
-   - **Concept Workflows & Isolation**: Draft concepts in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`) and review/refine with user. Standard is plural `docs/concepts/` (`drafts/` and `archive/`), with tooling compatibility for singular `docs/concept/`. Supports two identical tracks:
-     1. **`concept > req > impl` (Standard / Complex Features)**: Distill draft into `docs/features/FEAT-*.md` (escalating contradictions to user) and archive to `docs/concepts/archive/` (`inspect-feature-specs.ps1 -ArchiveConcept`). Downstream implementation roles (`Developer`, `Tester`, `Verifikation`) never inspect concept files directly.
-     2. **`concept > impl` (Fast-Track / Prototypes)**: Approved draft serves directly as working contract, is archived to `docs/concepts/archive/`, and implemented directly via Developer Inner-Loop TDD.
+   - **Concept Workflows & Mandatory Schema Enforceability**:
+     - Whenever authoring or updating a concept, strictly adhere to [`docs/templates/CONCEPT_TEMPLATE.md`](docs/templates/CONCEPT_TEMPLATE.md). Always scaffold via `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -NewConcept -ConceptId "CONCEPT-<SCOPE>-XXX" -Title "<Title>" -Scope "<SCOPE>"` (Bash: `inspect-feature-specs.sh --new-concept ...`) or replicate its exact section structure in `docs/concepts/drafts/CONCEPT-<SCOPE>-XXX-<slug>.md`.
+     - **Mandatory Schema & Sections**: Every concept MUST contain:
+       1. YAML Frontmatter (`id`, `title`, `status: DRAFT`, `scope`, `target_feature`, `author`, `created`)
+       2. `## 1. Problem Statement & Motivation` (Context, need, desired outcome)
+       3. `## 2. Solution Approaches & Trade-Offs` (Recommended vs. alternative with pros/cons)
+       4. `## 3. High-Level Architecture & Clean Architecture Boundaries` (Layering, invariants, safe Rust)
+       5. `## 4. Phased Implementation Plan (Phasenweise Umsetzung)` (Phases 1-3 with Scope, Target Features, Exit Criteria/DoD)
+       6. `## 5. Open Questions, Edge Cases & Clarifications (Review Checklist)`
+       7. `## 6. Distillation Target & Proposed Acceptance Criteria Preview` (Given-When-Then criteria)
+       8. `## 7. Revision & Discussion History`
+     - Free-form or unstructured concept documents are strictly prohibited.
+     - Supports two identical tracks:
+       1. **`concept > req > impl` (Standard / Complex Features)**: Distill draft into `docs/features/FEAT-*.md` (escalating contradictions to user) and archive to `docs/concepts/archive/` (`inspect-feature-specs.ps1 -ArchiveConcept`). Downstream implementation roles (`Developer`, `Tester`, `Verifikation`) never inspect concept files directly.
+       2. **`concept > impl` (Fast-Track / Prototypes)**: Approved draft serves directly as working contract, is archived to `docs/concepts/archive/`, and implemented directly via Developer Inner-Loop TDD.
    - **Lazy Loading (Zero-Full-Parse Invariant)**: Read **only** the central index (`docs/ROADMAP.md` or `REQUIREMENTS.md`) or query via `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase <Phase>` and load strictly the single target spec file.
 8. **Relative Paths Invariant in Documentation**:
    - In all documentation (`*.md`), **always use relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-*.md`). Absolute paths (`C:\...`, `/home/...`, `file:///...`) are strictly forbidden in committed docs.

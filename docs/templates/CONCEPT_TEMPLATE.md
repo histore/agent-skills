@@ -48,7 +48,29 @@ Compare viable approaches before solidifying requirements:
 
 ---
 
-## 4. Open Questions, Edge Cases & Clarifications (Review Checklist)
+---
+
+## 4. Phased Implementation Plan (Phasenweise Umsetzung)
+Structure implementation into incremental, independently testable phases to reduce risk and ensure verifiable milestones:
+
+### Phase 1: Foundation & Core Contracts (MVP)
+- **Scope & Deliverables**: `<Domain entities, contracts/interfaces, core business logic, initial unit tests>`
+- **Target Feature(s)**: `FEAT-<SCOPE>-001`
+- **Exit Criteria / DoD**: `<Core unit tests passing 100%, fast-gate clean>`
+
+### Phase 2: Feature Integration & Adapters
+- **Scope & Deliverables**: `<Adapters, external drivers, UI/CLI integration, integration tests>`
+- **Target Feature(s)**: `FEAT-<SCOPE>-002`
+- **Exit Criteria / DoD**: `<Integration tests green, end-to-end data flow verified>`
+
+### Phase 3: Rollout, Migration & Hardening
+- **Scope & Deliverables**: `<Migrations, telemetry, performance optimization, documentation, release tagging>`
+- **Target Feature(s)**: `FEAT-<SCOPE>-003`
+- **Exit Criteria / DoD**: `<Full regression passed, zero broken links/docs, user sign-off>`
+
+---
+
+## 5. Open Questions, Edge Cases & Clarifications (Review Checklist)
 Items requiring user clarification or design decision before distillation:
 - [ ] **Q-1**: `<Open question regarding ambiguous business logic or boundary condition>`
 - [ ] **Q-2**: `<Trade-off decision requiring user confirmation>`
@@ -56,14 +78,14 @@ Items requiring user clarification or design decision before distillation:
 
 ---
 
-## 5. Distillation Target & Proposed Acceptance Criteria Preview
+## 6. Distillation Target & Proposed Acceptance Criteria Preview
 Preliminary preview of acceptance criteria to be extracted into `docs/features/FEAT-<SCOPE>-XXX.md`:
 - **Preview AC-1 (Happy Path)**: Given `<precondition>`, When `<trigger>`, Then `<result>`.
 - **Preview AC-2 (Boundary / Error Case)**: Given `<invalid input>`, When `<action>`, Then `<graceful error>`.
 
 ---
 
-## 6. Revision & Discussion History
+## 7. Revision & Discussion History
 | Date | Status | Changes & Decision Notes | Author / Approver |
 | :--- | :--- | :--- | :--- |
 | <YYYY-MM-DD> | `DRAFT` | Initial concept outline | User / Agent |
