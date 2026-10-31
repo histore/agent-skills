@@ -43,9 +43,9 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 10. **100% Coverage for Functional Features**: Enterprise features require approved requirements; minor tweaks do not require requirement overhead.
 11. **Dynamic Model Allocation & Universal Execution Strategy**:
     - **Right-Sizing into 3 Classes** ([rules/model-tiers.json](rules/model-tiers.json)):
-      - **ECO**: Profile 0/A, docs, scripts, Tier 4 Git/lifecycle (`flash`, `gpt-4o-mini`, minimal reasoning).
-      - **BALANCED**: Profile B standard features (`inherit`, `sonnet`, medium reasoning).
-      - **PREMIUM**: Profile C complex architectures/deadlocks. **Subject to Mandatory Quota Protection User Gate**.
+      - **ECO**: Profile 0/A, docs, scripts, Tier 4 Git/lifecycle (`flash`, `gpt-6.1-luna` / `gpt-6-mini`, `gpt-5.4-mini`, `claude-haiku`, minimal reasoning).
+      - **BALANCED**: Profile B standard features (`inherit`, `gemini-4-argon`, `gpt-6.1-sol` / `gpt-6`, `sonnet`, medium reasoning).
+      - **PREMIUM**: Profile C complex architectures/deadlocks (`gemini-4-pro`, `gpt-6-astra` / `gpt-6-high`, `opus`). **Subject to Mandatory Quota Protection User Gate**.
     - **Quota Protection User Gate**: For Profile C / Premium tasks, `Control` pauses and offers `[1] Premium`, `[2] Balanced`, `[3] Eco` to protect quota (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`).
     - **Compound Phased Execution & Zero-Reload Invariant (Default Strategy)**: Single-context phased persona transitions preserve prefix continuity, unlocking 75–90% KV-cache discounts.
       - **Zero-Reload Core Invariant**: In Profile 0/A/B, core rules for planning, contracts, Inner-Loop TDD, verification, and atomic commits are embedded here. Do NOT spend tool calls reading skill files for core tasks; load `SKILL.md` strictly for the 4 On-Demand Specialists.
@@ -80,7 +80,9 @@ Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json):
 
 ## Context Isolation & Compaction Protocol
 - Pass downstream agents only the strictly necessary scoped context.
-- **Proactive Context Compaction**: At phase boundaries (Plan -> Implementation, or between tasks), synthesize a concise State Checkpoint and prune intermediate chatter/logs to maximize reasoning and maintain KV-cache prefix hits.
+- **Proactive Context Compaction & Output Brevity**: At phase boundaries (Plan -> Implementation, or between tasks), synthesize a concise State Checkpoint (max 3–5 bullet points), never echo full modified source files in chat, and prune intermediate chatter/logs to maximize reasoning and maintain KV-cache prefix hits.
 
-## Client Directory Compatibility (`.agents` vs. `_agents`)
-- Gemini/Antigravity uses `_agents`, GitHub Copilot expects `.agents/`. When mounted as a submodule, operations target the host repository root. Skills in `skills/` (or `_agents/skills/` / `.agents/skills/`), rules in `rules/`.
+## Client Directory Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
+- **Google Antigravity (AGY / Gemini)** uses `_agents` at both project level (`./_agents/`) and user level (`~/_agents/` + `~/.gemini/config/`).
+- **GitHub Copilot (CLI & VS Code)** uses `.agents` at both project level (`./.agents/` + `.github/copilot-instructions.md`) and user level (`~/.agents/` + `~/.copilot/instructions/`).
+- When mounted as a link or submodule, all code, test, and Git operations strictly target the host repository root.

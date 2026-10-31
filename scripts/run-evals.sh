@@ -10,6 +10,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 EVAL_FILE=""
 CATEGORY=""
 CASE_ID=""
+TRANSCRIPT_PATH=""
 JSON_OUTPUT=false
 
 while [[ $# -gt 0 ]]; do
@@ -24,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --case-id|-i)
       CASE_ID="$2"
+      shift 2
+      ;;
+    --transcript|-t)
+      TRANSCRIPT_PATH="$2"
       shift 2
       ;;
     --json)
@@ -57,10 +62,10 @@ fi
 
 # 2. Check JSON validity and execute schema + skill invariant checks using python3
 if command -v python3 &>/dev/null; then
-  python3 - "$REPO_ROOT" "$EVAL_FILE" "$CATEGORY" "$CASE_ID" "$JSON_OUTPUT" << 'EOF'
+  python3 - "$REPO_ROOT" "$EVAL_FILE" "$CATEGORY" "$CASE_ID" "$TRANSCRIPT_PATH" "$JSON_OUTPUT" << 'EOF'
 import os, re, json, sys
 
-repo_root, eval_file, category, case_id, json_out_str = sys.argv[1:6]
+repo_root, eval_file, category, case_id, transcript_path, json_out_str = sys.argv[1:7]
 json_output = json_out_str == 'true'
 
 with open(eval_file, 'r', encoding='utf-8') as f:
@@ -85,6 +90,8 @@ for cand in [
 
 agents_file = os.path.join(repo_root, 'AGENTS.md')
 agents_content = open(agents_file, 'r', encoding='utf-8', errors='ignore').read() if os.path.isfile(agents_file) else ''
+copilot_file = os.path.join(repo_root, '.github', 'copilot-instructions.md')
+copilot_content = open(copilot_file, 'r', encoding='utf-8', errors='ignore').read() if os.path.isfile(copilot_file) else ''
 
 def read_skill(skill_name):
     p = os.path.join(repo_root, 'skills', skill_name, 'SKILL.md')
@@ -162,6 +169,49 @@ for c in cases:
             failures.append("Invariant 'quota_protection_gate' missing in ask-control/SKILL.md")
         elif inv == 'fast_gate_consolidated' and 'Consolidated Deterministic Fast-Gate' not in read_skill('ask-control'):
             failures.append("Invariant 'fast_gate_consolidated' missing in ask-control/SKILL.md")
+        elif inv == 'copilot_uses_dot_agents' and ('./.agents/scripts/' not in copilot_content or '.agents/skills/' not in copilot_content):
+            failures.append("Invariant 'copilot_uses_dot_agents' violated in .github/copilot-instructions.md")
+        elif inv == 'agy_uses_underscore_agents' and ('./_agents/' not in agents_content or '~/_agents/' not in agents_content):
+            failures.append("Invariant 'agy_uses_underscore_agents' violated in AGENTS.md")
+
+    if transcript_path:
+        if not os.path.isfile(transcript_path):
+            failures.append(f'Transcript file not found: {transcript_path}')
+        else:
+            cmds, snippets = [], []
+            with open(transcript_path, 'r', encoding='utf-8', errors='ignore') as tf:
+                for line in tf:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        step = json.loads(line)
+                        if step.get('case_id') and step.get('case_id') != cid:
+                            continue
+                        if step.get('command'):
+                            cmds.append(str(step['command']))
+                        for call in step.get('tool_calls', []):
+                            args = call.get('arguments') or call.get('args') or {}
+                            if args.get('CommandLine'):
+                                cmds.append(str(args['CommandLine']))
+                            if args.get('command'):
+                                cmds.append(str(args['command']))
+                            if args.get('Content'):
+                                snippets.append(str(args['Content']))
+                            if args.get('Replacement'):
+                                snippets.append(str(args['Replacement']))
+                    except Exception:
+                        pass
+            for prohib in exp.get('prohibited_actions', []):
+                for cmd in cmds:
+                    if prohib in cmd:
+                        failures.append(f"Behavioral trace executed prohibited action '{prohib}' in command: {cmd}")
+            for pat in exp.get('forbidden_code_patterns', []):
+                for snip in snippets:
+                    if re.search(pat, snip):
+                        failures.append(f"Behavioral trace wrote forbidden code pattern '{pat}'")
+            if exp.get('max_iterations') and len(cmds) > int(exp['max_iterations']):
+                failures.append(f"Behavioral trace exceeded max_iterations ({len(cmds)} > {exp['max_iterations']})")
 
     is_pass = len(failures) == 0
     if is_pass:

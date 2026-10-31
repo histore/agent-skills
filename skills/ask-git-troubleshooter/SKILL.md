@@ -244,6 +244,6 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
 
 ---
 
-## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Embedding Host Project Target**: When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all operations target the embedding host repository.
-- **Submodule Asset Resolution**: Internal skill assets and rules reside in `./_agents/`, `./.agents/`, or `./`.
+## Tooling & Path Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
+- **Embedding Host Project Target**: When linked at project or user level (`_agents/` or `~/_agents/` for Antigravity; `.agents/` or `~/.agents/` for Copilot), all operations target the embedding **host repository**.
+- **Submodule Asset Resolution**: Internal skill assets, scripts, and rules reside in `./_agents/` or `$HOME/_agents/` (AGY), `./.agents/` or `$HOME/.agents/` (Copilot), or `./`.

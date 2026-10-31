@@ -2,27 +2,33 @@
 .SYNOPSIS
     Sets up agent-skills in a target project or globally in the user configuration.
 .DESCRIPTION
-    Integrates agent-skills for Google Antigravity / Gemini and GitHub Copilot:
-    - Project Mode: Creates _agents (or .agents) junction/link and provisions .github/copilot-instructions.md
-    - Global Mode: Links skills and rules into ~/.gemini/config and sets up global copilot-instructions.md
+    Integrates agent-skills with strict client directory conventions:
+    - Google Antigravity (AGY): '_agents' (User Level: ~/_agents + ~/.gemini/config; Project Level: <project>/_agents)
+    - GitHub Copilot (CLI & VS Code): '.agents' (User Level: ~/.agents + inlined ~/.copilot/instructions/; Project Level: <project>/.agents + .github/copilot-instructions.md)
 .PARAMETER TargetProject
     Path to the target project directory. Defaults to current directory if not in agent-skills repo.
+.PARAMETER Client
+    Target AI assistant to configure: 'all' (default: both AGY and Copilot), 'agy' (_agents only), or 'copilot' (.agents only).
 .PARAMETER FolderType
-    Name of the directory link: '_agents' (default), '.agents', or 'both'.
+    Explicit override for project directory link name: '_agents', '.agents', or 'both'. When omitted, derived automatically from -Client / -SkipCopilot.
 .PARAMETER Global
-    Configures agent-skills globally in the user's home directory (~/.gemini/config).
+    Configures agent-skills globally in the user's home directory (~/_agents for AGY, ~/.agents for Copilot).
 .PARAMETER SkipCopilot
-    Skips creating or updating .github/copilot-instructions.md in the target project.
+    Skips Copilot integration (.agents and .github/copilot-instructions.md), configuring AGY (_agents) only.
 .PARAMETER InitDocs
     Scaffolds initial living documentation (ARCHITECTURE.md, docs/ROADMAP.md, docs/features/, docs/concepts/drafts/) in the target project if not present.
 .PARAMETER Force
     Overwrites existing links or files if they already exist.
 .EXAMPLE
-    # Integrate into another project and bootstrap living docs
+    # Integrate both AGY (_agents) and Copilot (.agents) into a target project
     pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject "C:\projekte\my-app" -InitDocs
 
 .EXAMPLE
-    # Install globally for all projects
+    # Integrate Copilot only (.agents + .github/copilot-instructions.md)
+    pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject "C:\projekte\my-app" -Client copilot
+
+.EXAMPLE
+    # Install globally for AGY (~/_agents) and Copilot (~/.agents)
     pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -Global
 #>
 [CmdletBinding()]
@@ -31,8 +37,12 @@ param(
     [string]$TargetProject,
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet('all', 'agy', 'copilot')]
+    [string]$Client = 'all',
+
+    [Parameter(Mandatory = $false)]
     [ValidateSet('_agents', '.agents', 'both')]
-    [string]$FolderType = '_agents',
+    [string]$FolderType,
 
     [Parameter(Mandatory = $false)]
     [switch]$Global,
@@ -44,10 +54,32 @@ param(
     [switch]$InitDocs,
 
     [Parameter(Mandatory = $false)]
+    [string]$UserHome,
+
+    [Parameter(Mandatory = $false)]
     [switch]$Force
 )
 
 $ErrorActionPreference = 'Stop'
+$effectiveHome = if ($UserHome) { $UserHome } else { $HOME }
+
+$setupAgy = ($Client -eq 'all' -or $Client -eq 'agy')
+$setupCopilot = ($Client -eq 'all' -or $Client -eq 'copilot') -and (-not $SkipCopilot)
+
+if ($PSBoundParameters.ContainsKey('FolderType')) {
+    if ($FolderType -eq '_agents') {
+        $setupAgy = $true
+        if ($SkipCopilot) { $setupCopilot = $false }
+    } elseif ($FolderType -eq '.agents') {
+        if (-not $PSBoundParameters.ContainsKey('Client')) { $setupAgy = $false }
+        $setupCopilot = (-not $SkipCopilot)
+    } else {
+        $setupAgy = $true
+        $setupCopilot = (-not $SkipCopilot)
+    }
+} else {
+    $FolderType = if ($setupAgy -and $setupCopilot) { 'both' } elseif ($setupCopilot) { '.agents' } else { '_agents' }
+}
 
 $rawRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $repoItem = Get-Item -LiteralPath $rawRepoRoot -Force
@@ -108,82 +140,75 @@ Write-Host "Agent Skills Setup & Integration Helper" -ForegroundColor Cyan
 Write-Host "=============================================" -ForegroundColor Cyan
 
 if ($Global) {
-    $geminiConfigDir = Join-Path $HOME ".gemini" "config"
-    Write-Host "`nConfiguring Global User Mode in: $geminiConfigDir" -ForegroundColor Yellow
+    Write-Host "`nConfiguring Global User Mode (Home: $effectiveHome, Client: $Client)" -ForegroundColor Yellow
 
-    if (-not (Test-Path $geminiConfigDir)) {
-        New-Item -ItemType Directory -Path $geminiConfigDir -Force | Out-Null
+    if ($setupAgy) {
+        # 1. Antigravity (AGY) User Level via ~/_agents + ~/.gemini/config
+        $agyUserDir = Join-Path $effectiveHome "_agents"
+        Create-DirectoryLink -LinkPath $agyUserDir -TargetPath $repoRoot -Overwrite $Force
+
+        $geminiConfigDir = Join-Path $effectiveHome ".gemini" "config"
+        if (-not (Test-Path $geminiConfigDir)) {
+            New-Item -ItemType Directory -Path $geminiConfigDir -Force | Out-Null
+        }
+
+        $globalSkills = Join-Path $geminiConfigDir "skills"
+        $globalRules = Join-Path $geminiConfigDir "rules"
+        Create-DirectoryLink -LinkPath $globalSkills -TargetPath (Join-Path $agyUserDir "skills") -Overwrite $Force
+        Create-DirectoryLink -LinkPath $globalRules -TargetPath (Join-Path $agyUserDir "rules") -Overwrite $Force
+
+        Write-Host "`nAntigravity / Gemini Setup (~/_agents):" -ForegroundColor Cyan
+        Write-Host "  - User Root: $agyUserDir" -ForegroundColor White
+        Write-Host "  - Auto-Discovery: ~/.gemini/config/skills & ~/.gemini/config/rules -> ~/_agents" -ForegroundColor White
     }
 
-    # 1. Link skills and rules
-    $skillsTarget = Join-Path $repoRoot "skills"
-    $rulesTarget = Join-Path $repoRoot "rules"
-    $globalSkills = Join-Path $geminiConfigDir "skills"
-    $globalRules = Join-Path $geminiConfigDir "rules"
+    if ($setupCopilot) {
+        # 2. GitHub Copilot User Level via ~/.agents + inlined ~/.copilot/instructions/
+        $copilotAgentsDir = Join-Path $effectiveHome ".agents"
+        Create-DirectoryLink -LinkPath $copilotAgentsDir -TargetPath $repoRoot -Overwrite $Force
 
-    Create-DirectoryLink -LinkPath $globalSkills -TargetPath $skillsTarget -Overwrite $Force
-    Create-DirectoryLink -LinkPath $globalRules -TargetPath $rulesTarget -Overwrite $Force
+        $copilotInstructionsDir = Join-Path $effectiveHome ".copilot" "instructions"
+        if (-not (Test-Path $copilotInstructionsDir)) {
+            New-Item -ItemType Directory -Path $copilotInstructionsDir -Force | Out-Null
+        }
 
-    # 2. Setup GitHub Copilot Personal Mode (~/.agents and ~/.copilot/instructions)
-    $agentsDir = Join-Path $HOME ".agents"
-    Create-DirectoryLink -LinkPath $agentsDir -TargetPath $repoRoot -Overwrite $Force
+        $userInstructionsFile = Join-Path $copilotInstructionsDir "agent-skills.instructions.md"
+        $copilotAgentsSlash = $copilotAgentsDir.Replace('\', '/')
+        $baseInstructions = Get-Content -LiteralPath $copilotTemplate -Raw -Encoding UTF8
+        #Adapt project-relative ./.agents/ and .agents/ paths to also resolve cleanly from user-level ~/.agents/
+        $inlinedBody = $baseInstructions.
+            Replace('./.agents/scripts/', "$copilotAgentsSlash/scripts/").
+            Replace('`.agents/skills/', ('`' + $copilotAgentsSlash + '/skills/')).
+            Replace('`.agents/docs/', ('`' + $copilotAgentsSlash + '/docs/'))
 
-    $copilotInstructionsDir = Join-Path $HOME ".copilot" "instructions"
-    if (-not (Test-Path $copilotInstructionsDir)) {
-        New-Item -ItemType Directory -Path $copilotInstructionsDir -Force | Out-Null
-    }
-
-    # 3. Generate reference instruction file with YAML frontmatter (applyTo: "**/*")
-    $userInstructionsFile = Join-Path $copilotInstructionsDir "agent-skills.instructions.md"
-    $templateSlash = $copilotTemplate.Replace('\', '/')
-    $skillsSlash = $skillsTarget.Replace('\', '/')
-
-    $instructionContent = @"
+        $instructionContent = @"
 ---
 applyTo: "**/*"
-description: "Universal Clean Code, Clean Architecture, and on-demand agent skills"
+description: "Universal Clean Code, Clean Architecture, and Zero-Reload Copilot instructions (.agents)"
 ---
 
-# Personal Agent Skills & Engineering Guidelines
-
-Adhere to the core engineering invariants (Clean Code, Clean Architecture, Safe Rust without unsafe, Inner-Loop TDD, Anti-Ceremony).
-
-## Base Instructions
-The baseline rules are defined in:
-- $templateSlash
-
-## Central Skills & Tooling Source
-All specialist skills and zero-token automation scripts are located in:
-- Skills Root Directory: $skillsSlash
-- Also accessible via personal skills: ~/.agents/skills/ or ~/.copilot/skills/
-
-When encountering specialized tasks requiring deep domain expertise, consult the corresponding capability pack on demand:
-- **Diagnostics, bug RCA, code review, refactoring & profiling**: $skillsSlash/ask-troubleshooter/SKILL.md
-- **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: $skillsSlash/ask-git-troubleshooter/SKILL.md
-- **Contracts, living specs, API contracts, DB migrations, UI/UX tokens, a11y & i18n**: $skillsSlash/ask-contract-specialist/SKILL.md
-- **Release management, CI/CD, SemVer calculation & security audits**: $skillsSlash/ask-release-manager/SKILL.md
+$inlinedBody
 "@
 
-    [System.IO.File]::WriteAllText($userInstructionsFile, ($instructionContent -replace "`r?`n", "`n"), [System.Text.Encoding]::UTF8)
-    Write-Host "  [OK] Generated Copilot user instructions: $userInstructionsFile" -ForegroundColor Green
+        [System.IO.File]::WriteAllText($userInstructionsFile, ($instructionContent -replace "`r?`n", "`n"), (New-Object System.Text.UTF8Encoding($false)))
+        Write-Host "  [OK] Generated Zero-Reload Copilot user instructions (inlined via .agents): $userInstructionsFile" -ForegroundColor Green
 
-    Write-Host "`nAntigravity / Gemini Setup:" -ForegroundColor Cyan
-    Write-Host "  All skills and rules are now automatically active across all projects via ~/.gemini/config." -ForegroundColor White
+        Write-Host "`nGitHub Copilot CLI Setup (~/.agents):" -ForegroundColor Cyan
+        Write-Host "  - User Root: $copilotAgentsDir" -ForegroundColor White
+        Write-Host "  - Instructions (Zero-Reload inlined): ~/.copilot/instructions/agent-skills.instructions.md" -ForegroundColor White
+        Write-Host "  - Skills: Auto-discovered from ~/.agents/skills" -ForegroundColor White
+        Write-Host "  - Verification commands: 'copilot instruction list' and 'copilot skill list'" -ForegroundColor White
 
-    Write-Host "`nGitHub Copilot CLI Setup:" -ForegroundColor Cyan
-    Write-Host "  - Instructions: Auto-discovered from ~/.copilot/instructions/agent-skills.instructions.md" -ForegroundColor White
-    Write-Host "  - Skills: Auto-discovered from ~/.agents/skills and ~/.copilot/skills" -ForegroundColor White
-    Write-Host "  - Verification commands: 'copilot instruction list' and 'copilot skill list'" -ForegroundColor White
-
-    Write-Host "`nGitHub Copilot (VS Code User Settings):" -ForegroundColor Cyan
-    Write-Host "  Add the following to your VS Code settings.json:" -ForegroundColor White
-    Write-Host @"
+        Write-Host "`nGitHub Copilot (VS Code User Settings):" -ForegroundColor Cyan
+        Write-Host "  Add the following to your VS Code settings.json:" -ForegroundColor White
+        Write-Host @"
   "github.copilot.chat.codeGeneration.instructions": [
     {
       "file": "$($userInstructionsFile.Replace('\', '/'))"
     }
   ]
 "@ -ForegroundColor Gray
+    }
 
 } else {
     if (-not $TargetProject) {
@@ -196,9 +221,9 @@ When encountering specialized tasks requiring deep domain expertise, consult the
     }
 
     $targetFullPath = (Resolve-Path $TargetProject).Path
-    Write-Host "`nIntegrating into Project: $targetFullPath" -ForegroundColor Yellow
+    Write-Host "`nIntegrating into Project: $targetFullPath (Client: $Client, Links: $FolderType)" -ForegroundColor Yellow
 
-    # 1. Create _agents / .agents directory link
+    # 1. Create _agents (AGY) and/or .agents (Copilot) directory links
     $folderNames = @()
     if ($FolderType -eq '_agents' -or $FolderType -eq 'both') { $folderNames += '_agents' }
     if ($FolderType -eq '.agents' -or $FolderType -eq 'both') { $folderNames += '.agents' }
@@ -208,8 +233,8 @@ When encountering specialized tasks requiring deep domain expertise, consult the
         Create-DirectoryLink -LinkPath $linkPath -TargetPath $repoRoot -Overwrite $Force
     }
 
-    # 2. Setup .github/copilot-instructions.md
-    if (-not $SkipCopilot) {
+    # 2. Setup .github/copilot-instructions.md (assumes .agents/)
+    if ($setupCopilot) {
         $githubDir = Join-Path $targetFullPath ".github"
         if (-not (Test-Path $githubDir)) {
             New-Item -ItemType Directory -Path $githubDir -Force | Out-Null
@@ -220,7 +245,7 @@ When encountering specialized tasks requiring deep domain expertise, consult the
             Write-Host "  [SKIP] .github/copilot-instructions.md already exists (use -Force to overwrite)" -ForegroundColor Yellow
         } else {
             Copy-Item -LiteralPath $copilotTemplate -Destination $destCopilot -Force
-            Write-Host "  [OK] Provisioned $destCopilot (Lite Copilot instructions)" -ForegroundColor Green
+            Write-Host "  [OK] Provisioned $destCopilot (configured for .agents/)" -ForegroundColor Green
         }
     }
 
@@ -298,6 +323,10 @@ Dependencies point strictly inward:
     }
 
     Write-Host "`nProject Integration Complete!" -ForegroundColor Green
-    Write-Host "  - Antigravity: Discovers skills via _agents/skills and rules via _agents/rules" -ForegroundColor White
-    Write-Host "  - Copilot: Governed cleanly by .github/copilot-instructions.md (Lite mode)" -ForegroundColor White
+    if ($FolderType -eq '_agents' -or $FolderType -eq 'both') {
+        Write-Host "  - Antigravity (AGY): Discovers skills via _agents/skills and rules via _agents/rules" -ForegroundColor White
+    }
+    if ($FolderType -eq '.agents' -or $FolderType -eq 'both') {
+        Write-Host "  - GitHub Copilot: Discovers skills via .agents/skills and instructions via .github/copilot-instructions.md" -ForegroundColor White
+    }
 }

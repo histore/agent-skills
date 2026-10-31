@@ -206,6 +206,20 @@
           "fast_gate_consolidated"
         ]
       }
+    },
+    {
+      "id": "EVAL-PLAT-001",
+      "name": "Dual-Client Directory Separation (_agents for AGY, .agents for Copilot)",
+      "category": "platform_compatibility",
+      "description": "Antigravity uses _agents and GitHub Copilot uses .agents across both user level and project level.",
+      "input": "Richte das Projekt für Antigravity und GitHub Copilot CLI ein.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "copilot_uses_dot_agents",
+          "agy_uses_underscore_agents"
+        ]
+      }
     }
   ]
 }

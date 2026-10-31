@@ -8,13 +8,14 @@ All workflows leverage deterministic zero-token helper scripts ([`scripts/`](scr
 
 ## Overview: Execution Paradigm Differences
 
-| Workflow Aspect | Google Antigravity (AGY) | GitHub Copilot |
+| Workflow Aspect | Google Antigravity (AGY) | GitHub Copilot (CLI & VS Code) |
 | :--- | :--- | :--- |
+| **Customization Root** | **`_agents`** (`./_agents/` project, `~/_agents/` user) | **`.agents`** (`./.agents/` project, `~/.agents/` user) |
 | **Execution Mode** | Multi-Agent Orchestration (`invoke_subagent`) & persistent session | Single-Thread Sequential Persona Transitions (`### [Phase: ...]`) |
 | **Default Entry Point** | `/ask-control <task>` or automatic via `~/.gemini/GEMINI.md` | Start conversation directly; governed by `.github/copilot-instructions.md` |
 | **Zero-Reload Invariant** | Core roles (`Developer`, `Verifikation`, `CommitManager`) are embedded | Core rules are embedded in `copilot-instructions.md`; never read `SKILL.md` for core roles |
-| **On-Demand Specialists** | Loaded dynamically per slash command or subagent dispatch | Referenced explicitly on-demand (e.g. `Consult skills/<name>/SKILL.md`) |
-| **Quality Gates** | Native Stage-1 script (`run-fast-gate.ps1`) + interactive modal review | Native Stage-1 script (`run-fast-gate.ps1`) + sequential verification audit |
+| **On-Demand Specialists** | Loaded dynamically per slash command or subagent dispatch (`_agents/skills/`) | Auto-discovered / referenced via `.agents/skills/<name>/SKILL.md` |
+| **Quality Gates** | Native Stage-1 script (`./_agents/scripts/run-fast-gate.ps1`) + modal review | Native Stage-1 script (`./.agents/scripts/run-fast-gate.ps1`) + sequential verification audit |
 
 ---
 
@@ -57,7 +58,7 @@ Fix the NullReferenceException in UserMapper when email is null.
 ### [Phase: Developer]
 - Author failing unit test in test/UserMapperTests.cs
 - Implement null-safe fallback in src/UserMapper.cs
-- Validate: pwsh -NoProfile -File ./scripts/run-fast-gate.ps1
+- Validate: pwsh -NoProfile -File ./.agents/scripts/run-fast-gate.ps1
 
 ### [Phase: Verifikation]
 - Assert 100% test pass rate and Clean Code compliance.
@@ -87,7 +88,7 @@ Implement a new ExportService supporting JSON and CSV formats.
 *Workflow*:
 Copilot executes in sequential phases:
 1. `### [Phase: Architekt]`: Outlines contracts in `IExportService`.
-2. `### [Phase: Developer]`: Inner-Loop TDD, runs `pwsh -NoProfile -File ./scripts/run-fast-gate.ps1`.
+2. `### [Phase: Developer]`: Inner-Loop TDD, runs `pwsh -NoProfile -File ./.agents/scripts/run-fast-gate.ps1`.
 3. `### [Phase: Verifikation]`: Two-stage verification sign-off.
 4. Proactively suggests commit command.
 
@@ -175,7 +176,7 @@ Review and refine the draft in-place with the user. Distill into a formal featur
   ```
 * **GitHub Copilot**:
   ```text
-  Consult skills/ask-contract-specialist/SKILL.md. Review docs/concepts/drafts/CONCEPT-AUTH-001-*.md, distill into docs/features/FEAT-AUTH-001-oauth2-pkce.md with Given-When-Then criteria, and archive the draft via ./scripts/inspect-feature-specs.ps1 -ArchiveConcept "CONCEPT-AUTH-001".
+  Consult .agents/skills/ask-contract-specialist/SKILL.md. Review docs/concepts/drafts/CONCEPT-AUTH-001-*.md, distill into docs/features/FEAT-AUTH-001-oauth2-pkce.md with Given-When-Then criteria, and archive the draft via ./.agents/scripts/inspect-feature-specs.ps1 -ArchiveConcept "CONCEPT-AUTH-001".
   ```
 
 #### Step A.2: Implement from Formal Feature Specification
@@ -205,7 +206,7 @@ The refined concept serves directly as the temporary working contract. The conce
   ```
 * **GitHub Copilot**:
   ```text
-  Implement docs/concepts/drafts/CONCEPT-AUTH-001-*.md directly via Profile A (Fast-Track) Developer Inner-Loop TDD. Archive the concept via pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -ArchiveConcept "CONCEPT-AUTH-001" and validate via ./scripts/run-fast-gate.ps1.
+  Implement docs/concepts/drafts/CONCEPT-AUTH-001-*.md directly via Profile A (Fast-Track) Developer Inner-Loop TDD. Archive the concept via pwsh -NoProfile -File ./.agents/scripts/inspect-feature-specs.ps1 -ArchiveConcept "CONCEPT-AUTH-001" and validate via ./.agents/scripts/run-fast-gate.ps1.
   ```
 
 #### Invariant for Both Systems in Track B:
@@ -230,11 +231,11 @@ Hunting subtle boundary flaws, race conditions, memory leaks, and dependency CVE
 ### GitHub Copilot
 ```text
 # Adversarial Code Review
-Consult skills/ask-troubleshooter/SKILL.md and inspect current changes in src/auth for race conditions, boundary state errors, and resource leaks.
+Consult .agents/skills/ask-troubleshooter/SKILL.md and inspect current changes in src/auth for race conditions, boundary state errors, and resource leaks.
 
 # Security Audit (with zero-token script)
-pwsh -NoProfile -File ./scripts/run-security-audit.ps1
-Consult skills/ask-release-manager/SKILL.md to analyze the security audit findings.
+pwsh -NoProfile -File ./.agents/scripts/run-security-audit.ps1
+Consult .agents/skills/ask-release-manager/SKILL.md to analyze the security audit findings.
 ```
 
 ---
@@ -245,7 +246,11 @@ Strict **Zero-Data-Loss Safety Protocol**: Always create safety backup snapshots
 
 ### Step 1: Diagnose Git State (Zero-Token CLI)
 ```powershell
-pwsh -NoProfile -File ./scripts/diagnose-git-state.ps1
+# AGY (_agents):
+pwsh -NoProfile -File ./_agents/scripts/diagnose-git-state.ps1
+
+# Copilot (.agents):
+pwsh -NoProfile -File ./.agents/scripts/diagnose-git-state.ps1
 ```
 
 ### Step 2: Resolve Conflict
@@ -255,7 +260,7 @@ pwsh -NoProfile -File ./scripts/diagnose-git-state.ps1
   ```
 * **GitHub Copilot**:
   ```text
-  Load skills/ask-git-troubleshooter/SKILL.md. Create a safety backup via ./scripts/create-safety-backup.ps1 and guide me step-by-step through the conflict resolution.
+  Load .agents/skills/ask-git-troubleshooter/SKILL.md. Create a safety backup via ./.agents/scripts/create-safety-backup.ps1 and guide me step-by-step through the conflict resolution.
   ```
 
 ---
@@ -267,12 +272,14 @@ Keeps `ARCHITECTURE.md` and `docs/architecture/modules/*.md` synchronized with p
 ### Optional: Configure External Zero-Footprint Storage
 ```powershell
 # Store architecture docs outside the repository (0 git footprint)
-pwsh -NoProfile -File ./scripts/get-arch-diff.ps1 -SetDocDir "C:\arch-docs\my-project" -SetMode external
+pwsh -NoProfile -File ./_agents/scripts/get-arch-diff.ps1 -SetDocDir "C:\arch-docs\my-project" -SetMode external
 ```
 
 ### Step 1: Pre-Filter Git Deltas (Zero-Token CLI)
 ```powershell
-pwsh -NoProfile -File ./scripts/get-arch-diff.ps1
+# AGY (_agents): pwsh -NoProfile -File ./_agents/scripts/get-arch-diff.ps1
+# Copilot (.agents):
+pwsh -NoProfile -File ./.agents/scripts/get-arch-diff.ps1
 ```
 
 ### Step 2: Synchronize Specifications & Advance Checkpoint
@@ -282,7 +289,7 @@ pwsh -NoProfile -File ./scripts/get-arch-diff.ps1
   ```
 * **GitHub Copilot**:
   ```text
-  Consult skills/ask-contract-specialist/SKILL.md, update the architecture documentation at the resolved doc_dir based on get-arch-diff.ps1, and advance the checkpoint via -UpdateCheckpoint.
+  Consult .agents/skills/ask-contract-specialist/SKILL.md, update the architecture documentation at the resolved doc_dir based on ./.agents/scripts/get-arch-diff.ps1, and advance the checkpoint via -UpdateCheckpoint.
   ```
 
 ---
@@ -303,7 +310,7 @@ Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prer
 ### GitHub Copilot
 ```text
 # Pre-Commit Guardrail Scan
-pwsh -NoProfile -File ./scripts/scan-guardrails.ps1
+pwsh -NoProfile -File ./.agents/scripts/scan-guardrails.ps1 -StagedOnly
 
 # Commit via Copilot
 Draft a conventional commit message for current changes and commit upon my confirmation (do not push).
@@ -317,11 +324,11 @@ Deterministically calculate the next SemVer bump from Conventional Commits and t
 
 ### Step 1: Calculate Next SemVer Version (Zero-Token CLI)
 ```powershell
-# Windows
-pwsh -NoProfile -File ./scripts/calculate-semver.ps1
+# Windows (AGY: ./_agents/scripts/ | Copilot: ./.agents/scripts/)
+pwsh -NoProfile -File ./.agents/scripts/calculate-semver.ps1
 
 # Linux / macOS
-bash ./scripts/calculate-semver.sh
+bash ./.agents/scripts/calculate-semver.sh
 ```
 
 ### Step 2: Execute Release
@@ -331,22 +338,22 @@ bash ./scripts/calculate-semver.sh
   ```
 * **GitHub Copilot**:
   ```text
-  Consult skills/ask-release-manager/SKILL.md. Generate the changelog via ./scripts/generate-changelog.ps1 and apply the calculated Git tag directly to HEAD on main.
+  Consult .agents/skills/ask-release-manager/SKILL.md. Generate the changelog via ./.agents/scripts/generate-changelog.ps1 and apply the calculated Git tag directly to HEAD on main.
   ```
 
 ---
 
 ## 11. Dual-Assistant Cheat Sheet (Quick Reference)
 
-| Task | Deterministic Script | AGY Command | Copilot Prompt |
-| :--- | :--- | :--- | :--- |
-| **Stage 1 Fast Gate** | `./scripts/run-fast-gate.ps1` | `/ask-control` | `pwsh -NoProfile -File ./scripts/run-fast-gate.ps1` |
-| **All Quality Gates** | `./scripts/run-all-gates.ps1` | `/ask-control` | `pwsh -NoProfile -File ./scripts/run-all-gates.ps1` |
-| **Scaffold Concept** | `./scripts/inspect-feature-specs.ps1 -NewConcept` | `/ask-contract-specialist` | `inspect-feature-specs.ps1 -NewConcept` + prompt |
-| **Archive Concept** | `./scripts/inspect-feature-specs.ps1 -ArchiveConcept` | `/ask-contract-specialist` | `inspect-feature-specs.ps1 -ArchiveConcept` |
-| **Living Spec Status**| `./scripts/inspect-feature-specs.ps1 -CheckDrift` | `/ask-contract-specialist` | `inspect-feature-specs.ps1 -CheckDrift` |
-| **Secret & Rust Scan**| `./scripts/scan-guardrails.ps1` | `/ask-release-manager` | `scan-guardrails.ps1` + prompt |
-| **Merge / Git Fix** | `./scripts/diagnose-git-state.ps1` | `/ask-git-troubleshooter` | `Consult skills/ask-git-troubleshooter/SKILL.md` |
-| **Clean Architecture**| `./scripts/lint-clean-architecture.ps1` | `/ask-troubleshooter` | `lint-clean-architecture.ps1` + prompt |
-| **i18n Key Parity** | `./scripts/audit-i18n.ps1` | `/ask-contract-specialist` | `audit-i18n.ps1` + prompt |
-| **Next SemVer Tag** | `./scripts/calculate-semver.ps1` | `/ask-release-manager` | `calculate-semver.ps1` + prompt |
+| Task | AGY Script & Command (`_agents`) | Copilot Script & Prompt (`.agents`) |
+| :--- | :--- | :--- |
+| **Stage 1 Fast Gate** | `/ask-control` (`./_agents/scripts/run-fast-gate.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/run-fast-gate.ps1` |
+| **All Quality Gates** | `/ask-control` (`./_agents/scripts/run-all-gates.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/run-all-gates.ps1` |
+| **Scaffold Concept** | `/ask-contract-specialist` (`./_agents/scripts/inspect-feature-specs.ps1 -NewConcept`) | `pwsh -NoProfile -File ./.agents/scripts/inspect-feature-specs.ps1 -NewConcept` |
+| **Archive Concept** | `/ask-contract-specialist` (`./_agents/scripts/inspect-feature-specs.ps1 -ArchiveConcept`) | `pwsh -NoProfile -File ./.agents/scripts/inspect-feature-specs.ps1 -ArchiveConcept` |
+| **Living Spec Status**| `/ask-contract-specialist` (`./_agents/scripts/inspect-feature-specs.ps1 -CheckDrift`) | `pwsh -NoProfile -File ./.agents/scripts/inspect-feature-specs.ps1 -CheckDrift` |
+| **Secret & Rust Scan**| `/ask-release-manager` (`./_agents/scripts/scan-guardrails.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/scan-guardrails.ps1` |
+| **Merge / Git Fix** | `/ask-git-troubleshooter` (`./_agents/scripts/diagnose-git-state.ps1`) | `Consult .agents/skills/ask-git-troubleshooter/SKILL.md` |
+| **Clean Architecture**| `/ask-troubleshooter` (`./_agents/scripts/lint-clean-architecture.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/lint-clean-architecture.ps1` |
+| **i18n Key Parity** | `/ask-contract-specialist` (`./_agents/scripts/audit-i18n.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/audit-i18n.ps1` |
+| **Next SemVer Tag** | `/ask-release-manager` (`./_agents/scripts/calculate-semver.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/calculate-semver.ps1` |

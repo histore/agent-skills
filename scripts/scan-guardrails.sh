@@ -6,19 +6,35 @@ set -euo pipefail
 
 SCAN_PATH="${1:-$(pwd)}"
 STAGED_ONLY=false
+WORKING_TREE=false
 FIX=false
 JSON_OUTPUT=false
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --path)
+      SCAN_PATH="$2"
+      shift 2
+      ;;
     --staged)
       STAGED_ONLY=true
+      shift
+      ;;
+    --working-tree)
+      WORKING_TREE=true
+      shift
       ;;
     --fix|-f)
       FIX=true
+      shift
       ;;
     --json|-j)
       JSON_OUTPUT=true
+      shift
+      ;;
+    *)
+      [[ -d "$1" ]] && SCAN_PATH="$1"
+      shift
       ;;
   esac
 done
@@ -31,6 +47,29 @@ if [[ "$STAGED_ONLY" == "true" ]]; then
   while IFS= read -r f; do
     [[ -n "$f" && -f "${SCAN_PATH}/$f" ]] && FILES+=("${SCAN_PATH}/$f")
   done < <(git -C "$SCAN_PATH" diff --name-only --cached 2>/dev/null || true)
+elif [[ "$WORKING_TREE" == "true" ]]; then
+  if [[ "$(git -C "$SCAN_PATH" rev-parse --is-inside-work-tree 2>/dev/null || true)" == "true" ]]; then
+    while IFS= read -r f; do
+      if [[ -n "$f" && ! "$f" =~ ^(\.agents|_agents)/ && -f "${SCAN_PATH}/$f" ]]; then
+        FILES+=("${SCAN_PATH}/$f")
+      fi
+    done < <({
+      git -C "$SCAN_PATH" diff --name-only --cached 2>/dev/null || true
+      git -C "$SCAN_PATH" diff --name-only 2>/dev/null || true
+      git -C "$SCAN_PATH" ls-files --others --exclude-standard 2>/dev/null || true
+    } | sort -u)
+  else
+    while IFS= read -r f; do
+      FILES+=("$f")
+    done < <(find "$SCAN_PATH" -type f \
+      -not -path '*/\.git/*' \
+      -not -path '*/_agents/*' \
+      -not -path '*/\.agents/*' \
+      -not -path '*/node_modules/*' \
+      -not -path '*/target/*' \
+      -not -path '*/bin/*' \
+      -not -path '*/obj/*')
+  fi
 else
   while IFS= read -r f; do
     FILES+=("$f")
@@ -66,10 +105,10 @@ for file in "${FILES[@]}"; do
       fi
     fi
 
-    # Safe-Rust check
+    # Safe-Rust check (blocks, pub/async unsafe fn, unsafe impl/trait/extern, Rust 2024 #[unsafe(...)])
     if [[ "$file" == *.rs ]]; then
-      if grep -nE '^[[:space:]]*unsafe[[:space:]]+(\{|fn|impl|trait)' "$file" >/dev/null 2>&1; then
-        VIOLATIONS+=("[SafeRust] ${rel_path}: Forbidden unsafe block/fn detected in safe-Rust codebase")
+      if sed -E 's|//.*$||; s|"((\\.)|[^"\\])*"|""|g' "$file" | grep -nE '((^|[^[:alnum:]_])unsafe[[:space:]]*(\{|fn([^[:alnum:]_]|$)|impl([^[:alnum:]_]|$)|trait([^[:alnum:]_]|$)|extern([^[:alnum:]_]|$))|#\[[[:space:]]*unsafe[[:space:]]*\()' >/dev/null 2>&1; then
+        VIOLATIONS+=("[SafeRust] ${rel_path}: Forbidden unsafe construct detected in safe-Rust codebase")
       fi
     fi
 

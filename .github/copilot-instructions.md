@@ -24,14 +24,14 @@ Classify every incoming request before acting and modulate your thinking budget 
    - **3-Iteration Circuit Breaker**: Run only targeted tests (`--filter`, `-k`, test name) in quiet mode (`-q`, `--verbosity quiet`) with `pwsh -NoProfile`. If a test-fix loop fails 3 consecutive times, halt and escalate to the user.
 5. **Single-Command Stage-1 Quality Gate (Zero-Token Script)**:
    - After modifying executable production code, validate build, quiet tests, linter, Clean Architecture boundaries, and Safe-Rust/Secret guardrails in **one single command**:
-     `pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/run-fast-gate.ps1` (or `./_agents/scripts/run-fast-gate.ps1` / `./.agents/scripts/run-fast-gate.ps1`, Bash: `run-fast-gate.sh`).
+     `pwsh -NoProfile -ExecutionPolicy Bypass -File ./.agents/scripts/run-fast-gate.ps1` (fallback `~/.agents/scripts/run-fast-gate.ps1` or `./scripts/run-fast-gate.ps1`; Bash: `run-fast-gate.sh`).
 6. **Git & Submodule Safety**:
    - Execute Git commands **only** when committing, pushing, or creating PRs (never proactively on read-only tasks).
-   - Never run destructive Git commands (`git reset --hard`, `git push --force`) without explicit user instruction. Never stage or commit changes inside `_agents/` or `.agents/` submodules during host project commits.
+   - Never run destructive Git commands (`git reset --hard`, `git push --force`) without explicit user instruction. Never stage or commit changes inside `.agents/` or `_agents/` submodules during host project commits.
 7. **Living Modular Documentation & Lazy Loading Protocol**:
    - Grow specifications incrementally as isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md` or `docs/requirements/modules/<module>.md`).
    - **Concept Workflows & Mandatory Schema Enforceability**:
-     - Whenever authoring or updating a concept, strictly adhere to [`docs/templates/CONCEPT_TEMPLATE.md`](docs/templates/CONCEPT_TEMPLATE.md). Always scaffold via `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -NewConcept -ConceptId "CONCEPT-<SCOPE>-XXX" -Title "<Title>" -Scope "<SCOPE>"` (Bash: `inspect-feature-specs.sh --new-concept ...`) or replicate its exact section structure in `docs/concepts/drafts/CONCEPT-<SCOPE>-XXX-<slug>.md`.
+     - Whenever authoring or updating a concept, strictly adhere to `.agents/docs/templates/CONCEPT_TEMPLATE.md` (fallback `~/.agents/docs/templates/CONCEPT_TEMPLATE.md` or `docs/templates/CONCEPT_TEMPLATE.md`). Always scaffold via `pwsh -NoProfile -File ./.agents/scripts/inspect-feature-specs.ps1 -NewConcept -ConceptId "CONCEPT-<SCOPE>-XXX" -Title "<Title>" -Scope "<SCOPE>"` (Bash: `./.agents/scripts/inspect-feature-specs.sh --new-concept ...`) or replicate its exact section structure in `docs/concepts/drafts/CONCEPT-<SCOPE>-XXX-<slug>.md`.
      - **Mandatory Schema & Sections**: Every concept MUST contain:
        1. YAML Frontmatter (`id`, `title`, `status: DRAFT`, `scope`, `target_feature`, `author`, `created`)
        2. `## 1. Problem Statement & Motivation` (Context, need, desired outcome)
@@ -43,21 +43,23 @@ Classify every incoming request before acting and modulate your thinking budget 
        8. `## 7. Revision & Discussion History`
      - Free-form or unstructured concept documents are strictly prohibited.
      - Supports two identical tracks:
-       1. **`concept > req > impl` (Standard / Complex Features)**: Distill draft into `docs/features/FEAT-*.md` (escalating contradictions to user) and archive to `docs/concepts/archive/` (`inspect-feature-specs.ps1 -ArchiveConcept`). Downstream implementation roles (`Developer`, `Tester`, `Verifikation`) never inspect concept files directly.
+       1. **`concept > req > impl` (Standard / Complex Features)**: Distill draft into `docs/features/FEAT-*.md` (escalating contradictions to user) and archive to `docs/concepts/archive/` (`./.agents/scripts/inspect-feature-specs.ps1 -ArchiveConcept`). Downstream implementation roles (`Developer`, `Tester`, `Verifikation`) never inspect concept files directly.
        2. **`concept > impl` (Fast-Track / Prototypes)**: Approved draft serves directly as working contract, is archived to `docs/concepts/archive/`, and implemented directly via Developer Inner-Loop TDD.
-   - **Lazy Loading (Zero-Full-Parse Invariant)**: Read **only** the central index (`docs/ROADMAP.md` or `REQUIREMENTS.md`) or query via `pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase <Phase>` and load strictly the single target spec file.
+   - **Lazy Loading (Zero-Full-Parse Invariant)**: Read **only** the central index (`docs/ROADMAP.md` or `REQUIREMENTS.md`) or query via `pwsh -NoProfile -File ./.agents/scripts/inspect-feature-specs.ps1 -Phase <Phase>` and load strictly the single target spec file.
 8. **Relative Paths Invariant in Documentation**:
    - In all documentation (`*.md`), **always use relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-*.md`). Absolute paths (`C:\...`, `/home/...`, `file:///...`) are strictly forbidden in committed docs.
 9. **MCP & External Tool Governance (Local-First Priority)**:
-   - Deterministic zero-token scripts (`scripts/*.ps1`, `scripts/*.sh`) always take precedence over external MCP servers for local repository, build, lint, or Git operations. Read-only MCP queries (documentation, schema lookups) are auto-approved; state-mutating MCP calls (DB mutations, remote issue/PR writes) require explicit user intent matching Atomic Lifecycle Governance.
+   - Deterministic zero-token scripts (`.agents/scripts/*.ps1`, `.agents/scripts/*.sh`, or `~/.agents/scripts/*`) always take precedence over external MCP servers for local repository, build, lint, or Git operations. Read-only MCP queries (documentation, schema lookups) are auto-approved; state-mutating MCP calls (DB mutations, remote issue/PR writes) require explicit user intent matching Atomic Lifecycle Governance.
+10. **Output Brevity & Token Hygiene**:
+    - Keep phase transitions (`### [Phase: ...]`) concise (max 3–5 bullet points for state checkpoints). Never echo full modified source files back in chat after applying file edits.
 
-## 3. On-Demand Specialist Workflows (V2 Capability Packs)
-When encountering specialized tasks requiring deep domain expertise, consult the consolidated capability pack guides in `skills/` (or `.agents/skills/` / `_agents/skills/`) on demand:
-- **Diagnostics, bug RCA, code review, refactoring & profiling**: `skills/ask-troubleshooter/SKILL.md`
-- **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: `skills/ask-git-troubleshooter/SKILL.md`
-- **Contracts, living specs, API contracts, DB migrations, UI/UX tokens, a11y & i18n**: `skills/ask-contract-specialist/SKILL.md`
-- **Release management, CI/CD, SemVer calculation & security audits**: `skills/ask-release-manager/SKILL.md`
+## 3. On-Demand Specialist Workflows (V2 Capability Packs via `.agents`)
+When encountering specialized tasks requiring deep domain expertise, consult the consolidated capability pack guides in `.agents/skills/` (user-level fallback: `~/.agents/skills/`) on demand:
+- **Diagnostics, bug RCA, code review, refactoring & profiling**: `.agents/skills/ask-troubleshooter/SKILL.md`
+- **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: `.agents/skills/ask-git-troubleshooter/SKILL.md`
+- **Contracts, living specs, API contracts, DB migrations, UI/UX tokens, a11y & i18n**: `.agents/skills/ask-contract-specialist/SKILL.md`
+- **Release management, CI/CD, SemVer calculation & security audits**: `.agents/skills/ask-release-manager/SKILL.md`
 
 > [!NOTE]
-> **Copilot Efficiency & V2 Architecture Rationale**: The V2 Architecture consolidates 23 legacy micro-roles into 1 Core Lifecycle Engineer (`ask-control`, defined in this file) and 4 high-value On-Demand Capability Packs. In Copilot single-thread persona mode, routine development workflows (planning, contract design, Inner-Loop TDD, two-stage verification, atomic commits) execute with zero reload ceremony, while the 4 specialist packs provide deep domain expertise strictly on demand.
+> **Copilot Efficiency & `.agents` Integration**: Copilot integrates via `.agents` at both project level (`./.agents/`) and user level (`~/.agents/`). The V2 Architecture consolidates 23 legacy micro-roles into 1 Core Lifecycle Engineer (`ask-control`, embedded directly here for zero-reload execution) and 4 high-value On-Demand Capability Packs loaded strictly on demand from `.agents/skills/`.
 

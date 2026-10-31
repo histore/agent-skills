@@ -9,12 +9,16 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 TARGET_PATH="${1:-$(pwd)}"
 STAGED_ONLY=false
+WORKING_TREE=false
 JSON_OUTPUT=false
 
 for arg in "$@"; do
   case "$arg" in
     --staged)
       STAGED_ONLY=true
+      ;;
+    --working-tree)
+      WORKING_TREE=true
       ;;
     --json|-j)
       JSON_OUTPUT=true
@@ -35,13 +39,14 @@ for candidate in \
 done
 
 if command -v python3 &>/dev/null; then
-  python3 - "$RULES_FILE" "$TARGET_PATH" "$STAGED_ONLY" "$JSON_OUTPUT" << 'EOF'
-import os, re, json, sys
+  python3 - "$RULES_FILE" "$TARGET_PATH" "$STAGED_ONLY" "$WORKING_TREE" "$JSON_OUTPUT" << 'EOF'
+import os, re, json, sys, subprocess
 
 rules_file = sys.argv[1]
 target_path = os.path.abspath(sys.argv[2])
 staged_only = sys.argv[3] == 'true'
-json_output = sys.argv[4] == 'true'
+working_tree = sys.argv[4] == 'true'
+json_output = sys.argv[5] == 'true'
 
 rules = {}
 if rules_file and os.path.isfile(rules_file):
@@ -61,11 +66,33 @@ src_exts = ('.rs', '.cs', '.ts', '.js', '.py', '.go')
 files_to_scan = []
 
 if staged_only:
-    import subprocess
     res = subprocess.run(['git', '-C', target_path, 'diff', '--name-only', '--cached'], capture_output=True, text=True)
     for line in res.stdout.splitlines():
         if line.endswith(src_exts) and os.path.isfile(os.path.join(target_path, line)):
             files_to_scan.append(os.path.join(target_path, line))
+elif working_tree:
+    is_git = subprocess.run(['git', '-C', target_path, 'rev-parse', '--is-inside-work-tree'], capture_output=True, text=True)
+    if is_git.stdout.strip() == 'true':
+        seen = set()
+        for cmd in [
+            ['git', '-C', target_path, 'diff', '--name-only', '--cached'],
+            ['git', '-C', target_path, 'diff', '--name-only'],
+            ['git', '-C', target_path, 'ls-files', '--others', '--exclude-standard']
+        ]:
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            for line in r.stdout.splitlines():
+                if line and not re.match(r'^(\.agents|_agents)/', line) and line.endswith(src_exts):
+                    fp = os.path.join(target_path, line)
+                    if os.path.isfile(fp) and fp not in seen:
+                        seen.add(fp)
+                        files_to_scan.append(fp)
+    else:
+        for root, dirs, files in os.walk(target_path):
+            if any(ignored in root for ignored in ['.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj']):
+                continue
+            for f in files:
+                if f.endswith(src_exts):
+                    files_to_scan.append(os.path.join(root, f))
 else:
     for root, dirs, files in os.walk(target_path):
         if any(ignored in root for ignored in ['.git', 'node_modules', 'target', 'bin', 'obj']):

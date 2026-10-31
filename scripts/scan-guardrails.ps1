@@ -28,6 +28,9 @@ param(
     [switch]$StagedOnly,
 
     [Parameter(Mandatory = $false)]
+    [switch]$WorkingTree,
+
+    [Parameter(Mandatory = $false)]
     [switch]$Fix,
 
     [Parameter(Mandatory = $false)]
@@ -49,6 +52,33 @@ if ($StagedOnly) {
             $full = Join-Path $ScanPath $f
             if (Test-Path $full) { $filesToScan.Add($full) }
         }
+    }
+} elseif ($WorkingTree) {
+    $isGit = git -C $ScanPath rev-parse --is-inside-work-tree 2>$null
+    if ($isGit -eq "true") {
+        $seenPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        $wtCandidates = @()
+        $wtCandidates += (git -C $ScanPath diff --name-only --cached 2>$null) -split "`r?`n"
+        $wtCandidates += (git -C $ScanPath diff --name-only 2>$null) -split "`r?`n"
+        $wtCandidates += (git -C $ScanPath ls-files --others --exclude-standard 2>$null) -split "`r?`n"
+        foreach ($f in $wtCandidates) {
+            if (-not [string]::IsNullOrWhiteSpace($f) -and $f -notmatch '^((\.agents|_agents)[\\/])') {
+                $full = Join-Path $ScanPath $f
+                if ((Test-Path $full -PathType Leaf) -and $seenPaths.Add($full)) {
+                    $filesToScan.Add($full)
+                }
+            }
+        }
+    } else {
+        $allFiles = Get-ChildItem -Path $ScanPath -Recurse -File | Where-Object {
+            $_.FullName -notmatch '[\\/]\.git[\\/]' -and
+            $_.FullName -notmatch '[\\/](_agents|\.agents)[\\/]' -and
+            $_.FullName -notmatch '[\\/]node_modules[\\/]' -and
+            $_.FullName -notmatch '[\\/]target[\\/]' -and
+            $_.FullName -notmatch '[\\/]bin[\\/]' -and
+            $_.FullName -notmatch '[\\/]obj[\\/]'
+        }
+        foreach ($f in $allFiles) { $filesToScan.Add($f.FullName) }
     }
 } else {
     $allFiles = Get-ChildItem -Path $ScanPath -Recurse -File | Where-Object {
@@ -148,16 +178,16 @@ foreach ($filePath in $filesToScan) {
         $content = [System.Text.Encoding]::UTF8.GetString($bytes)
         $lines = $content -split "`r?`n"
 
-        # 4a. Safe-Rust Check (*.rs files)
+        # 4a. Safe-Rust Check (*.rs files: blocks, pub/async unsafe fn, unsafe impl/trait/extern, Rust 2024 #[unsafe(...)])
         if ($ext -eq ".rs") {
                 for ($l = 0; $l -lt $lines.Length; $l++) {
-                    $line = $lines[$l]
-                    if ($line -match '^\s*unsafe\s*(\{|fn|impl|trait)') {
+                    $codeOnly = [regex]::Replace(($lines[$l] -replace '//.*$', ''), '"(?:\\.|[^"\\])*"', '""')
+                    if ($codeOnly -match '(\bunsafe\s*(\{|fn\b|impl\b|trait\b|extern\b)|#\[\s*unsafe\s*\()') {
                         $violations.Add([PSCustomObject]@{
                             Rule = "SafeRust"
                             File = $relPath
                             Line = $l + 1
-                            Message = "Forbidden 'unsafe' block or function detected in safe-Rust codebase"
+                            Message = "Forbidden 'unsafe' construct detected in safe-Rust codebase"
                         })
                     }
                 }

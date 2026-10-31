@@ -133,13 +133,13 @@ if ($stackInfo.stack -ne "unknown") {
     }
 }
 
-# 3. Consolidated Guardrails & Clean Architecture Check (in-process, zero extra tool roundtrips)
+# 3. Consolidated Guardrails & Clean Architecture Check (in-process across working-tree changes, zero extra tool roundtrips)
 $guardrailsSuccess = $true
 if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails) {
     $archScript = Join-Path $scriptDir "lint-clean-architecture.ps1"
     if (Test-Path $archScript) {
         try {
-            $archRes = & $archScript -TargetPath $ProjectRoot -StagedOnly -JsonOutput | ConvertFrom-Json
+            $archRes = & $archScript -TargetPath $ProjectRoot -WorkingTree -JsonOutput | ConvertFrom-Json
             if ($archRes.status -eq "fail") {
                 $guardrailsSuccess = $false
                 $failedStep = "CleanArchitecture"
@@ -153,7 +153,7 @@ if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails)
     $scanScript = Join-Path $scriptDir "scan-guardrails.ps1"
     if ($guardrailsSuccess -and (Test-Path $scanScript)) {
         try {
-            $scanRes = & $scanScript -ScanPath $ProjectRoot -StagedOnly -JsonOutput | ConvertFrom-Json
+            $scanRes = & $scanScript -ScanPath $ProjectRoot -WorkingTree -JsonOutput | ConvertFrom-Json
             if ($scanRes.status -eq "fail") {
                 $guardrailsSuccess = $false
                 $failedStep = "Guardrails"

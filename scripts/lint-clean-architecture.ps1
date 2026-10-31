@@ -30,6 +30,9 @@ param(
     [switch]$StagedOnly,
 
     [Parameter(Mandatory = $false)]
+    [switch]$WorkingTree,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -83,6 +86,34 @@ if ($StagedOnly) {
                 $filesToScan.Add($full)
             }
         }
+    }
+} elseif ($WorkingTree) {
+    $isGit = git -C $TargetPath rev-parse --is-inside-work-tree 2>$null
+    if ($isGit -eq "true") {
+        $seenPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        $wtCandidates = @()
+        $wtCandidates += (git -C $TargetPath diff --name-only --cached 2>$null) -split "`r?`n"
+        $wtCandidates += (git -C $TargetPath diff --name-only 2>$null) -split "`r?`n"
+        $wtCandidates += (git -C $TargetPath ls-files --others --exclude-standard 2>$null) -split "`r?`n"
+        foreach ($f in $wtCandidates) {
+            if (-not [string]::IsNullOrWhiteSpace($f) -and $f -notmatch '^((\.agents|_agents)[\\/])') {
+                $full = Join-Path $TargetPath $f
+                if ((Test-Path $full -PathType Leaf) -and ($srcExts -contains [System.IO.Path]::GetExtension($full).ToLowerInvariant()) -and $seenPaths.Add($full)) {
+                    $filesToScan.Add($full)
+                }
+            }
+        }
+    } else {
+        $allFiles = Get-ChildItem -Path $TargetPath -Recurse -File | Where-Object {
+            $_.FullName -notmatch '[\\/]\.git[\\/]' -and
+            $_.FullName -notmatch '[\\/](_agents|\.agents)[\\/]' -and
+            $_.FullName -notmatch '[\\/]node_modules[\\/]' -and
+            $_.FullName -notmatch '[\\/]target[\\/]' -and
+            $_.FullName -notmatch '[\\/]bin[\\/]' -and
+            $_.FullName -notmatch '[\\/]obj[\\/]' -and
+            ($srcExts -contains $_.Extension.ToLowerInvariant())
+        }
+        foreach ($f in $allFiles) { $filesToScan.Add($f.FullName) }
     }
 } else {
     $allFiles = Get-ChildItem -Path $TargetPath -Recurse -File | Where-Object {

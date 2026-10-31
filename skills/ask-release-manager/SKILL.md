@@ -97,6 +97,6 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 
 ---
 
-## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Embedding Host Project Target**: When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all release operations target the embedding host repository.
-- **Submodule Asset Resolution**: Helper scripts and internal assets reside in `./_agents/scripts/`, `./.agents/scripts/`, or `./scripts/`.
+## Tooling & Path Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
+- **Embedding Host Project Target**: When linked at project or user level (`_agents/` or `~/_agents/` for Antigravity; `.agents/` or `~/.agents/` for Copilot), all release operations target the embedding **host repository**.
+- **Submodule Asset Resolution**: Resolve helper scripts across project and user scopes: `./_agents/scripts/`, `./.agents/scripts/`, `./scripts/`, `"$HOME/_agents/scripts/"`, or `"$HOME/.agents/scripts/"`.

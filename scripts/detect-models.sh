@@ -71,6 +71,10 @@ if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d 
     # Probe available models via agy models (with timeout guard if available)
     models_json="[]"
     raw_models=""
+    t1="inherit"
+    t2="inherit"
+    t3="inherit"
+    t4="flash"
     if command -v agy &>/dev/null; then
         if command -v timeout >/dev/null 2>&1; then
             raw_models=$(timeout 3 agy models 2>/dev/null || true)
@@ -91,14 +95,14 @@ if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d 
         if [ ${#models_array[@]} -gt 0 ]; then
             models_json="["$(IFS=,; echo "${models_array[*]}")"]"
         fi
-        opus_high=$(echo "$raw_models" | grep -E 'opus.*high' | head -n1 | awk '{print $1}')
-        sonnet_high=$(echo "$raw_models" | grep -E 'sonnet.*high' | head -n1 | awk '{print $1}')
-        flash_high=$(echo "$raw_models" | grep -E 'flash.*high' | head -n1 | awk '{print $1}')
-        flash_med=$(echo "$raw_models" | grep -E 'flash.*medium' | head -n1 | awk '{print $1}')
-        flash_low=$(echo "$raw_models" | grep -E 'flash.*low' | head -n1 | awk '{print $1}')
+        flagship_high=$(echo "$raw_models" | grep -E '(opus|gemini-4|argon|pro|gpt-[56]|astra).*(high|extended)|opus|gpt-6.*astra' | head -n1 | awk '{print $1}')
+        analytical_high=$(echo "$raw_models" | grep -E '(sonnet|gemini-4|argon|gpt-[56]|sol).*(high|medium)|gpt-6\.1-sol' | head -n1 | awk '{print $1}')
+        flash_high=$(echo "$raw_models" | grep -E '(flash|haiku|mini|luna).*high' | head -n1 | awk '{print $1}')
+        flash_med=$(echo "$raw_models" | grep -E '(flash|argon|sonnet|gpt-6|sol).*medium|gpt-6\.1-sol' | head -n1 | awk '{print $1}')
+        flash_low=$(echo "$raw_models" | grep -E '(flash|haiku|mini|luna).*low|gpt-6.*(mini|luna)' | head -n1 | awk '{print $1}')
 
-        t1="${opus_high:-${flash_high:-inherit}}"
-        t2="${sonnet_high:-${flash_high:-inherit}}"
+        t1="${flagship_high:-${flash_high:-inherit}}"
+        t2="${analytical_high:-${flash_high:-inherit}}"
         t3="${flash_med:-${flash_high:-inherit}}"
         t4="${flash_low:-${flash_med:-flash}}"
     fi
@@ -136,7 +140,9 @@ if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d 
 EOF
 )
 
-elif command -v gh &>/dev/null; then
+elif command -v copilot &>/dev/null || [[ -n "${COPILOT_CLI:-}" ]] || [[ -d "$HOME/.copilot" ]] || (command -v gh &>/dev/null && gh extension list 2>/dev/null | grep -q 'gh-copilot'); then
+    copilot_subagents=false
+    command -v copilot &>/dev/null && copilot_subagents=true
     json_output=$(cat <<EOF
 {
   "timestamp": "$timestamp",
@@ -152,13 +158,13 @@ elif command -v gh &>/dev/null; then
     "flagship_threshold_output_per_m": 20.00,
     "throttle_routine_to_cost_efficient": true
   },
-  "supports_subagents": false,
+  "supports_subagents": $copilot_subagents,
   "detected_models": [],
   "recommended_tiers": {
-    "tier_1": { "reasoning_effort": "high", "strategy": "maximum_thinking" },
-    "tier_2": { "reasoning_effort": "high", "strategy": "analytical" },
-    "tier_3": { "reasoning_effort": "medium", "strategy": "balanced" },
-    "tier_4": { "reasoning_effort": "low", "strategy": "deterministic" }
+    "tier_1": { "reasoning_effort": "high", "strategy": "maximum_thinking", "preferred_family": "gpt-6-astra / gpt-6-high / claude-opus" },
+    "tier_2": { "reasoning_effort": "high", "strategy": "analytical", "preferred_family": "gpt-6.1-sol / gpt-6 / claude-sonnet" },
+    "tier_3": { "reasoning_effort": "medium", "strategy": "balanced", "preferred_family": "gpt-6.1-sol / gpt-6-medium / claude-sonnet" },
+    "tier_4": { "reasoning_effort": "low", "strategy": "deterministic", "preferred_family": "gpt-6.1-luna / gpt-6-mini / gpt-5.4-mini" }
   }
 }
 EOF

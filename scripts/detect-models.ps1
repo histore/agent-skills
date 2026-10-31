@@ -107,7 +107,7 @@ $result = [ordered]@{
 
 # 3.1. Probe for Antigravity (agy CLI or Antigravity runtime environment)
 $agyCmd = Get-Command agy -ErrorAction SilentlyContinue
-$isAntigravityEnv = ($null -ne $agyCmd) -or ($null -ne $env:ANTIGRAVITY_CLI_ALIAS) -or (Test-Path (Join-Path $HOME ".gemini\antigravity"))
+$isAntigravityEnv = ($null -ne $agyCmd) -or ($null -ne $env:ANTIGRAVITY_CLI_ALIAS) -or (Test-Path (Join-Path $HOME ".gemini\antigravity")) -or (Test-Path (Join-Path $HOME ".gemini\antigravity-cli"))
 if ($isAntigravityEnv) {
     $result.platform = "antigravity"
     $result.execution_mode = "multi_agent"
@@ -144,30 +144,31 @@ if ($isAntigravityEnv) {
     }
 
     if ($modelList -and $modelList.Count -gt 0) {
-        $opusHigh = ($modelList | Where-Object { $_.id -match 'opus.*high' } | Select-Object -First 1).id
-        $sonnetHigh = ($modelList | Where-Object { $_.id -match 'sonnet.*high' } | Select-Object -First 1).id
-        $flashHigh = ($modelList | Where-Object { $_.id -match 'flash.*high' } | Select-Object -First 1).id
-        $flashMed = ($modelList | Where-Object { $_.id -match 'flash.*medium' } | Select-Object -First 1).id
-        $flashLow = ($modelList | Where-Object { $_.id -match 'flash.*low' } | Select-Object -First 1).id
+        $flagshipHigh = ($modelList | Where-Object { $_.id -match '(opus|gemini-4|argon|pro|gpt-[56]|astra).*(high|extended)' -or $_.id -match 'opus|gemini-4.*pro|gpt-6.*astra' } | Select-Object -First 1).id
+        $analyticalHigh = ($modelList | Where-Object { $_.id -match '(sonnet|gemini-4|argon|gpt-[56]|sol).*(high|medium)|gpt-6\.1-sol' } | Select-Object -First 1).id
+        $flashHigh = ($modelList | Where-Object { $_.id -match '(flash|haiku|mini|luna).*high' } | Select-Object -First 1).id
+        $flashMed = ($modelList | Where-Object { $_.id -match '(flash|argon|sonnet|gpt-6|sol).*medium|gpt-6\.1-sol' } | Select-Object -First 1).id
+        $flashLow = ($modelList | Where-Object { $_.id -match '(flash|haiku|mini|luna).*low|gpt-6.*(mini|luna)' } | Select-Object -First 1).id
 
         $result.active_model_mapping = [ordered]@{
-            tier_1_deep_reasoning = if ($opusHigh) { $opusHigh } elseif ($flashHigh) { $flashHigh } else { "inherit" }
-            tier_2_analytical     = if ($sonnetHigh) { $sonnetHigh } elseif ($flashHigh) { $flashHigh } else { "inherit" }
+            tier_1_deep_reasoning = if ($flagshipHigh) { $flagshipHigh } elseif ($flashHigh) { $flashHigh } else { "inherit" }
+            tier_2_analytical     = if ($analyticalHigh) { $analyticalHigh } elseif ($flashHigh) { $flashHigh } else { "inherit" }
             tier_3_balanced       = if ($flashMed) { $flashMed } elseif ($flashHigh) { $flashHigh } else { "inherit" }
             tier_4_deterministic  = if ($flashLow) { $flashLow } elseif ($flashMed) { $flashMed } else { "flash" }
         }
     }
 }
-# 3.2. Probe for GitHub Copilot / gh CLI
-elseif (Get-Command gh -ErrorAction SilentlyContinue) {
+# 3.2. Probe for standalone GitHub Copilot CLI ('copilot') or gh-copilot extension
+elseif ((Get-Command copilot -ErrorAction SilentlyContinue) -or ($null -ne $env:COPILOT_CLI) -or (Test-Path (Join-Path $HOME ".copilot")) -or ((Get-Command gh -ErrorAction SilentlyContinue) -and ((& gh extension list 2>$null) -match 'gh-copilot'))) {
+    $hasCopilotCli = ($null -ne (Get-Command copilot -ErrorAction SilentlyContinue))
     $result.platform = "copilot"
     $result.execution_mode = "sequential_persona"
-    $result.supports_subagents = $false
+    $result.supports_subagents = $hasCopilotCli
     $result.recommended_tiers = [ordered]@{
-        tier_1 = [ordered]@{ reasoning_effort = "high"; strategy = "maximum_thinking" }
-        tier_2 = [ordered]@{ reasoning_effort = "high"; strategy = "analytical" }
-        tier_3 = [ordered]@{ reasoning_effort = "medium"; strategy = "balanced" }
-        tier_4 = [ordered]@{ reasoning_effort = "low"; strategy = "deterministic" }
+        tier_1 = [ordered]@{ reasoning_effort = "high"; strategy = "maximum_thinking"; preferred_family = "gpt-6-astra / gpt-6-high / claude-opus" }
+        tier_2 = [ordered]@{ reasoning_effort = "high"; strategy = "analytical"; preferred_family = "gpt-6.1-sol / gpt-6 / claude-sonnet" }
+        tier_3 = [ordered]@{ reasoning_effort = "medium"; strategy = "balanced"; preferred_family = "gpt-6.1-sol / gpt-6-medium / claude-sonnet" }
+        tier_4 = [ordered]@{ reasoning_effort = "low"; strategy = "deterministic"; preferred_family = "gpt-6.1-luna / gpt-6-mini / gpt-5.4-mini" }
     }
 }
 # 3.3. Generic LLM Fallback

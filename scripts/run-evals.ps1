@@ -30,6 +30,9 @@ param(
     [string]$Category,
 
     [Parameter(Mandatory = $false)]
+    [string]$TranscriptPath,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -175,31 +178,33 @@ foreach ($tc in $cases) {
         }
     }
 
-    # Rule 6: Verify actual skill and governance files enforce the declared invariants
+    # Rule 6: Verify actual skill, Copilot instruction, and governance files enforce the declared invariants
     $agentsFile = Join-Path $repoRoot "AGENTS.md"
     $agentsContent = if (Test-Path $agentsFile) { Get-Content -Path $agentsFile -Raw -Encoding UTF8 } else { "" }
+    $copilotInstrFile = Join-Path $repoRoot ".github\copilot-instructions.md"
+    $copilotContent = if (Test-Path $copilotInstrFile) { Get-Content -Path $copilotInstrFile -Raw -Encoding UTF8 } else { "" }
     foreach ($inv in $tc.expected.required_invariants) {
         switch ($inv) {
             "zero_git_operations" {
-                if ($agentsContent -notmatch 'Zero Git operations') {
-                    $failures.Add("Invariant 'zero_git_operations' missing in AGENTS.md")
+                if ($agentsContent -notmatch 'Zero Git operations' -or $copilotContent -notmatch 'Zero Git commands') {
+                    $failures.Add("Invariant 'zero_git_operations' missing in AGENTS.md or .github/copilot-instructions.md")
                 }
             }
             "zero_test_execution" {
-                if ($agentsContent -notmatch 'zero test execution') {
-                    $failures.Add("Invariant 'zero_test_execution' missing in AGENTS.md")
+                if ($agentsContent -notmatch 'zero test execution' -or $copilotContent -notmatch 'zero test execution') {
+                    $failures.Add("Invariant 'zero_test_execution' missing in AGENTS.md or .github/copilot-instructions.md")
                 }
             }
             "inner_loop_tdd" {
                 $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
-                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Inner-Loop TDD') {
-                    $failures.Add("Invariant 'inner_loop_tdd' missing in ask-control/SKILL.md")
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Inner-Loop TDD' -or $copilotContent -notmatch 'Inner-Loop TDD') {
+                    $failures.Add("Invariant 'inner_loop_tdd' missing in ask-control/SKILL.md or .github/copilot-instructions.md")
                 }
             }
             "no_unsafe_blocks" {
                 $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
-                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'unsafe') {
-                    $failures.Add("Invariant 'no_unsafe_blocks' missing in ask-control/SKILL.md")
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'unsafe' -or $copilotContent -notmatch 'unsafe') {
+                    $failures.Add("Invariant 'no_unsafe_blocks' missing in ask-control/SKILL.md or .github/copilot-instructions.md")
                 }
             }
             "submodule_boundary_isolation" {
@@ -230,6 +235,69 @@ foreach ($tc in $cases) {
                 if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Consolidated Deterministic Fast-Gate') {
                     $failures.Add("Invariant 'fast_gate_consolidated' missing in ask-control/SKILL.md")
                 }
+            }
+            "copilot_uses_dot_agents" {
+                if ($copilotContent -notmatch '\./\.agents/scripts/' -or $copilotContent -notmatch '\.agents/skills/') {
+                    $failures.Add("Invariant 'copilot_uses_dot_agents' violated in .github/copilot-instructions.md")
+                }
+            }
+            "agy_uses_underscore_agents" {
+                if ($agentsContent -notmatch '\./_agents/' -or $agentsContent -notmatch '~/_agents/') {
+                    $failures.Add("Invariant 'agy_uses_underscore_agents' violated in AGENTS.md")
+                }
+            }
+        }
+    }
+
+    # Rule 7: Optional Behavioral Trajectory Evaluation (-TranscriptPath for AGY JSONL / Copilot CLI traces)
+    if ($TranscriptPath) {
+        if (-not (Test-Path $TranscriptPath)) {
+            $failures.Add("Transcript file not found: $TranscriptPath")
+        } else {
+            $traceLines = Get-Content -Path $TranscriptPath -Encoding UTF8 | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+            $executedCommands = [System.Collections.Generic.List[string]]::new()
+            $writtenSnippets = [System.Collections.Generic.List[string]]::new()
+            foreach ($tl in $traceLines) {
+                try {
+                    $step = $tl | ConvertFrom-Json
+                    if ($step.case_id -and $step.case_id -ne $caseId) { continue }
+                    if ($step.command) { $executedCommands.Add([string]$step.command) }
+                    if ($step.tool_calls) {
+                        foreach ($call in $step.tool_calls) {
+                            $argsObj = if ($call.arguments) { $call.arguments } elseif ($call.args) { $call.args } else { $null }
+                            if ($argsObj) {
+                                if ($argsObj.CommandLine) { $executedCommands.Add([string]$argsObj.CommandLine) }
+                                if ($argsObj.command) { $executedCommands.Add([string]$argsObj.command) }
+                                if ($argsObj.Content) { $writtenSnippets.Add([string]$argsObj.Content) }
+                                if ($argsObj.Replacement) { $writtenSnippets.Add([string]$argsObj.Replacement) }
+                            }
+                        }
+                    }
+                } catch {}
+            }
+
+            if ($tc.expected.prohibited_actions) {
+                foreach ($prohibited in $tc.expected.prohibited_actions) {
+                    foreach ($cmd in $executedCommands) {
+                        if ($cmd -match [regex]::Escape($prohibited)) {
+                            $failures.Add("Behavioral trace executed prohibited action '$prohibited' in command: $cmd")
+                        }
+                    }
+                }
+            }
+
+            if ($tc.expected.forbidden_code_patterns) {
+                foreach ($pat in $tc.expected.forbidden_code_patterns) {
+                    foreach ($snip in $writtenSnippets) {
+                        if ($snip -match $pat) {
+                            $failures.Add("Behavioral trace wrote forbidden code pattern '$pat'")
+                        }
+                    }
+                }
+            }
+
+            if ($tc.expected.max_iterations -and $executedCommands.Count -gt [int]$tc.expected.max_iterations) {
+                $failures.Add("Behavioral trace exceeded circuit breaker max_iterations ($($executedCommands.Count) > $($tc.expected.max_iterations))")
             }
         }
     }

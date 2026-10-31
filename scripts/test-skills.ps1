@@ -70,6 +70,11 @@ if ($modelTiersExist) {
 
         $hasReasoningCostRule = ($null -ne $modelTiersData.cost_efficiency_policy -and $modelTiersData.cost_efficiency_policy.high_reasoning_requires_cost_advantage -eq $true)
         Assert-Condition $hasReasoningCostRule "Cost-efficiency policy restricts high reasoning levels to when cost-efficient" "model-tiers.json lacks high_reasoning_requires_cost_advantage"
+
+        $classesObj = $modelTiersData.cost_efficiency_policy.task_appraisal_and_model_classes.classes
+        $copilotPrefs = $modelTiersData.platform_preferences.copilot
+        $hasGpt6Family = ($classesObj.eco.models.copilot -match 'gpt-6' -and $classesObj.balanced.models.copilot -match 'gpt-6' -and $classesObj.premium.models.copilot -match 'gpt-6' -and ($copilotPrefs.tier_1 -join ',') -match 'gpt-6' -and ($copilotPrefs.tier_4 -join ',') -match 'gpt-6')
+        Assert-Condition $hasGpt6Family "model-tiers.json maps the GPT-6 family across ECO, BALANCED, PREMIUM, and platform tiers" "model-tiers.json missing GPT-6 family coverage"
     } catch {
         Assert-Condition $false "model-tiers.json parses as valid JSON" "Failed to parse model-tiers.json: $_"
     }
@@ -795,20 +800,91 @@ Assert-Condition ($controlContent -match 'Workspace:\s*"share"') "ask-control do
 Assert-Condition ($contractContent -match 'Accessibility \(a11y\)') "ask-contract-specialist documents UI/UX Design Tokens & Multimodal Accessibility (a11y)" "ask-contract-specialist missing UI/UX & Accessibility section"
 
 if (Test-Path $setupPs1) {
+    function Remove-SafeReparsePoint([string]$p) {
+        $item = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+        if ($item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+            $item.Delete()
+        }
+    }
+
+    # 43a. AGY-only project setup (-Client agy / -SkipCopilot -> _agents)
     $tempProj = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
     New-Item -ItemType Directory -Path $tempProj | Out-Null
     try {
         pwsh -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -TargetProject $tempProj -InitDocs -SkipCopilot | Out-Null
         $hasInitArch = Test-Path (Join-Path $tempProj "ARCHITECTURE.md")
         $hasInitRoadmap = Test-Path (Join-Path $tempProj "docs\ROADMAP.md")
+        $hasAgyLink = Test-Path (Join-Path $tempProj "_agents")
+        $hasNoCopilotLink = -not (Test-Path (Join-Path $tempProj ".agents"))
         Assert-Condition ($hasInitArch -and $hasInitRoadmap) "setup-agent-skills.ps1 -InitDocs scaffolds ARCHITECTURE.md and docs/ROADMAP.md" "setup-agent-skills.ps1 -InitDocs failed to scaffold docs"
+        Assert-Condition ($hasAgyLink -and $hasNoCopilotLink) "AGY-only project setup creates _agents without .agents" "AGY-only project setup link mismatch"
     } finally {
-        $linkItem = Get-Item -LiteralPath (Join-Path $tempProj "_agents") -Force -ErrorAction SilentlyContinue
-        if ($linkItem -and ($linkItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
-            $linkItem.Delete()
-        }
+        Remove-SafeReparsePoint (Join-Path $tempProj "_agents")
         if (Test-Path $tempProj) { Remove-Item -LiteralPath $tempProj -Recurse -Force -ErrorAction SilentlyContinue }
     }
+
+    # 43b. Copilot-only project setup (-Client copilot -> .agents + .github/copilot-instructions.md)
+    $tempCopilotProj = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+    New-Item -ItemType Directory -Path $tempCopilotProj | Out-Null
+    try {
+        pwsh -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -TargetProject $tempCopilotProj -Client copilot | Out-Null
+        $hasDotAgents = Test-Path (Join-Path $tempCopilotProj ".agents\skills\ask-control\SKILL.md")
+        $hasNoUnderscoreAgents = -not (Test-Path (Join-Path $tempCopilotProj "_agents"))
+        $copilotFile = Join-Path $tempCopilotProj ".github\copilot-instructions.md"
+        $copilotText = if (Test-Path $copilotFile) { Get-Content -LiteralPath $copilotFile -Raw -Encoding UTF8 } else { "" }
+        Assert-Condition ($hasDotAgents -and $hasNoUnderscoreAgents) "Copilot-only project setup creates .agents (and not _agents)" "Copilot-only project setup link mismatch"
+        Assert-Condition ($copilotText -match '\./\.agents/scripts/' -and $copilotText -match '\.agents/skills/') "Provisioned .github/copilot-instructions.md resolves via .agents/" "Copilot instructions do not resolve via .agents/"
+    } finally {
+        Remove-SafeReparsePoint (Join-Path $tempCopilotProj ".agents")
+        if (Test-Path $tempCopilotProj) { Remove-Item -LiteralPath $tempCopilotProj -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+
+    # 43c. Global User-Level setup (-Global -> ~/_agents for AGY and ~/.agents + Zero-Reload inlined instructions for Copilot)
+    $tempHome = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+    New-Item -ItemType Directory -Path $tempHome | Out-Null
+    try {
+        pwsh -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -Global -UserHome $tempHome | Out-Null
+        $hasUserAgy = Test-Path (Join-Path $tempHome "_agents\skills\ask-control\SKILL.md")
+        $hasGeminiSkills = Test-Path (Join-Path $tempHome ".gemini\config\skills\ask-control\SKILL.md")
+        $hasUserCopilot = Test-Path (Join-Path $tempHome ".agents\skills\ask-control\SKILL.md")
+        $userInstrPath = Join-Path $tempHome ".copilot\instructions\agent-skills.instructions.md"
+        $userInstrText = if (Test-Path $userInstrPath) { Get-Content -LiteralPath $userInstrPath -Raw -Encoding UTF8 } else { "" }
+        Assert-Condition ($hasUserAgy -and $hasGeminiSkills) "Global user setup links ~/_agents and ~/.gemini/config/skills for AGY" "Global AGY ~/_agents setup failed"
+        Assert-Condition ($hasUserCopilot -and ($userInstrText -match 'applyTo:\s*"\*\*/\*"') -and ($userInstrText -match 'Inner-Loop TDD') -and ($userInstrText -match '\.agents/skills/')) "Global user setup links ~/.agents and inlines Zero-Reload instructions for Copilot" "Global Copilot ~/.agents setup failed"
+    } finally {
+        Remove-SafeReparsePoint (Join-Path $tempHome ".gemini\config\skills")
+        Remove-SafeReparsePoint (Join-Path $tempHome ".gemini\config\rules")
+        Remove-SafeReparsePoint (Join-Path $tempHome "_agents")
+        Remove-SafeReparsePoint (Join-Path $tempHome ".agents")
+        if (Test-Path $tempHome) { Remove-Item -LiteralPath $tempHome -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+# 44. Validate Shift-Left WorkingTree Guardrails (inline/2024 Safe-Rust) and Behavioral Trace Evals
+Write-Host "`n44. Validating Shift-Left WorkingTree Guardrails & Behavioral Trace Evals..." -ForegroundColor Yellow
+$tempRustDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+New-Item -ItemType Directory -Path $tempRustDir | Out-Null
+try {
+    git -C $tempRustDir init -q 2>$null
+    $badRustFile = Join-Path $tempRustDir "lib.rs"
+    [System.IO.File]::WriteAllText($badRustFile, "#[unsafe(no_mangle)]`npub fn demo() { let _x = unsafe { 42 }; }`n", (New-Object System.Text.UTF8Encoding($false)))
+    $wtGuardOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $tempRustDir -WorkingTree -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($wtGuardOut.status -eq "fail" -and $wtGuardOut.violations_count -ge 2) "scan-guardrails.ps1 -WorkingTree catches unstaged inline unsafe and Rust 2024 #[unsafe(...)]" "scan-guardrails.ps1 -WorkingTree missed unstaged unsafe Rust constructs"
+} finally {
+    if (Test-Path $tempRustDir) { Remove-Item -LiteralPath $tempRustDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+$tempTrace = Join-Path ([System.IO.Path]::GetTempPath()) ("trace_" + [System.Guid]::NewGuid().ToString() + ".jsonl")
+try {
+    [System.IO.File]::WriteAllText($tempTrace, '{"case_id":"EVAL-GOV-001","tool_calls":[{"name":"run_command","arguments":{"CommandLine":"git status"}}]}' + "`n", (New-Object System.Text.UTF8Encoding($false)))
+    $badTraceRaw = $null
+    try {
+        $badTraceRaw = pwsh -NoProfile -ExecutionPolicy Bypass -File $runEvalsPs1 -CaseId "EVAL-GOV-001" -TranscriptPath $tempTrace -JsonOutput 2>$null
+    } catch {}
+    $badTraceObj = if ($badTraceRaw) { $badTraceRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $badTraceObj -and $badTraceObj.failed -eq 1) "run-evals.ps1 -TranscriptPath deterministically flags prohibited 'git status' on Profile 0" "run-evals.ps1 -TranscriptPath failed to catch prohibited action"
+} finally {
+    if (Test-Path $tempTrace) { Remove-Item -LiteralPath $tempTrace -Force -ErrorAction SilentlyContinue }
 }
 
 # Summary Report

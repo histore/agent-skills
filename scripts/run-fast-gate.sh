@@ -114,12 +114,12 @@ fi
 
 if [[ "$OVERALL_PASS" == "true" && "$SKIP_GUARDRAILS" == "false" ]]; then
   if [[ -f "${SCRIPT_DIR}/lint-clean-architecture.sh" ]]; then
-    if ! run_step "CleanArchitecture" "bash '${SCRIPT_DIR}/lint-clean-architecture.sh' '$PROJECT_ROOT' --staged"; then
+    if ! run_step "CleanArchitecture" "bash '${SCRIPT_DIR}/lint-clean-architecture.sh' '$PROJECT_ROOT' --working-tree"; then
       OVERALL_PASS=false
     fi
   fi
   if [[ "$OVERALL_PASS" == "true" && -f "${SCRIPT_DIR}/scan-guardrails.sh" ]]; then
-    if ! run_step "Guardrails" "bash '${SCRIPT_DIR}/scan-guardrails.sh' --path '$PROJECT_ROOT' --staged"; then
+    if ! run_step "Guardrails" "bash '${SCRIPT_DIR}/scan-guardrails.sh' --path '$PROJECT_ROOT' --working-tree"; then
       OVERALL_PASS=false
     fi
   fi

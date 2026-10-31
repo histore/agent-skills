@@ -25,7 +25,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Feature Specs Lifecycle**: Specifications reside in isolated, single-responsibility files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md`). Updates modify only the specific feature file and append a line to `docs/ROADMAP.md` (zero-full-diff guarantee).
 - **Concept Workflows & Mandatory Schema Enforceability**:
   - Drafts are authored in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`) and iterated interactively with the user.
-  - **Mandatory Schema**: Must strictly adhere to [`docs/templates/CONCEPT_TEMPLATE.md`](docs/templates/CONCEPT_TEMPLATE.md) including YAML frontmatter, Problem Statement, Solution Approaches & Trade-Offs, High-Level Architecture, Phased Implementation Plan (Phasenweise Umsetzung), Open Questions, and Given-When-Then Distillation Preview. Free-form drafts are strictly prohibited.
+  - **Mandatory Schema**: Must strictly adhere to [`docs/templates/CONCEPT_TEMPLATE.md`](../../docs/templates/CONCEPT_TEMPLATE.md) including YAML frontmatter, Problem Statement, Solution Approaches & Trade-Offs, High-Level Architecture, Phased Implementation Plan (Phasenweise Umsetzung), Open Questions, and Given-When-Then Distillation Preview. Free-form drafts are strictly prohibited.
   - Standard directory structure is plural `docs/concepts/` (`docs/concepts/drafts/`, `docs/concepts/archive/`), with tooling compatibility for legacy singular `docs/concept/`.
   - Supports two identical tracks across all clients (Antigravity and Copilot):
     1. **Track A: `concept > req > impl` (Standard & Complex Features)**:
@@ -152,6 +152,6 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 
 ---
 
-## Tooling & Path Compatibility (`.agents` vs. `_agents`)
-- **Embedding Host Project Target**: When mounted as a submodule (`_agents/` for Antigravity, `.agents/` for Copilot), all contract operations target the embedding host repository.
-- **Submodule Asset Resolution**: Helper scripts and internal assets reside in `./_agents/scripts/`, `./.agents/scripts/`, or `./scripts/`.
+## Tooling & Path Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
+- **Embedding Host Project Target**: When linked at project or user level (`_agents/` or `~/_agents/` for Antigravity; `.agents/` or `~/.agents/` for Copilot), all contract operations target the embedding **host repository**.
+- **Submodule Asset Resolution**: Resolve helper scripts and templates across project and user scopes: `./_agents/scripts/`, `./.agents/scripts/`, `./scripts/`, `"$HOME/_agents/scripts/"`, or `"$HOME/.agents/scripts/"`.

@@ -17,8 +17,8 @@
           "profiles": ["Profile 0", "Profile A", "Tier 4 Lifecycle / Git"],
           "characteristics": "Minimal token cost, high speed, deterministic outputs.",
           "models": {
-            "antigravity": "flash",
-            "copilot": "gpt-4o-mini / gpt-5.4-mini / claude-haiku",
+            "antigravity": "flash / gemini-4-flash / gemini-3.8-flash-low",
+            "copilot": "gpt-6.1-luna / gpt-6-mini / gpt-5.4-mini / claude-haiku-4.5",
             "generic": "ultra-fast-mini"
           },
           "reasoning_budget": "minimal",
@@ -29,8 +29,8 @@
           "profiles": ["Profile B"],
           "characteristics": "High code quality, reliable Clean Code implementation and inner-loop TDD, balanced quota consumption.",
           "models": {
-            "antigravity": "inherit / flash-high",
-            "copilot": "claude-sonnet / gpt-4o / gpt-5.4",
+            "antigravity": "inherit / gemini-4-argon-medium / gemini-3.8-flash-high",
+            "copilot": "gpt-6.1-sol / gpt-6 / claude-sonnet-5.5 / gpt-5.4",
             "generic": "balanced-coder-efficient-mini"
           },
           "reasoning_budget": "medium",
@@ -41,8 +41,8 @@
           "profiles": ["Profile C", "Complex Diagnostics", "Security Audits"],
           "characteristics": "Maximum analytical depth, complex distributed invariants, deep deadlock analysis, multi-module redesigns.",
           "models": {
-            "antigravity": "pro / extended reasoning",
-            "copilot": "claude-opus / claude-3.7-sonnet-thinking / o1 / o3-mini",
+            "antigravity": "pro / gemini-4-pro-high / claude-opus-high",
+            "copilot": "gpt-6-astra / gpt-6-high / claude-opus / gpt-5.4-high",
             "generic": "deep-reasoning-flagship"
           },
           "reasoning_budget": "high_extended",
@@ -97,7 +97,8 @@
         "test_execution": "minimal",
         "verification_and_gate": "low_minimal",
         "lifecycle_git": "minimal"
-      }
+      },
+      "output_brevity_guardrail": "Leverage platform-native reasoning effort controls where available; enforce strict output brevity between persona phases (max 3-5 bullet points per state checkpoint; never echo full modified source files in chat)."
     },
     "multi_agent": {
       "description": "Isolated parallel subagents via platform API (Antigravity invoke_subagent). Used selectively for divergent exploration, broad codebase research, or independent background sidecars.",
@@ -156,19 +157,21 @@
   },
   "platform_preferences": {
     "antigravity": {
-      "tier_1": ["gemini-3.8-flash-high", "claude-opus-5-5-high", "gemini-3.8-pro-high"],
-      "tier_1_exception": ["claude-opus-5-5-high", "gemini-3.8-pro-high"],
-      "tier_2": ["gemini-3.8-flash-high", "claude-sonnet-5-5-high"],
-      "tier_3": ["gemini-3.8-flash-medium", "claude-sonnet-5-5-medium"],
-      "tier_4": ["gemini-3.8-flash-low", "gemini-3.8-flash-medium"]
+      "customization_root": "_agents",
+      "tier_1": ["gemini-4-argon-high", "gemini-3.8-flash-high", "claude-opus-5-5-high", "gemini-4-pro-high"],
+      "tier_1_exception": ["claude-opus-5-5-high", "gemini-4-pro-high"],
+      "tier_2": ["gemini-4-argon-medium", "gemini-3.8-flash-high", "claude-sonnet-5-5-high"],
+      "tier_3": ["gemini-4-argon-medium", "gemini-3.8-flash-medium", "claude-sonnet-5-5-medium"],
+      "tier_4": ["gemini-3.8-flash-low", "gemini-4-flash-low"]
     },
     "copilot": {
-      "auto_routing_behavior": "When Copilot model selection is set to 'Auto', GitHub dynamically routes prompts based on heuristics. Skills steer this via prompt modulation (Sequential Persona Mode) to signal high-capability reasoning for Tier 1/2 and concise execution for Tier 3/4.",
-      "tier_1": ["claude-opus-5-5-high", "claude-sonnet-5-5-high", "gpt-5.4", "o3-mini"],
-      "tier_1_exception": ["claude-opus-5-5-high", "gpt-5.4"],
-      "tier_2": ["claude-sonnet-5-5-high", "gpt-5.4", "o3-mini"],
-      "tier_3": ["claude-sonnet-5-5-medium", "gpt-5.4-mini", "gpt-4o"],
-      "tier_4": ["gpt-5.4-mini", "gpt-4o-mini"]
+      "customization_root": ".agents",
+      "auto_routing_behavior": "When Copilot model selection is set to 'Auto' or invoked via 'copilot --model', steer reasoning via native effort settings and concise output checkpoints.",
+      "tier_1": ["gpt-6-astra", "gpt-6-high", "claude-opus-5-5-high", "claude-sonnet-5-5-high", "gpt-5.4"],
+      "tier_1_exception": ["gpt-6-astra", "claude-opus-5-5-high", "gpt-6-high"],
+      "tier_2": ["gpt-6.1-sol", "gpt-6", "claude-sonnet-5-5-high", "gpt-5.4"],
+      "tier_3": ["gpt-6.1-sol", "gpt-6-medium", "claude-sonnet-5-5-medium", "gpt-5.4-mini"],
+      "tier_4": ["gpt-6.1-luna", "gpt-6-mini", "gpt-5.4-mini", "claude-haiku-4.5"]
     },
     "generic": {
       "tier_1": ["deep-reasoning-efficient-mini"],
