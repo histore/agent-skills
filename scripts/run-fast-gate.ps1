@@ -33,6 +33,9 @@ param(
     [switch]$SkipGuardrails,
 
     [Parameter(Mandatory = $false)]
+    [switch]$Force,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -127,20 +130,57 @@ function Invoke-GateStep {
 $buildSuccess = $true
 $testSuccess = $true
 $lintSuccess = $true
+$bypassedNoCode = $false
 
 if ($stackInfo.stack -ne "unknown") {
-    if ($stackInfo.build_cmd) {
-        $buildSuccess = Invoke-GateStep -StepName "Build" -CommandLine $stackInfo.build_cmd
-    }
-    if ($buildSuccess -and $stackInfo.test_cmd) {
-        $testCmd = $stackInfo.test_cmd
-        if ($TestFilter -and $stackInfo.test_filter_syntax) {
-            $testCmd = $stackInfo.test_filter_syntax.Replace("{filter}", $TestFilter)
+    # Change-Detection-Guard: bypass build & test if no executable code was modified in working tree
+    if (-not $Force -and -not $env:CI -and -not $env:GITHUB_ACTIONS) {
+        try {
+            $gitStatus = git -C $ProjectRoot status --porcelain 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                if ([string]::IsNullOrWhiteSpace($gitStatus)) {
+                    $bypassedNoCode = $true
+                } else {
+                    $statusLines = $gitStatus -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                    $hasExecutableCode = $false
+                    $codeExtRegex = '\.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$'
+                    $manifestRegex = '^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|build\.gradle(\.kts)?|CMakeLists\.txt|Makefile)$'
+
+                    foreach ($line in $statusLines) {
+                        $rawPath = $line.Substring(2).Trim()
+                        if ($rawPath -match '->') {
+                            $rawPath = ($rawPath -split '->')[-1].Trim()
+                        }
+                        $fileName = [System.IO.Path]::GetFileName($rawPath)
+                        if ($fileName -match $codeExtRegex -or $fileName -match $manifestRegex) {
+                            $hasExecutableCode = $true
+                            break
+                        }
+                    }
+                    if (-not $hasExecutableCode) {
+                        $bypassedNoCode = $true
+                    }
+                }
+            }
+        } catch {
+            $bypassedNoCode = $false
         }
-        $testSuccess = Invoke-GateStep -StepName "Test" -CommandLine $testCmd
     }
-    if ($buildSuccess -and $testSuccess -and -not $SkipLint -and $stackInfo.lint_cmd) {
-        $lintSuccess = Invoke-GateStep -StepName "Lint" -CommandLine $stackInfo.lint_cmd
+
+    if (-not $bypassedNoCode) {
+        if ($stackInfo.build_cmd) {
+            $buildSuccess = Invoke-GateStep -StepName "Build" -CommandLine $stackInfo.build_cmd
+        }
+        if ($buildSuccess -and $stackInfo.test_cmd) {
+            $testCmd = $stackInfo.test_cmd
+            if ($TestFilter -and $stackInfo.test_filter_syntax) {
+                $testCmd = $stackInfo.test_filter_syntax.Replace("{filter}", $TestFilter)
+            }
+            $testSuccess = Invoke-GateStep -StepName "Test" -CommandLine $testCmd
+        }
+        if ($buildSuccess -and $testSuccess -and -not $SkipLint -and $stackInfo.lint_cmd) {
+            $lintSuccess = Invoke-GateStep -StepName "Lint" -CommandLine $stackInfo.lint_cmd
+        }
     }
 }
 
@@ -183,6 +223,7 @@ $result = [ordered]@{
     status = if ($overallPass) { "pass" } else { "fail" }
     failed_step = $failedStep
     duration_ms = $sw.ElapsedMilliseconds
+    bypassed_code_gate = $bypassedNoCode
     errors = if (-not $overallPass) { $failureLogs.ToArray() } else { @() }
 }
 
@@ -190,7 +231,11 @@ if ($JsonOutput) {
     $result | ConvertTo-Json -Depth 4 -Compress
 } else {
     if ($overallPass) {
-        Write-Host "Stage-1 Fast-Gate: PASS ($($sw.ElapsedMilliseconds)ms) - Zero errors" -ForegroundColor Green
+        if ($bypassedNoCode) {
+            Write-Host "Stage-1 Fast-Gate: PASS ($($sw.ElapsedMilliseconds)ms) - Bypassed (no executable code modified in working tree; use -Force to override)" -ForegroundColor Green
+        } else {
+            Write-Host "Stage-1 Fast-Gate: PASS ($($sw.ElapsedMilliseconds)ms) - Zero errors" -ForegroundColor Green
+        }
     } else {
         Write-Host "Stage-1 Fast-Gate: FAIL at step '$failedStep' ($($sw.ElapsedMilliseconds)ms)" -ForegroundColor Red
         foreach ($err in $failureLogs) {

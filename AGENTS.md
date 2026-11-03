@@ -26,6 +26,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
    - **Profile B (Standard Features)**: Architecture Contract -> `Developer` Inner-Loop TDD -> `Verifikation` gate.
    - **Profile C (Complex / Architectural)**: Modular Contracts -> Skeletons/Integration Tests (`Tester`) -> Implementation (`Developer`) -> Verification.
    - **Purpose-Driven & Targeted Test Execution**: Tests run ONLY when executable code was modified and tests apply. Target only affected test files/classes (`--filter`, specific paths); full suite runs during final verification.
+   - **No-Premature-Tests Invariant (Deferred-Test Execution)**: Zero test execution during concept drafting (`docs/concepts/`) and feature specification (`docs/features/`). In the implementation phase, test runners and fast-gates must NEVER run speculatively as "baseline checks" before code or tests are modified. Stage-1 fast-gate automatically bypasses build and test steps when no executable code was changed in the working tree (override via `-Force`).
    - **Two-Stage Quality Gate (Shift-Left Validation)**:
      - **Stage 1 (Deterministic Fast-Gate - Zero Tokens)**: Native build, linter, quiet tests, Clean Architecture check, and safe-Rust guardrails via `pwsh -NoProfile -File ./scripts/run-fast-gate.ps1` (`run-fast-gate.sh`). Immediate return on failure.
      - **Stage 2 (Concise Traceability Gate)**: `Verifikation` audits acceptance criteria, Clean Architecture, and correctness.

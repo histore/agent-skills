@@ -9,6 +9,7 @@ PROJECT_ROOT=""
 TEST_FILTER=""
 SKIP_LINT=false
 SKIP_GUARDRAILS=false
+FORCE=false
 JSON_OUTPUT=false
 
 for arg in "$@"; do
@@ -21,6 +22,9 @@ for arg in "$@"; do
       ;;
     --skip-guardrails)
       SKIP_GUARDRAILS=true
+      ;;
+    --force|-f)
+      FORCE=true
       ;;
     --filter=*)
       TEST_FILTER="${arg#*=}"
@@ -113,25 +117,53 @@ run_step() {
   return 0
 }
 
+BYPASSED_NO_CODE=false
+if [[ "$FORCE" != "true" && -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && "$STACK" != "unknown" ]]; then
+  if command -v git &>/dev/null; then
+    GIT_STATUS=$(git -C "$PROJECT_ROOT" status --porcelain 2>/dev/null || true)
+    if [[ -z "$GIT_STATUS" ]]; then
+      BYPASSED_NO_CODE=true
+    else
+      HAS_CODE=false
+      while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        FILE_PATH="${line:3}"
+        [[ "$FILE_PATH" =~ "->" ]] && FILE_PATH="${FILE_PATH##*-> }"
+        FILE_NAME="$(basename "$FILE_PATH")"
+        if [[ "$FILE_NAME" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$ ]] || \
+           [[ "$FILE_NAME" =~ ^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|build\.gradle(\.kts)?|CMakeLists\.txt|Makefile)$ ]]; then
+          HAS_CODE=true
+          break
+        fi
+      done <<< "$GIT_STATUS"
+      if [[ "$HAS_CODE" != "true" ]]; then
+        BYPASSED_NO_CODE=true
+      fi
+    fi
+  fi
+fi
+
 OVERALL_PASS=true
 
-if ! run_step "Build" "$BUILD_CMD"; then
-  OVERALL_PASS=false
-fi
-
-if [[ "$OVERALL_PASS" == "true" && -n "$TEST_CMD" ]]; then
-  CMD="$TEST_CMD"
-  if [[ -n "$TEST_FILTER" && -n "$FILTER_SYNTAX" ]]; then
-    CMD="${FILTER_SYNTAX//\{filter\}/$TEST_FILTER}"
-  fi
-  if ! run_step "Test" "$CMD"; then
+if [[ "$BYPASSED_NO_CODE" != "true" ]]; then
+  if ! run_step "Build" "$BUILD_CMD"; then
     OVERALL_PASS=false
   fi
-fi
 
-if [[ "$OVERALL_PASS" == "true" && "$SKIP_LINT" == "false" && -n "$LINT_CMD" ]]; then
-  if ! run_step "Lint" "$LINT_CMD"; then
-    OVERALL_PASS=false
+  if [[ "$OVERALL_PASS" == "true" && -n "$TEST_CMD" ]]; then
+    CMD="$TEST_CMD"
+    if [[ -n "$TEST_FILTER" && -n "$FILTER_SYNTAX" ]]; then
+      CMD="${FILTER_SYNTAX//\{filter\}/$TEST_FILTER}"
+    fi
+    if ! run_step "Test" "$CMD"; then
+      OVERALL_PASS=false
+    fi
+  fi
+
+  if [[ "$OVERALL_PASS" == "true" && "$SKIP_LINT" == "false" && -n "$LINT_CMD" ]]; then
+    if ! run_step "Lint" "$LINT_CMD"; then
+      OVERALL_PASS=false
+    fi
   fi
 fi
 
@@ -156,14 +188,18 @@ fi
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
   if [[ "$OVERALL_PASS" == "true" ]]; then
-    echo "{\"status\":\"pass\",\"duration_ms\":$DURATION_MS}"
+    echo "{\"status\":\"pass\",\"duration_ms\":$DURATION_MS,\"bypassed_code_gate\":$BYPASSED_NO_CODE}"
   else
     ESCAPED_ERR=$(echo "$ERROR_LOG" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
     echo "{\"status\":\"fail\",\"failed_step\":\"$FAILED_STEP\",\"duration_ms\":$DURATION_MS,\"errors\":\"$ESCAPED_ERR\"}"
   fi
 else
   if [[ "$OVERALL_PASS" == "true" ]]; then
-    echo "Stage-1 Fast-Gate: PASS (${DURATION_MS}ms) - Zero errors"
+    if [[ "$BYPASSED_NO_CODE" == "true" ]]; then
+      echo "Stage-1 Fast-Gate: PASS (${DURATION_MS}ms) - Bypassed (no executable code modified in working tree; use --force to override)"
+    else
+      echo "Stage-1 Fast-Gate: PASS (${DURATION_MS}ms) - Zero errors"
+    fi
   else
     echo "Stage-1 Fast-Gate: FAIL at step '$FAILED_STEP'"
     echo "$ERROR_LOG"
