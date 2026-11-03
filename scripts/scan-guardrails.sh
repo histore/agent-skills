@@ -75,6 +75,8 @@ else
     FILES+=("$f")
   done < <(find "$SCAN_PATH" -type f \
     -not -path '*/\.git/*' \
+    -not -path '*/_agents/*' \
+    -not -path '*/\.agents/*' \
     -not -path '*/node_modules/*' \
     -not -path '*/target/*' \
     -not -path '*/bin/*' \

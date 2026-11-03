@@ -47,7 +47,8 @@ function Get-FlatKeys {
 # Find JSON pairs (e.g. de.json and en.json, or feature.de.json and feature.en.json)
 $deFiles = Get-ChildItem -Path $ResourceDir -Recurse -File | Where-Object {
     $_.FullName -notmatch '[\\/]\.git[\\/]' -and
-    $_.FullName -notmatch '[\\/]node_modules[\\/]' -and
+    $_.FullName -notmatch '[\\/](_agents|\.agents)[\\/]' -and
+    $_.FullName -notmatch '[\\/](node_modules|target|bin|obj)[\\/]' -and
     ($_.Name -match '(?i)(^|\.)de(-[a-z]{2})?\.json$')
 }
 

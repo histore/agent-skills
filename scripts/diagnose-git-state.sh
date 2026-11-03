@@ -33,6 +33,9 @@ if [[ -n "$CONFLICTS" ]]; then
 fi
 
 GIT_DIR=$(git -C "$REPO_ROOT" rev-parse --git-dir 2>/dev/null || echo "${REPO_ROOT}/.git")
+if [[ "$GIT_DIR" != /* && "$GIT_DIR" != [A-Za-z]:* ]]; then
+  GIT_DIR="${REPO_ROOT}/${GIT_DIR}"
+fi
 IS_REBASE=false
 if [[ -d "${GIT_DIR}/rebase-merge" || -d "${GIT_DIR}/rebase-apply" ]]; then
   IS_REBASE=true

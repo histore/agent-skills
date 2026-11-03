@@ -49,6 +49,10 @@ while [[ $# -gt 0 ]]; do
       SET_MODE="$2"
       shift 2
       ;;
+    --json|-j|--json-output)
+      # No-op since output is structured JSON by default; maintains parity with get-arch-diff.ps1 -JsonOutput
+      shift
+      ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 1

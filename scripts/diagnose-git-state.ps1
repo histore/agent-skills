@@ -44,7 +44,14 @@ $hasConflicts = ($conflictList.Count -gt 0)
 
 # Check git internal state files
 $gitDir = git -C $RepoRoot rev-parse --git-dir 2>$null
-if (-not $gitDir) { $gitDir = Join-Path $RepoRoot ".git" }
+if (-not $gitDir) {
+    $gitDir = Join-Path $RepoRoot ".git"
+} else {
+    $gitDir = $gitDir.Trim()
+    if (-not [System.IO.Path]::IsPathRooted($gitDir)) {
+        $gitDir = Join-Path $RepoRoot $gitDir
+    }
+}
 $isRebase = (Test-Path (Join-Path $gitDir "rebase-merge")) -or (Test-Path (Join-Path $gitDir "rebase-apply"))
 $isMerge = (Test-Path (Join-Path $gitDir "MERGE_HEAD"))
 $isCherryPick = (Test-Path (Join-Path $gitDir "CHERRY_PICK_HEAD"))

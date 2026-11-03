@@ -46,7 +46,8 @@ LATEST_TAG=$(git -C "$REPO_ROOT" tag -l "v[0-9]*" --sort=-v:refname 2>/dev/null 
 [[ -z "$LATEST_TAG" ]] && LATEST_TAG="v0.0.0"
 
 IS_CLEAN=true
-if [[ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)" ]]; then
+UNCOMMITTED=$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null | grep -v -E '^[MADRCU?![:space:]]+ (_agents|\.agents)(/|$)' || true)
+if [[ -n "$UNCOMMITTED" ]]; then
   IS_CLEAN=false
 fi
 

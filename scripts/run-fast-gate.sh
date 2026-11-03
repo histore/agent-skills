@@ -82,7 +82,7 @@ run_step() {
   tmp_out=$(mktemp)
   if ! (cd "$PROJECT_ROOT" && eval "$cmd") >"$tmp_out" 2>&1; then
     FAILED_STEP="$step_name"
-    ERROR_LOG=$(grep -iE -C 2 "error|failed|exception|assert|fatal|panicked" "$tmp_out" | head -n 25 || tail -n 12 "$tmp_out")
+    ERROR_LOG=$(grep -iE -C 2 "error|failed|exception|assert|fatal|panicked" "$tmp_out" | head -n 12 || tail -n 8 "$tmp_out")
     rm -f "$tmp_out"
     return 1
   fi

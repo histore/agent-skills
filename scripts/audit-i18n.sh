@@ -22,7 +22,7 @@ json_out = sys.argv[2] == 'true'
 
 de_files = []
 for root, dirs, files in os.walk(base_dir):
-    if '.git' in root or 'node_modules' in root:
+    if any(ignored in root for ignored in ['.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj']):
         continue
     for f in files:
         if f.lower().endswith('.de.json') or f.lower() == 'de.json':

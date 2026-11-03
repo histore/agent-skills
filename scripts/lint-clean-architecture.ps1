@@ -118,6 +118,7 @@ if ($StagedOnly) {
 } else {
     $allFiles = Get-ChildItem -Path $TargetPath -Recurse -File | Where-Object {
         $_.FullName -notmatch '[\\/]\.git[\\/]' -and
+        $_.FullName -notmatch '[\\/](_agents|\.agents)[\\/]' -and
         $_.FullName -notmatch '[\\/]node_modules[\\/]' -and
         $_.FullName -notmatch '[\\/]target[\\/]' -and
         $_.FullName -notmatch '[\\/]bin[\\/]' -and

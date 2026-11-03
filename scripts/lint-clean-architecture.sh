@@ -95,7 +95,7 @@ elif working_tree:
                     files_to_scan.append(os.path.join(root, f))
 else:
     for root, dirs, files in os.walk(target_path):
-        if any(ignored in root for ignored in ['.git', 'node_modules', 'target', 'bin', 'obj']):
+        if any(ignored in root for ignored in ['.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj']):
             continue
         for f in files:
             if f.endswith(src_exts):
