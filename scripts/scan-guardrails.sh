@@ -4,7 +4,7 @@
 # ==============================================================================
 set -euo pipefail
 
-SCAN_PATH="${1:-$(pwd)}"
+SCAN_PATH=""
 STAGED_ONLY=false
 WORKING_TREE=false
 FIX=false
@@ -33,11 +33,17 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      [[ -d "$1" ]] && SCAN_PATH="$1"
+      if [[ -z "$SCAN_PATH" ]]; then
+        SCAN_PATH="$1"
+      fi
       shift
       ;;
   esac
 done
+
+if [[ -z "$SCAN_PATH" ]]; then
+  SCAN_PATH="$(pwd)"
+fi
 
 VIOLATIONS=()
 

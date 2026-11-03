@@ -4,15 +4,32 @@
 # ==============================================================================
 set -euo pipefail
 
-BASE_BRANCH="${1:-main}"
-REPO_ROOT="${2:-$(pwd)}"
+BASE_BRANCH=""
+REPO_ROOT=""
 JSON_OUTPUT=false
 
 for arg in "$@"; do
-  if [[ "$arg" == "--json" || "$arg" == "-j" ]]; then
-    JSON_OUTPUT=true
-  fi
+  case "$arg" in
+    --json|-j)
+      JSON_OUTPUT=true
+      ;;
+    --base=*|-b=*)
+      BASE_BRANCH="${arg#*=}"
+      ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$BASE_BRANCH" ]]; then
+        BASE_BRANCH="$arg"
+      elif [[ -z "$REPO_ROOT" ]]; then
+        REPO_ROOT="$arg"
+      fi
+      ;;
+  esac
 done
+
+[[ -z "$BASE_BRANCH" ]] && BASE_BRANCH="main"
+[[ -z "$REPO_ROOT" ]] && REPO_ROOT="$(pwd)"
 
 CURRENT_BRANCH=$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || echo "HEAD")
 COMMITS=$(git -C "$REPO_ROOT" log "${BASE_BRANCH}..HEAD" --oneline --no-merges 2>/dev/null || true)

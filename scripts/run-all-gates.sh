@@ -5,7 +5,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="${1:-$(pwd)}"
+REPO_ROOT=""
 STAGED_ONLY=false
 FAST=false
 FIX=false
@@ -25,18 +25,29 @@ for arg in "$@"; do
     --json|-j)
       JSON_OUTPUT=true
       ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$REPO_ROOT" ]]; then
+        REPO_ROOT="$arg"
+      fi
+      ;;
   esac
 done
 
-SUPERPROJECT=$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)
-if [[ -n "$SUPERPROJECT" ]]; then
-  REPO_ROOT="$SUPERPROJECT"
-else
-  TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null || true)
-  if [[ -n "$TOPLEVEL" ]]; then
-    REPO_ROOT="$TOPLEVEL"
-    if [[ "$REPO_ROOT" =~ /(_agents|\.agents)$ ]]; then
-      REPO_ROOT="$(dirname "$REPO_ROOT")"
+if [[ -z "$REPO_ROOT" ]]; then
+  SUPERPROJECT=$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)
+  if [[ -n "$SUPERPROJECT" ]]; then
+    REPO_ROOT="$SUPERPROJECT"
+  else
+    TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null || true)
+    if [[ -n "$TOPLEVEL" ]]; then
+      REPO_ROOT="$TOPLEVEL"
+      if [[ "$REPO_ROOT" =~ /(_agents|\.agents)$ ]]; then
+        REPO_ROOT="$(dirname "$REPO_ROOT")"
+      fi
+    else
+      REPO_ROOT="$(pwd)"
     fi
   fi
 fi
@@ -59,7 +70,8 @@ run_gate() {
     return 0
   fi
 
-  if bash "$script_path" "$@" >/dev/null 2>&1; then
+  local output
+  if output=$(bash "$script_path" "$@" 2>&1); then
     if [[ "$JSON_OUTPUT" != "true" ]]; then
       echo -e "  \033[32m[PASS] ${name}\033[0m"
     fi
@@ -67,6 +79,10 @@ run_gate() {
     FAILED_GATES=$((FAILED_GATES + 1))
     if [[ "$JSON_OUTPUT" != "true" ]]; then
       echo -e "  \033[31m[FAIL] ${name}\033[0m"
+      if [[ -n "$output" ]]; then
+        echo -e "         \033[33mErrors:\033[0m"
+        echo "$output" | tail -n 10 | sed 's/^/         /'
+      fi
     fi
   fi
 }
@@ -85,7 +101,9 @@ GUARD_ARGS=("$REPO_ROOT")
 run_gate "Guardrails (Secrets/CRLF/SafeRust)" "scan-guardrails.sh" "${GUARD_ARGS[@]}"
 
 # 2. Clean Architecture
-run_gate "Clean Architecture Boundaries" "lint-clean-architecture.sh" "$REPO_ROOT"
+ARCH_ARGS=("$REPO_ROOT")
+[[ "$STAGED_ONLY" == "true" ]] && ARCH_ARGS+=("--staged")
+run_gate "Clean Architecture Boundaries" "lint-clean-architecture.sh" "${ARCH_ARGS[@]}"
 
 # 3. Documentation & Links
 run_gate "Documentation & Link Integrity" "lint-docs.sh" "$REPO_ROOT"

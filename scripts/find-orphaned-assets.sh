@@ -41,7 +41,7 @@ while IFS= read -r asset; do
         rel="${asset#$REPO_ROOT/}"
         ORPHANED_ASSETS+=("$rel")
     fi
-done < <(find "$REPO_ROOT" -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.svg" -o -name "*.gif" -o -name "*.webp" -o -name "*.ico" \) -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/node_modules/*" 2>/dev/null || true)
+done < <(find "$REPO_ROOT" -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.svg" -o -name "*.gif" -o -name "*.webp" -o -name "*.ico" \) -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/node_modules/*" -not -path "*/bin/*" -not -path "*/obj/*" -not -path "*/target/*" 2>/dev/null || true)
 
 # 2. Check modular docs
 ARCH_INDEX="$REPO_ROOT/ARCHITECTURE.md"

@@ -4,7 +4,7 @@
 # ==============================================================================
 set -euo pipefail
 
-REPO_ROOT="${1:-$(pwd)}"
+REPO_ROOT=""
 CREATE_SNAPSHOT=false
 JSON_OUTPUT=false
 
@@ -16,8 +16,19 @@ for arg in "$@"; do
     --json|-j)
       JSON_OUTPUT=true
       ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$REPO_ROOT" ]]; then
+        REPO_ROOT="$arg"
+      fi
+      ;;
   esac
 done
+
+if [[ -z "$REPO_ROOT" ]]; then
+  REPO_ROOT="$(pwd)"
+fi
 
 BRANCH=$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || echo "")
 IS_DETACHED=false

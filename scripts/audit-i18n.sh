@@ -4,14 +4,27 @@
 # ==============================================================================
 set -euo pipefail
 
-RES_DIR="${1:-$(pwd)}"
+RES_DIR=""
 JSON_OUTPUT=false
 
 for arg in "$@"; do
-  if [[ "$arg" == "--json" || "$arg" == "-j" ]]; then
-    JSON_OUTPUT=true
-  fi
+  case "$arg" in
+    --json|-j)
+      JSON_OUTPUT=true
+      ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$RES_DIR" ]]; then
+        RES_DIR="$arg"
+      fi
+      ;;
+  esac
 done
+
+if [[ -z "$RES_DIR" ]]; then
+  RES_DIR="$(pwd)"
+fi
 
 if command -v python3 &>/dev/null; then
   python3 - "$RES_DIR" "$JSON_OUTPUT" << 'EOF'

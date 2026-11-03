@@ -31,7 +31,7 @@ for dir in "migrations" "db/migrations" "sql/migrations" "src" "prisma/migration
     if [ -d "$REPO_ROOT/$dir" ]; then
         while IFS= read -r f; do
             [ -n "$f" ] && MIGRATION_FILES+=("$f")
-        done < <(find "$REPO_ROOT/$dir" -type f \( -name "*.sql" -o -name "*.cs" -o -name "*.py" \) -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/bin/*" -not -path "*/obj/*" -not -path "*/node_modules/*" 2>/dev/null | grep -E 'migration|\bup\b|\bdown\b|^[0-9]{3,}_|^V[0-9]+__' || true)
+        done < <(find "$REPO_ROOT/$dir" -type f \( -name "*.sql" -o -name "*.cs" -o -name "*.py" \) -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/bin/*" -not -path "*/obj/*" -not -path "*/target/*" -not -path "*/node_modules/*" 2>/dev/null | grep -E 'migration|\bup\b|\bdown\b|^[0-9]{3,}_|^V[0-9]+__' || true)
     fi
 done
 

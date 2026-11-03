@@ -4,7 +4,7 @@
 # ==============================================================================
 set -euo pipefail
 
-REPO_ROOT="${1:-$(pwd)}"
+REPO_ROOT=""
 CHECK_PARITY=false
 JSON_OUTPUT=false
 
@@ -16,8 +16,19 @@ for arg in "$@"; do
     --json|-j)
       JSON_OUTPUT=true
       ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$REPO_ROOT" ]]; then
+        REPO_ROOT="$arg"
+      fi
+      ;;
   esac
 done
+
+if [[ -z "$REPO_ROOT" ]]; then
+  REPO_ROOT="$(pwd)"
+fi
 
 if command -v python3 &>/dev/null; then
   python3 - "$REPO_ROOT" "$CHECK_PARITY" "$JSON_OUTPUT" << 'EOF'

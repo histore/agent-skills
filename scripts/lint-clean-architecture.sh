@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-TARGET_PATH="${1:-$(pwd)}"
+TARGET_PATH=""
 STAGED_ONLY=false
 WORKING_TREE=false
 JSON_OUTPUT=false
@@ -23,8 +23,19 @@ for arg in "$@"; do
     --json|-j)
       JSON_OUTPUT=true
       ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$TARGET_PATH" ]]; then
+        TARGET_PATH="$arg"
+      fi
+      ;;
   esac
 done
+
+if [[ -z "$TARGET_PATH" ]]; then
+  TARGET_PATH="$(pwd)"
+fi
 
 RULES_FILE=""
 for candidate in \

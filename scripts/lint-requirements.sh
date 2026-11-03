@@ -4,7 +4,7 @@
 # ==============================================================================
 set -euo pipefail
 
-REQ_PATH="${1:-$(pwd)}"
+REQ_PATH=""
 NEXT_ID=false
 SCOPE=""
 JSON_OUTPUT=false
@@ -20,8 +20,19 @@ for arg in "$@"; do
     --json|-j)
       JSON_OUTPUT=true
       ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$REQ_PATH" ]]; then
+        REQ_PATH="$arg"
+      fi
+      ;;
   esac
 done
+
+if [[ -z "$REQ_PATH" ]]; then
+  REQ_PATH="$(pwd)"
+fi
 
 if command -v python3 &>/dev/null; then
   python3 - "$REQ_PATH" "$NEXT_ID" "$SCOPE" "$JSON_OUTPUT" << 'EOF'

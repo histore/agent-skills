@@ -47,7 +47,7 @@ if [ -f "$REPO_ROOT/Cargo.toml" ] || [ -f "$REPO_ROOT/Cargo.lock" ]; then
 fi
 
 # 2. .NET
-if compgen -G "$REPO_ROOT/*.csproj" > /dev/null || [ -f "$REPO_ROOT/Directory.Build.props" ]; then
+if [ -n "$(find "$REPO_ROOT" -maxdepth 3 \( -name "*.csproj" -o -name "*.sln" \) 2>/dev/null | head -1)" ] || [ -f "$REPO_ROOT/Directory.Build.props" ]; then
     AUDITS_COUNT=$((AUDITS_COUNT + 1))
     if command -v dotnet &>/dev/null; then
         DOTNET_OUT=$(dotnet list package --vulnerable --include-transitive 2>/dev/null || true)

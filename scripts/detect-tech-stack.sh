@@ -4,14 +4,27 @@
 # ==============================================================================
 set -euo pipefail
 
-PROJECT_ROOT="${1:-$(pwd)}"
+PROJECT_ROOT=""
 JSON_OUTPUT=false
 
 for arg in "$@"; do
-  if [[ "$arg" == "--json" || "$arg" == "-j" ]]; then
-    JSON_OUTPUT=true
-  fi
+  case "$arg" in
+    --json|-j)
+      JSON_OUTPUT=true
+      ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$PROJECT_ROOT" ]]; then
+        PROJECT_ROOT="$arg"
+      fi
+      ;;
+  esac
 done
+
+if [[ -z "$PROJECT_ROOT" ]]; then
+  PROJECT_ROOT="$(pwd)"
+fi
 
 STACK="unknown"
 LANG="unknown"

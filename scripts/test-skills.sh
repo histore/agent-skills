@@ -622,6 +622,11 @@ fi
 
 # 43. Validate setup-agent-skills --init-docs and Next-Gen LLM Governance invariants
 echo -e "\n\033[33m43. Validating project onboarding (--init-docs) and Next-Gen LLM Governance...\033[0m"
+SETUP_PS1="$REPO_ROOT/scripts/setup-agent-skills.ps1"
+SETUP_SH="$REPO_ROOT/scripts/setup-agent-skills.sh"
+[ -f "$SETUP_PS1" ] && assert_condition 0 "scripts/setup-agent-skills.ps1 exists" "scripts/setup-agent-skills.ps1 not found" || assert_condition 1 "scripts/setup-agent-skills.ps1 exists" "scripts/setup-agent-skills.ps1 not found"
+[ -f "$SETUP_SH" ] && assert_condition 0 "scripts/setup-agent-skills.sh exists" "scripts/setup-agent-skills.sh not found" || assert_condition 1 "scripts/setup-agent-skills.sh exists" "scripts/setup-agent-skills.sh not found"
+
 if grep -q "MCP & External Tool Governance" "$REPO_ROOT/AGENTS.md"; then
     assert_condition 0 "AGENTS.md enforces MCP & External Tool Governance" "AGENTS.md missing MCP governance"
 else
@@ -637,6 +642,81 @@ if grep -q "Accessibility (a11y)" "$REPO_ROOT/skills/ask-contract-specialist/SKI
 else
     assert_condition 1 "ask-contract-specialist documents UI/UX & Accessibility (a11y)" "ask-contract-specialist missing a11y"
 fi
+
+if [ -f "$SETUP_SH" ]; then
+    # 43a. AGY-only project setup (--client agy / --skip-copilot -> _agents)
+    TEMP_PROJ=$(mktemp -d 2>/dev/null || mktemp -d -t 'proj')
+    if bash "$SETUP_SH" --project "$TEMP_PROJ" --init-docs --skip-copilot >/dev/null 2>&1; then
+        if [ -f "$TEMP_PROJ/ARCHITECTURE.md" ] && [ -f "$TEMP_PROJ/docs/ROADMAP.md" ]; then
+            assert_condition 0 "setup-agent-skills.sh --init-docs scaffolds ARCHITECTURE.md and docs/ROADMAP.md" "setup-agent-skills.sh --init-docs failed"
+        else
+            assert_condition 1 "setup-agent-skills.sh --init-docs scaffolds ARCHITECTURE.md and docs/ROADMAP.md" "setup-agent-skills.sh --init-docs missing files"
+        fi
+        if [ -e "$TEMP_PROJ/_agents" ] && [ ! -e "$TEMP_PROJ/.agents" ]; then
+            assert_condition 0 "AGY-only project setup creates _agents without .agents" "AGY-only setup link mismatch"
+        else
+            assert_condition 1 "AGY-only project setup creates _agents without .agents" "AGY-only setup link mismatch"
+        fi
+    fi
+    rm -rf "$TEMP_PROJ"
+
+    # 43b. Copilot-only project setup (--client copilot -> .agents + .github/copilot-instructions.md)
+    TEMP_COPILOT_PROJ=$(mktemp -d 2>/dev/null || mktemp -d -t 'proj_copilot')
+    if bash "$SETUP_SH" --project "$TEMP_COPILOT_PROJ" --client copilot >/dev/null 2>&1; then
+        if [ -f "$TEMP_COPILOT_PROJ/.agents/skills/ask-control/SKILL.md" ] && [ ! -e "$TEMP_COPILOT_PROJ/_agents" ]; then
+            assert_condition 0 "Copilot-only project setup creates .agents (and not _agents)" "Copilot-only setup link mismatch"
+        else
+            assert_condition 1 "Copilot-only project setup creates .agents (and not _agents)" "Copilot-only setup link mismatch"
+        fi
+        COPILOT_INSTR="$TEMP_COPILOT_PROJ/.github/copilot-instructions.md"
+        if [ -f "$COPILOT_INSTR" ] && grep -q '\./\.agents/scripts/' "$COPILOT_INSTR" && grep -q '\.agents/skills/' "$COPILOT_INSTR"; then
+            assert_condition 0 "Provisioned .github/copilot-instructions.md resolves via .agents/" "Copilot instructions do not resolve via .agents/"
+        else
+            assert_condition 1 "Provisioned .github/copilot-instructions.md resolves via .agents/" "Copilot instructions do not resolve via .agents/"
+        fi
+    fi
+    rm -rf "$TEMP_COPILOT_PROJ"
+
+    # 43c. Global User-Level setup (--global -> ~/_agents for AGY and ~/.agents + Zero-Reload inlined instructions for Copilot)
+    TEMP_HOME=$(mktemp -d 2>/dev/null || mktemp -d -t 'home')
+    if bash "$SETUP_SH" --global --user-home "$TEMP_HOME" >/dev/null 2>&1; then
+        if [ -f "$TEMP_HOME/_agents/skills/ask-control/SKILL.md" ] && [ -f "$TEMP_HOME/.gemini/config/skills/ask-control/SKILL.md" ]; then
+            assert_condition 0 "Global user setup links ~/_agents and ~/.gemini/config/skills for AGY" "Global AGY setup failed"
+        else
+            assert_condition 1 "Global user setup links ~/_agents and ~/.gemini/config/skills for AGY" "Global AGY setup failed"
+        fi
+        USER_INSTR="$TEMP_HOME/.copilot/instructions/agent-skills.instructions.md"
+        if [ -f "$TEMP_HOME/.agents/skills/ask-control/SKILL.md" ] && [ -f "$USER_INSTR" ] && grep -q 'applyTo: "\*\*/\*"' "$USER_INSTR" && grep -q 'Inner-Loop TDD' "$USER_INSTR"; then
+            assert_condition 0 "Global user setup links ~/.agents and inlines Zero-Reload instructions for Copilot" "Global Copilot setup failed"
+        else
+            assert_condition 1 "Global user setup links ~/.agents and inlines Zero-Reload instructions for Copilot" "Global Copilot setup failed"
+        fi
+    fi
+    rm -rf "$TEMP_HOME"
+fi
+
+# 44. Validate Shift-Left WorkingTree Guardrails (inline/2024 Safe-Rust) and Behavioral Trace Evals
+echo -e "\n\033[33m44. Validating Shift-Left WorkingTree Guardrails & Behavioral Trace Evals...\033[0m"
+TEMP_RUST_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'rust')
+git -C "$TEMP_RUST_DIR" init -q 2>/dev/null || true
+printf '#[unsafe(no_mangle)]\npub fn demo() { let _x = unsafe { 42 }; }\n' > "$TEMP_RUST_DIR/lib.rs"
+WT_GUARD_OUT=$(bash "$REPO_ROOT/scripts/scan-guardrails.sh" "$TEMP_RUST_DIR" --working-tree --json 2>/dev/null || true)
+if echo "$WT_GUARD_OUT" | grep -q '"status":"fail"' && echo "$WT_GUARD_OUT" | grep -q 'unsafe'; then
+    assert_condition 0 "scan-guardrails.sh --working-tree catches unstaged inline unsafe and Rust 2024 #[unsafe(...)]" "scan-guardrails.sh --working-tree missed unstaged unsafe Rust constructs"
+else
+    assert_condition 1 "scan-guardrails.sh --working-tree catches unstaged inline unsafe and Rust 2024 #[unsafe(...)]" "scan-guardrails.sh --working-tree missed unstaged unsafe Rust constructs"
+fi
+rm -rf "$TEMP_RUST_DIR"
+
+TEMP_TRACE=$(mktemp 2>/dev/null || mktemp -t 'trace')
+printf '{"case_id":"EVAL-GOV-001","tool_calls":[{"name":"run_command","arguments":{"CommandLine":"git status"}}]}\n' > "$TEMP_TRACE"
+BAD_TRACE_RAW=$(bash "$REPO_ROOT/scripts/run-evals.sh" --case EVAL-GOV-001 --transcript "$TEMP_TRACE" --json 2>/dev/null || true)
+if echo "$BAD_TRACE_RAW" | grep -q '"failed":1'; then
+    assert_condition 0 "run-evals.sh --transcript deterministically flags prohibited 'git status' on Profile 0" "run-evals.sh --transcript failed to catch prohibited action"
+else
+    assert_condition 1 "run-evals.sh --transcript deterministically flags prohibited 'git status' on Profile 0" "run-evals.sh --transcript failed to catch prohibited action"
+fi
+rm -f "$TEMP_TRACE"
 
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"

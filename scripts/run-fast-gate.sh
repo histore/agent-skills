@@ -5,7 +5,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${1:-$(pwd)}"
+PROJECT_ROOT=""
 TEST_FILTER=""
 SKIP_LINT=false
 SKIP_GUARDRAILS=false
@@ -25,8 +25,19 @@ for arg in "$@"; do
     --filter=*)
       TEST_FILTER="${arg#*=}"
       ;;
+    -*)
+      ;;
+    *)
+      if [[ -z "$PROJECT_ROOT" ]]; then
+        PROJECT_ROOT="$arg"
+      fi
+      ;;
   esac
 done
+
+if [[ -z "$PROJECT_ROOT" ]]; then
+  PROJECT_ROOT="$(pwd)"
+fi
 
 DETECT_SCRIPT="${SCRIPT_DIR}/detect-tech-stack.sh"
 STACK="unknown"
