@@ -37,12 +37,12 @@ CHANGED_FILES=$(git -C "$REPO_ROOT" diff --name-only "${BASE_BRANCH}..HEAD" 2>/d
 
 COMMIT_COUNT=0
 if [[ -n "$COMMITS" ]]; then
-  COMMIT_COUNT=$(echo "$COMMITS" | wc -l)
+  COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
 fi
 
 FILE_COUNT=0
 if [[ -n "$CHANGED_FILES" ]]; then
-  FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l)
+  FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l | tr -d ' ')
 fi
 
 TITLE="feat: updates on ${CURRENT_BRANCH}"

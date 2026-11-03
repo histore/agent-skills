@@ -57,7 +57,7 @@ if [[ -f "${GIT_DIR}/MERGE_HEAD" ]]; then
   IS_MERGE=true
 fi
 
-UNCOMMITTED_COUNT=$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null | wc -l || echo 0)
+UNCOMMITTED_COUNT=$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null | wc -l | tr -d ' ' || echo 0)
 
 SNAPSHOT_BRANCH=""
 if [[ "$CREATE_SNAPSHOT" == "true" ]]; then

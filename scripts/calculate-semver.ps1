@@ -39,10 +39,10 @@ if (-not $RepoRoot) {
 $currentBranch = (git -C $RepoRoot branch --show-current 2>$null)
 if (-not $currentBranch) { $currentBranch = "HEAD" }
 
-$uncommitted = (git -C $RepoRoot status --porcelain 2>$null) | Where-Object {
+$uncommitted = @((git -C $RepoRoot status --porcelain 2>$null) | Where-Object {
     $_ -notmatch '^\s*[MADRCU?!\s]\s+(_agents|\.agents)(\/|$)'
-}
-$isClean = [string]::IsNullOrWhiteSpace($uncommitted)
+})
+$isClean = ($uncommitted.Count -eq 0)
 
 $behindCount = 0
 $aheadCount = 0
