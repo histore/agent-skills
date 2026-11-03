@@ -32,6 +32,15 @@ if (-not $RepoRoot) {
     $RepoRoot = (Get-Location).Path
 }
 
+function Get-RelativePathCompat([string]$basePath, [string]$targetPath) {
+    if ([System.Type]::GetType('System.IO.Path').GetMethod('GetRelativePath', [type[]]@([string], [string]))) {
+        return [System.IO.Path]::GetRelativePath($basePath, $targetPath)
+    }
+    $baseUri = [Uri](([System.IO.Path]::GetFullPath($basePath)).TrimEnd('\', '/') + '/')
+    $targetUri = [Uri]([System.IO.Path]::GetFullPath($targetPath))
+    return [Uri]::UnescapeDataString($baseUri.MakeRelativeUri($targetUri).ToString().Replace('/', [System.IO.Path]::DirectorySeparatorChar))
+}
+
 # 1. Collect all asset files
 $assetExtensions = @(".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp", ".ico")
 $allFiles = Get-ChildItem -Path $RepoRoot -Recurse -File -ErrorAction SilentlyContinue |
@@ -62,7 +71,7 @@ foreach ($asset in $assetFiles) {
         }
     }
     if (-not $found) {
-        $relPath = [System.IO.Path]::GetRelativePath($RepoRoot, $asset.FullName).Replace('\', '/')
+        $relPath = (Get-RelativePathCompat $RepoRoot $asset.FullName).Replace('\', '/')
         $orphanedAssets.Add($relPath)
     }
 }
@@ -80,7 +89,7 @@ if (Test-Path $modArchDir) {
     $modArchFiles = Get-ChildItem -Path $modArchDir -Filter "*.md" -File -ErrorAction SilentlyContinue
     foreach ($mf in $modArchFiles) {
         if ($archContent.IndexOf($mf.Name, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
-            $rel = [System.IO.Path]::GetRelativePath($RepoRoot, $mf.FullName).Replace('\', '/')
+            $rel = (Get-RelativePathCompat $RepoRoot $mf.FullName).Replace('\', '/')
             $orphanedDocs.Add($rel)
         }
     }
@@ -91,7 +100,7 @@ if (Test-Path $modReqDir) {
     $modReqFiles = Get-ChildItem -Path $modReqDir -Filter "*.md" -File -ErrorAction SilentlyContinue
     foreach ($rf in $modReqFiles) {
         if ($reqContent.IndexOf($rf.Name, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
-            $rel = [System.IO.Path]::GetRelativePath($RepoRoot, $rf.FullName).Replace('\', '/')
+            $rel = (Get-RelativePathCompat $RepoRoot $rf.FullName).Replace('\', '/')
             $orphanedDocs.Add($rel)
         }
     }

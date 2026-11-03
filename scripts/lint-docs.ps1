@@ -36,7 +36,8 @@ if (-not $RepoRoot) {
 
 $mdFiles = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter "*.md" | Where-Object {
     $_.FullName -notmatch '[\\/]\.git[\\/]' -and
-    $_.FullName -notmatch '[\\/]node_modules[\\/]'
+    $_.FullName -notmatch '[\\/]node_modules[\\/]' -and
+    $_.FullName -notmatch '[\\/](target|bin|obj|\.venv)[\\/]'
 }
 
 $brokenLinks = [System.Collections.Generic.List[PSCustomObject]]::new()

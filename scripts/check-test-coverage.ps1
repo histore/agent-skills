@@ -36,6 +36,15 @@ if (-not $RepoRoot) {
     $RepoRoot = (Get-Location).Path
 }
 
+function Get-RelativePathCompat([string]$basePath, [string]$targetPath) {
+    if ([System.Type]::GetType('System.IO.Path').GetMethod('GetRelativePath', [type[]]@([string], [string]))) {
+        return [System.IO.Path]::GetRelativePath($basePath, $targetPath)
+    }
+    $baseUri = [Uri](([System.IO.Path]::GetFullPath($basePath)).TrimEnd('\', '/') + '/')
+    $targetUri = [Uri]([System.IO.Path]::GetFullPath($targetPath))
+    return [Uri]::UnescapeDataString($baseUri.MakeRelativeUri($targetUri).ToString().Replace('/', [System.IO.Path]::DirectorySeparatorChar))
+}
+
 $foundFile = $null
 $format = "none"
 
@@ -156,7 +165,7 @@ $result = [ordered]@{
     status              = $status
     coverage_found      = $coverageFound
     format              = $format
-    report_file         = if ($foundFile) { [System.IO.Path]::GetRelativePath($RepoRoot, $foundFile).Replace('\', '/') } else { $null }
+    report_file         = if ($foundFile) { (Get-RelativePathCompat $RepoRoot $foundFile).Replace('\', '/') } else { $null }
     line_coverage_pct   = $lineCoveragePct
     branch_coverage_pct = if ($hasBranch) { $branchCoveragePct } else { $null }
     threshold_pct       = $Threshold

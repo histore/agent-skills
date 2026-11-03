@@ -66,7 +66,7 @@ $commitLines = if ($commits) { $commits -split "`r?`n" } else { @() }
 if (-not $Version) {
     $semverScript = Join-Path $PSScriptRoot "calculate-semver.ps1"
     if (Test-Path $semverScript) {
-        $semverData = pwsh -NoProfile -ExecutionPolicy Bypass -File $semverScript -RepoRoot $RepoRoot -JsonOutput | ConvertFrom-Json
+        $semverData = & $semverScript -RepoRoot $RepoRoot -JsonOutput | ConvertFrom-Json
         if ($semverData -and $semverData.next_version) {
             $Version = $semverData.next_version
         }

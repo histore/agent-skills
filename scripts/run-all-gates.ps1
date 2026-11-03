@@ -66,6 +66,17 @@ $scriptDir = $PSScriptRoot
 $results = [System.Collections.Generic.List[PSCustomObject]]::new()
 $swTotal = [System.Diagnostics.Stopwatch]::StartNew()
 
+$psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+    $cmd = Get-Command pwsh
+    if ($cmd.Source -notmatch 'WindowsApps\\pwsh\.exe' -or ($cmd.Version -and $cmd.Version.Major -gt 0)) {
+        $cmd.Source
+    } else {
+        (Get-Process -Id $PID).Path
+    }
+} else {
+    (Get-Process -Id $PID).Path
+}
+
 function Run-Gate {
     param(
         [string]$Name,
@@ -92,7 +103,7 @@ function Run-Gate {
     $exitCode = 0
     try {
         Set-Location $RepoRoot
-        $rawOutput = & pwsh @cmdArgs 2>&1
+        $rawOutput = & $psExe @cmdArgs 2>&1
         $exitCode = $LASTEXITCODE
         if ($rawOutput) {
             $outputLines = @($rawOutput | ForEach-Object { "$_" })

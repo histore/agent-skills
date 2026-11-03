@@ -6,7 +6,7 @@
 .DESCRIPTION
     Inspects git changes between the checkpoint commit recorded in .arch-sync.json and HEAD.
     Filters out non-architectural files (tests, assets, markdown, generated code).
-    Outputs a structured JSON payload for consumption by the ask-architecture-sync subagent.
+    Outputs a structured JSON payload for consumption by the ask-contract-specialist subagent.
     Consumes 0 LLM tokens during inspection and filtering.
     Supports internal (project-local) and external (out-of-tree) documentation storage with
     project-level configuration (via .git/config) and full CLI / environment override capability.
@@ -48,7 +48,8 @@ param(
     [switch]$UpdateCheckpoint,
     [switch]$Init,
     [string]$SetDocDir = $null,
-    [ValidateSet("internal", "external")][string]$SetMode = $null
+    [ValidateSet("internal", "external")][string]$SetMode = $null,
+    [switch]$JsonOutput
 )
 
 Set-StrictMode -Version Latest

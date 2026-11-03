@@ -125,13 +125,51 @@ function Create-DirectoryLink {
         }
     }
 
+    $created = $false
+    # 1. Try Junction (native PowerShell)
     try {
-        New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath -Force | Out-Null
+        if ((Get-Command New-Item).Parameters.ContainsKey('Target')) {
+            New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath -Force -ErrorAction Stop | Out-Null
+        } else {
+            New-Item -ItemType Junction -Path $LinkPath -Value $TargetPath -Force -ErrorAction Stop | Out-Null
+        }
+        $created = $true
         Write-Host "  [OK] Created Junction: $LinkPath -> $TargetPath" -ForegroundColor Green
-    } catch {
-        # Fallback to symbolic link if junction fails
-        New-Item -ItemType SymbolicLink -Path $LinkPath -Target $TargetPath -Force | Out-Null
-        Write-Host "  [OK] Created SymbolicLink: $LinkPath -> $TargetPath" -ForegroundColor Green
+    } catch {}
+
+    # 2. Try cmd /c mklink /J (bypasses PowerShell permission quirks on some Windows configurations)
+    if (-not $created) {
+        try {
+            cmd.exe /c "mklink /J `"$LinkPath`" `"$TargetPath`"" 2>$null | Out-Null
+            if (Test-Path $LinkPath) {
+                $created = $true
+                Write-Host "  [OK] Created Junction via mklink: $LinkPath -> $TargetPath" -ForegroundColor Green
+            }
+        } catch {}
+    }
+
+    # 3. Fallback: Symbolic link (requires SeCreateSymbolicLinkPrivilege or Developer Mode)
+    if (-not $created) {
+        try {
+            if ((Get-Command New-Item).Parameters.ContainsKey('Target')) {
+                New-Item -ItemType SymbolicLink -Path $LinkPath -Target $TargetPath -Force -ErrorAction Stop | Out-Null
+            } else {
+                New-Item -ItemType SymbolicLink -Path $LinkPath -Value $TargetPath -Force -ErrorAction Stop | Out-Null
+            }
+            $created = $true
+            Write-Host "  [OK] Created SymbolicLink: $LinkPath -> $TargetPath" -ForegroundColor Green
+        } catch {}
+    }
+
+    # 4. Fallback: Copy-Item if symlinks and junctions are restricted in environment/sandbox
+    if (-not $created) {
+        try {
+            Copy-Item -Path $TargetPath -Destination $LinkPath -Recurse -Force -ErrorAction Stop | Out-Null
+            $created = $true
+            Write-Host "  [OK] Copied directory (fallback): $LinkPath -> $TargetPath" -ForegroundColor Green
+        } catch {
+            Write-Host "  [WARN] Failed to link or copy ${LinkPath} -> ${TargetPath}: $_" -ForegroundColor Yellow
+        }
     }
 }
 
@@ -147,7 +185,7 @@ if ($Global) {
         $agyUserDir = Join-Path $effectiveHome "_agents"
         Create-DirectoryLink -LinkPath $agyUserDir -TargetPath $repoRoot -Overwrite $Force
 
-        $geminiConfigDir = Join-Path $effectiveHome ".gemini" "config"
+        $geminiConfigDir = Join-Path $effectiveHome ".gemini\config"
         if (-not (Test-Path $geminiConfigDir)) {
             New-Item -ItemType Directory -Path $geminiConfigDir -Force | Out-Null
         }
@@ -167,7 +205,7 @@ if ($Global) {
         $copilotAgentsDir = Join-Path $effectiveHome ".agents"
         Create-DirectoryLink -LinkPath $copilotAgentsDir -TargetPath $repoRoot -Overwrite $Force
 
-        $copilotInstructionsDir = Join-Path $effectiveHome ".copilot" "instructions"
+        $copilotInstructionsDir = Join-Path $effectiveHome ".copilot\instructions"
         if (-not (Test-Path $copilotInstructionsDir)) {
             New-Item -ItemType Directory -Path $copilotInstructionsDir -Force | Out-Null
         }
@@ -258,7 +296,7 @@ $inlinedBody
         $detectScript = Join-Path $PSScriptRoot "detect-tech-stack.ps1"
         if (Test-Path $detectScript) {
             try {
-                $stackInfo = pwsh -NoProfile -ExecutionPolicy Bypass -File $detectScript -ProjectRoot $targetFullPath -JsonOutput | ConvertFrom-Json
+                $stackInfo = & $detectScript -ProjectRoot $targetFullPath -JsonOutput | ConvertFrom-Json
                 if ($stackInfo.stack -and $stackInfo.stack -ne "unknown") {
                     $detectedStacks = "$($stackInfo.stack) ($($stackInfo.language))"
                 }

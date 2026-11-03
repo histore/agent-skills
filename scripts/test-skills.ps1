@@ -21,6 +21,17 @@ $skillsDir = Join-Path $repoRoot "skills"
 $rulesDir = Join-Path $repoRoot "rules"
 $modelTiersFile = Join-Path $rulesDir "model-tiers.json"
 
+$psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+    $cmd = Get-Command pwsh
+    if ($cmd.Source -notmatch 'WindowsApps\\pwsh\.exe' -or ($cmd.Version -and $cmd.Version.Major -gt 0)) {
+        $cmd.Source
+    } else {
+        (Get-Process -Id $PID).Path
+    }
+} else {
+    (Get-Process -Id $PID).Path
+}
+
 $errors = [System.Collections.Generic.List[string]]::new()
 $checksPassed = 0
 
@@ -171,19 +182,19 @@ Write-Host "`n5. Testing detect-models.ps1 24h caching..." -ForegroundColor Yell
 $tempCache = [System.IO.Path]::GetTempFileName()
 try {
     # 5.1 Fresh probe test
-    $probe1Raw = pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache -Force
+    $probe1Raw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache -Force
     $probe1Obj = $probe1Raw | ConvertFrom-Json
     Assert-Condition ($probe1Obj.cached -eq $false) "Fresh probe returns 'cached: false'" "Expected 'cached: false' on fresh probe"
     Assert-Condition (Test-Path $tempCache) "Cache file was persisted to disk" "Cache file was not created"
 
     # 5.2 Cached retrieval test
-    $probe2Raw = pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache
+    $probe2Raw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache
     $probe2Obj = $probe2Raw | ConvertFrom-Json
     Assert-Condition ($probe2Obj.cached -eq $true) "Second call returns 'cached: true'" "Expected 'cached: true' on second call"
     Assert-Condition ($probe2Obj.platform -eq $probe1Obj.platform) "Cached platform matches original probe" "Platform mismatch in cache"
 
     # 5.3 Force refresh test
-    $probe3Raw = pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache -Force
+    $probe3Raw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-models.ps1") -CachePath $tempCache -Force
     $probe3Obj = $probe3Raw | ConvertFrom-Json
     Assert-Condition ($probe3Obj.cached -eq $false) "Call with -Force bypasses cache and returns 'cached: false'" "Expected 'cached: false' with -Force"
 } finally {
@@ -402,7 +413,7 @@ Assert-Condition (Test-Path $runEvalsSh) "scripts/run-evals.sh exists" "scripts/
 
 if (Test-Path $runEvalsPs1) {
     try {
-        $evalOutput = pwsh -NoProfile -ExecutionPolicy Bypass -File $runEvalsPs1 -JsonOutput | ConvertFrom-Json
+        $evalOutput = & $psExe -NoProfile -ExecutionPolicy Bypass -File $runEvalsPs1 -JsonOutput | ConvertFrom-Json
         $evalPass = ($evalOutput.failed -eq 0 -and $evalOutput.passed -ge 5)
         Assert-Condition $evalPass "run-evals.ps1 benchmark passes 100% (Passed: $($evalOutput.passed)/$($evalOutput.total))" "run-evals.ps1 failed benchmarks: $($evalOutput.failed) failures"
     } catch {
@@ -443,7 +454,7 @@ Assert-Condition (Test-Path $runFastGateSh) "scripts/run-fast-gate.sh exists" "s
 
 if (Test-Path $detectStackPs1) {
     try {
-        $stackOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -JsonOutput | ConvertFrom-Json
+        $stackOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($null -ne $stackOut.stack) "detect-tech-stack.ps1 outputs valid JSON object with stack field" "detect-tech-stack.ps1 invalid output"
     } catch {
         Assert-Condition $false "detect-tech-stack.ps1 executes cleanly" "Execution error: $_"
@@ -452,7 +463,7 @@ if (Test-Path $detectStackPs1) {
 
 if (Test-Path $runFastGatePs1) {
     try {
-        $gateOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $runFastGatePs1 -JsonOutput | ConvertFrom-Json
+        $gateOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $runFastGatePs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($gateOut.status -eq "pass") "run-fast-gate.ps1 passes or gracefully bypasses on non-executable repo" "run-fast-gate.ps1 returned failure"
     } catch {
         Assert-Condition $false "run-fast-gate.ps1 executes cleanly" "Execution error: $_"
@@ -468,7 +479,7 @@ Assert-Condition (Test-Path $scanGuardSh) "scripts/scan-guardrails.sh exists" "s
 
 if (Test-Path $scanGuardPs1) {
     try {
-        $guardOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $repoRoot -JsonOutput | ConvertFrom-Json
+        $guardOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $repoRoot -JsonOutput | ConvertFrom-Json
         Assert-Condition ($guardOut.status -eq "pass") "scan-guardrails.ps1 passes on repository files (0 violations)" "scan-guardrails.ps1 detected $($guardOut.violations_count) violations"
     } catch {
         Assert-Condition $false "scan-guardrails.ps1 executes cleanly" "Execution error: $_"
@@ -484,7 +495,7 @@ Assert-Condition (Test-Path $lintReqSh) "scripts/lint-requirements.sh exists" "s
 
 if (Test-Path $lintReqPs1) {
     try {
-        $nextIdOut = (pwsh -NoProfile -ExecutionPolicy Bypass -File $lintReqPs1 -NextId -Scope "AUTH").Trim()
+        $nextIdOut = (& $psExe -NoProfile -ExecutionPolicy Bypass -File $lintReqPs1 -NextId -Scope "AUTH").Trim()
         Assert-Condition ($nextIdOut -match '^REQ-AUTH-[0-9]{3}$') "lint-requirements.ps1 allocates valid scoped next ID ($nextIdOut)" "lint-requirements.ps1 invalid next ID output: $nextIdOut"
     } catch {
         Assert-Condition $false "lint-requirements.ps1 executes cleanly" "Execution error: $_"
@@ -500,7 +511,7 @@ Assert-Condition (Test-Path $calcSemverSh) "scripts/calculate-semver.sh exists" 
 
 if (Test-Path $calcSemverPs1) {
     try {
-        $semverOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $calcSemverPs1 -JsonOutput | ConvertFrom-Json
+        $semverOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $calcSemverPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($semverOut.next_version -match '^v[0-9]+\.[0-9]+\.[0-9]+$') "calculate-semver.ps1 calculates valid SemVer tag ($($semverOut.next_version))" "calculate-semver.ps1 invalid output"
     } catch {
         Assert-Condition $false "calculate-semver.ps1 executes cleanly" "Execution error: $_"
@@ -516,7 +527,7 @@ Assert-Condition (Test-Path $auditI18nSh) "scripts/audit-i18n.sh exists" "script
 
 if (Test-Path $auditI18nPs1) {
     try {
-        $i18nOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $auditI18nPs1 -JsonOutput | ConvertFrom-Json
+        $i18nOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $auditI18nPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($i18nOut.status -eq "pass") "audit-i18n.ps1 passes on repository files" "audit-i18n.ps1 returned failure"
     } catch {
         Assert-Condition $false "audit-i18n.ps1 executes cleanly" "Execution error: $_"
@@ -532,7 +543,7 @@ Assert-Condition (Test-Path $genPrSh) "scripts/generate-pr-summary.sh exists" "s
 
 if (Test-Path $genPrPs1) {
     try {
-        $prOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $genPrPs1 -JsonOutput | ConvertFrom-Json
+        $prOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $genPrPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($null -ne $prOut.suggested_title) "generate-pr-summary.ps1 outputs valid JSON with title" "generate-pr-summary.ps1 invalid output"
     } catch {
         Assert-Condition $false "generate-pr-summary.ps1 executes cleanly" "Execution error: $_"
@@ -548,7 +559,7 @@ Assert-Condition (Test-Path $diagGitSh) "scripts/diagnose-git-state.sh exists" "
 
 if (Test-Path $diagGitPs1) {
     try {
-        $diagOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $diagGitPs1 -JsonOutput | ConvertFrom-Json
+        $diagOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $diagGitPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($null -ne $diagOut.state) "diagnose-git-state.ps1 outputs valid state object ($($diagOut.state))" "diagnose-git-state.ps1 invalid output"
     } catch {
         Assert-Condition $false "diagnose-git-state.ps1 executes cleanly" "Execution error: $_"
@@ -564,7 +575,7 @@ Assert-Condition (Test-Path $lintDocsSh) "scripts/lint-docs.sh exists" "scripts/
 
 if (Test-Path $lintDocsPs1) {
     try {
-        $docsOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $lintDocsPs1 -JsonOutput | ConvertFrom-Json
+        $docsOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $lintDocsPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($docsOut.status -eq "pass") "lint-docs.ps1 passes on repository files (0 broken links)" "lint-docs.ps1 found broken links: $($docsOut.broken_links_count)"
     } catch {
         Assert-Condition $false "lint-docs.ps1 executes cleanly" "Execution error: $_"
@@ -583,7 +594,7 @@ Assert-Condition (Test-Path $cleanArchSh) "scripts/lint-clean-architecture.sh ex
 
 if (Test-Path $cleanArchPs1) {
     try {
-        $archOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $cleanArchPs1 -JsonOutput | ConvertFrom-Json
+        $archOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $cleanArchPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($archOut.status -eq "pass") "lint-clean-architecture.ps1 passes on repository files (0 errors)" "lint-clean-architecture.ps1 detected $($archOut.error_count) errors"
     } catch {
         Assert-Condition $false "lint-clean-architecture.ps1 executes cleanly" "Execution error: $_"
@@ -600,7 +611,7 @@ Assert-Condition (Test-Path $changelogSh) "scripts/generate-changelog.sh exists"
 
 if (Test-Path $changelogPs1) {
     try {
-        $clOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogPs1 -JsonOutput | ConvertFrom-Json
+        $clOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $changelogPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($null -ne $clOut.version -and $null -ne $clOut.markdown) "generate-changelog.ps1 outputs valid JSON with markdown ($($clOut.version))" "generate-changelog.ps1 invalid output"
     } catch {
         Assert-Condition $false "generate-changelog.ps1 executes cleanly" "Execution error: $_"
@@ -617,7 +628,7 @@ Assert-Condition (Test-Path $secAuditSh) "scripts/run-security-audit.sh exists" 
 
 if (Test-Path $secAuditPs1) {
     try {
-        $secOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $secAuditPs1 -JsonOutput | ConvertFrom-Json
+        $secOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $secAuditPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($secOut.status -eq "pass") "run-security-audit.ps1 executes cleanly and returns pass ($($secOut.status))" "run-security-audit.ps1 reported failure"
     } catch {
         Assert-Condition $false "run-security-audit.ps1 executes cleanly" "Execution error: $_"
@@ -634,7 +645,7 @@ Assert-Condition (Test-Path $coverageSh) "scripts/check-test-coverage.sh exists"
 
 if (Test-Path $coveragePs1) {
     try {
-        $covOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $coveragePs1 -JsonOutput | ConvertFrom-Json
+        $covOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $coveragePs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($covOut.status -eq "pass") "check-test-coverage.ps1 executes cleanly and returns pass ($($covOut.status))" "check-test-coverage.ps1 reported failure"
     } catch {
         Assert-Condition $false "check-test-coverage.ps1 executes cleanly" "Execution error: $_"
@@ -651,7 +662,7 @@ Assert-Condition (Test-Path $dbMigSh) "scripts/lint-db-migrations.sh exists" "sc
 
 if (Test-Path $dbMigPs1) {
     try {
-        $dbOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $dbMigPs1 -JsonOutput | ConvertFrom-Json
+        $dbOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $dbMigPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($dbOut.status -eq "pass") "lint-db-migrations.ps1 executes cleanly and returns pass ($($dbOut.status))" "lint-db-migrations.ps1 reported failure"
     } catch {
         Assert-Condition $false "lint-db-migrations.ps1 executes cleanly" "Execution error: $_"
@@ -668,7 +679,7 @@ Assert-Condition (Test-Path $apiContractSh) "scripts/lint-api-contracts.sh exist
 
 if (Test-Path $apiContractPs1) {
     try {
-        $apiOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $apiContractPs1 -JsonOutput | ConvertFrom-Json
+        $apiOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $apiContractPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($apiOut.status -eq "pass") "lint-api-contracts.ps1 executes cleanly and returns pass ($($apiOut.status))" "lint-api-contracts.ps1 reported failure"
     } catch {
         Assert-Condition $false "lint-api-contracts.ps1 executes cleanly" "Execution error: $_"
@@ -685,7 +696,7 @@ Assert-Condition (Test-Path $orphansSh) "scripts/find-orphaned-assets.sh exists"
 
 if (Test-Path $orphansPs1) {
     try {
-        $orphOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $orphansPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
+        $orphOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $orphansPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
         Assert-Condition ($orphOut.status -eq "pass") "find-orphaned-assets.ps1 executes cleanly and returns pass ($($orphOut.status))" "find-orphaned-assets.ps1 reported failure"
     } catch {
         Assert-Condition $false "find-orphaned-assets.ps1 executes cleanly" "Execution error: $_"
@@ -702,7 +713,7 @@ Assert-Condition (Test-Path $ciLintSh) "scripts/lint-ci-workflows.sh exists" "sc
 
 if (Test-Path $ciLintPs1) {
     try {
-        $ciOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $ciLintPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
+        $ciOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $ciLintPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
         Assert-Condition ($ciOut.status -eq "pass") "lint-ci-workflows.ps1 executes cleanly and returns pass ($($ciOut.status))" "lint-ci-workflows.ps1 reported failure"
     } catch {
         Assert-Condition $false "lint-ci-workflows.ps1 executes cleanly" "Execution error: $_"
@@ -719,7 +730,7 @@ Assert-Condition (Test-Path $allGatesSh) "scripts/run-all-gates.sh exists" "scri
 
 if (Test-Path $allGatesPs1) {
     try {
-        $gatesOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $allGatesPs1 -RepoRoot $repoRoot -Fast -JsonOutput | ConvertFrom-Json
+        $gatesOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $allGatesPs1 -RepoRoot $repoRoot -Fast -JsonOutput | ConvertFrom-Json
         Assert-Condition ($gatesOut.status -eq "pass") "run-all-gates.ps1 executes cleanly and returns pass ($($gatesOut.status))" "run-all-gates.ps1 reported failure"
     } catch {
         Assert-Condition $false "run-all-gates.ps1 executes cleanly" "Execution error: $_"
@@ -736,7 +747,7 @@ Assert-Condition (Test-Path $failDiagSh) "scripts/collect-test-failures.sh exist
 
 if (Test-Path $failDiagPs1) {
     try {
-        $failOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $failDiagPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
+        $failOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $failDiagPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
         Assert-Condition ($failOut.status -eq "pass") "collect-test-failures.ps1 executes cleanly and returns pass ($($failOut.status))" "collect-test-failures.ps1 reported failure"
     } catch {
         Assert-Condition $false "collect-test-failures.ps1 executes cleanly" "Execution error: $_"
@@ -761,7 +772,7 @@ Assert-Condition (Test-Path $inspectFeatSh) "scripts/inspect-feature-specs.sh ex
 
 if (Test-Path $inspectFeatPs1) {
     try {
-        $inspectRaw = (pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $repoRoot -JsonOutput).Trim()
+        $inspectRaw = (& $psExe -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $repoRoot -JsonOutput).Trim()
         $jsonValid = ($inspectRaw -eq "[]") -or ($null -ne ($inspectRaw | ConvertFrom-Json))
         Assert-Condition $jsonValid "inspect-feature-specs.ps1 outputs valid JSON" "inspect-feature-specs.ps1 returned invalid JSON ($inspectRaw)"
         
@@ -771,13 +782,13 @@ if (Test-Path $inspectFeatPs1) {
         $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
         New-Item -ItemType Directory -Path $tempDir | Out-Null
         try {
-            $newOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -New -Id "FEAT-CORE-001" -Title "Domain Baseline" -Phase 1 -Scope "CORE" -JsonOutput | ConvertFrom-Json
+            $newOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -New -Id "FEAT-CORE-001" -Title "Domain Baseline" -Phase 1 -Scope "CORE" -JsonOutput | ConvertFrom-Json
             Assert-Condition ($newOut.status -eq "created" -and (Test-Path (Join-Path $tempDir $newOut.file))) "inspect-feature-specs.ps1 scaffolds new feature spec" "inspect-feature-specs.ps1 scaffolding failed"
 
-            $conceptOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -NewConcept -ConceptId "CONCEPT-CORE-001" -Title "Domain Concept" -Scope "CORE" -JsonOutput | ConvertFrom-Json
+            $conceptOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -NewConcept -ConceptId "CONCEPT-CORE-001" -Title "Domain Concept" -Scope "CORE" -JsonOutput | ConvertFrom-Json
             Assert-Condition ($conceptOut.status -eq "created" -and (Test-Path (Join-Path $tempDir $conceptOut.file))) "inspect-feature-specs.ps1 scaffolds new concept draft" "inspect-feature-specs.ps1 concept scaffolding failed"
 
-            $archiveOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -ArchiveConcept "CONCEPT-CORE-001" -JsonOutput | ConvertFrom-Json
+            $archiveOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $tempDir -ArchiveConcept "CONCEPT-CORE-001" -JsonOutput | ConvertFrom-Json
             Assert-Condition ($archiveOut.status -eq "archived" -and (Test-Path (Join-Path $tempDir $archiveOut.destination))) "inspect-feature-specs.ps1 archives concept draft" "inspect-feature-specs.ps1 concept archiving failed"
         } finally {
             if (Test-Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force }
@@ -802,8 +813,12 @@ Assert-Condition ($contractContent -match 'Accessibility \(a11y\)') "ask-contrac
 if (Test-Path $setupPs1) {
     function Remove-SafeReparsePoint([string]$p) {
         $item = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
-        if ($item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
-            $item.Delete()
+        if ($item) {
+            if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                $item.Delete()
+            } else {
+                Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue
+            }
         }
     }
 
@@ -811,7 +826,7 @@ if (Test-Path $setupPs1) {
     $tempProj = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
     New-Item -ItemType Directory -Path $tempProj | Out-Null
     try {
-        pwsh -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -TargetProject $tempProj -InitDocs -SkipCopilot | Out-Null
+        & $psExe -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -TargetProject $tempProj -InitDocs -SkipCopilot | Out-Null
         $hasInitArch = Test-Path (Join-Path $tempProj "ARCHITECTURE.md")
         $hasInitRoadmap = Test-Path (Join-Path $tempProj "docs\ROADMAP.md")
         $hasAgyLink = Test-Path (Join-Path $tempProj "_agents")
@@ -827,7 +842,7 @@ if (Test-Path $setupPs1) {
     $tempCopilotProj = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
     New-Item -ItemType Directory -Path $tempCopilotProj | Out-Null
     try {
-        pwsh -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -TargetProject $tempCopilotProj -Client copilot | Out-Null
+        & $psExe -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -TargetProject $tempCopilotProj -Client copilot | Out-Null
         $hasDotAgents = Test-Path (Join-Path $tempCopilotProj ".agents\skills\ask-control\SKILL.md")
         $hasNoUnderscoreAgents = -not (Test-Path (Join-Path $tempCopilotProj "_agents"))
         $copilotFile = Join-Path $tempCopilotProj ".github\copilot-instructions.md"
@@ -843,7 +858,7 @@ if (Test-Path $setupPs1) {
     $tempHome = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
     New-Item -ItemType Directory -Path $tempHome | Out-Null
     try {
-        pwsh -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -Global -UserHome $tempHome | Out-Null
+        & $psExe -NoProfile -ExecutionPolicy Bypass -File $setupPs1 -Global -UserHome $tempHome | Out-Null
         $hasUserAgy = Test-Path (Join-Path $tempHome "_agents\skills\ask-control\SKILL.md")
         $hasGeminiSkills = Test-Path (Join-Path $tempHome ".gemini\config\skills\ask-control\SKILL.md")
         $hasUserCopilot = Test-Path (Join-Path $tempHome ".agents\skills\ask-control\SKILL.md")
@@ -868,7 +883,7 @@ try {
     git -C $tempRustDir init -q 2>$null
     $badRustFile = Join-Path $tempRustDir "lib.rs"
     [System.IO.File]::WriteAllText($badRustFile, "#[unsafe(no_mangle)]`npub fn demo() { let _x = unsafe { 42 }; }`n", (New-Object System.Text.UTF8Encoding($false)))
-    $wtGuardOut = pwsh -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $tempRustDir -WorkingTree -JsonOutput | ConvertFrom-Json
+    $wtGuardOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $tempRustDir -WorkingTree -JsonOutput | ConvertFrom-Json
     Assert-Condition ($wtGuardOut.status -eq "fail" -and $wtGuardOut.violations_count -ge 2) "scan-guardrails.ps1 -WorkingTree catches unstaged inline unsafe and Rust 2024 #[unsafe(...)]" "scan-guardrails.ps1 -WorkingTree missed unstaged unsafe Rust constructs"
 } finally {
     if (Test-Path $tempRustDir) { Remove-Item -LiteralPath $tempRustDir -Recurse -Force -ErrorAction SilentlyContinue }
@@ -879,7 +894,7 @@ try {
     [System.IO.File]::WriteAllText($tempTrace, '{"case_id":"EVAL-GOV-001","tool_calls":[{"name":"run_command","arguments":{"CommandLine":"git status"}}]}' + "`n", (New-Object System.Text.UTF8Encoding($false)))
     $badTraceRaw = $null
     try {
-        $badTraceRaw = pwsh -NoProfile -ExecutionPolicy Bypass -File $runEvalsPs1 -CaseId "EVAL-GOV-001" -TranscriptPath $tempTrace -JsonOutput 2>$null
+        $badTraceRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File $runEvalsPs1 -CaseId "EVAL-GOV-001" -TranscriptPath $tempTrace -JsonOutput 2>$null
     } catch {}
     $badTraceObj = if ($badTraceRaw) { $badTraceRaw | ConvertFrom-Json } else { $null }
     Assert-Condition ($null -ne $badTraceObj -and $badTraceObj.failed -eq 1) "run-evals.ps1 -TranscriptPath deterministically flags prohibited 'git status' on Profile 0" "run-evals.ps1 -TranscriptPath failed to catch prohibited action"

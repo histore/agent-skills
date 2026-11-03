@@ -29,7 +29,7 @@ json_output = sys.argv[3] == 'true'
 
 md_files = []
 for root, dirs, files in os.walk(repo_root):
-    if '.git' in root or 'node_modules' in root:
+    if any(part in root.split(os.sep) for part in ('.git', 'node_modules', 'target', 'bin', 'obj', '.venv')):
         continue
     for f in files:
         if f.endswith('.md'):

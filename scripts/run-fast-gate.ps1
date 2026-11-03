@@ -47,6 +47,17 @@ $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $failedStep = $null
 $failureLogs = [System.Collections.Generic.List[string]]::new()
 
+$psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+    $cmd = Get-Command pwsh
+    if ($cmd.Source -notmatch 'WindowsApps\\pwsh\.exe' -or ($cmd.Version -and $cmd.Version.Major -gt 0)) {
+        $cmd.Source
+    } else {
+        (Get-Process -Id $PID).Path
+    }
+} else {
+    (Get-Process -Id $PID).Path
+}
+
 # 1. Detect tech stack in-process (zero subprocess spawn overhead)
 $detectScript = Join-Path $scriptDir "detect-tech-stack.ps1"
 $stackInfo = [ordered]@{
@@ -71,7 +82,7 @@ function Invoke-GateStep {
     $stdoutFile = Join-Path ([System.IO.Path]::GetTempPath()) "gate_stdout_${PID}_$([guid]::NewGuid().ToString('N')).log"
     $stderrFile = Join-Path ([System.IO.Path]::GetTempPath()) "gate_stderr_${PID}_$([guid]::NewGuid().ToString('N')).log"
     try {
-        $proc = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-Command", "Set-Location '$ProjectRoot'; $CommandLine" -NoNewWindow -PassThru -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
+        $proc = Start-Process -FilePath $psExe -ArgumentList "-NoProfile", "-Command", "Set-Location '$ProjectRoot'; $CommandLine" -NoNewWindow -PassThru -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
         $proc.WaitForExit()
         $exitCode = $proc.ExitCode
 
@@ -81,7 +92,7 @@ function Invoke-GateStep {
 
         if ($exitCode -ne 0) {
             $combined = ($stderr + "`n" + $stdout) -split "`r?`n"
-            # Compact errors with up to 2 trailing context lines for assertion/location clarity
+            # Compact errors with up to 2 trailing context lines for assertion/location clarity (capped for model context hygiene)
             $matchedIndices = [System.Collections.Generic.HashSet[int]]::new()
             for ($i = 0; $i -lt $combined.Length; $i++) {
                 if ($combined[$i] -match '(?i)error|failed|exception|assert|fatal|panicked') {
@@ -90,7 +101,7 @@ function Invoke-GateStep {
                             [void]$matchedIndices.Add($ctx)
                         }
                     }
-                    if ($matchedIndices.Count -ge 25) { break }
+                    if ($matchedIndices.Count -ge 12) { break }
                 }
             }
             if ($matchedIndices.Count -gt 0) {
@@ -98,7 +109,7 @@ function Invoke-GateStep {
                     $script:failureLogs.Add($combined[$idx].Trim())
                 }
             } else {
-                $tailLines = $combined | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 12
+                $tailLines = $combined | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 8
                 foreach ($tl in $tailLines) { $script:failureLogs.Add($tl.Trim()) }
             }
             $script:failedStep = $StepName

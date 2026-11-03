@@ -26,6 +26,15 @@ if (-not $ProjectRoot) {
     $ProjectRoot = (Get-Location).Path
 }
 
+function Get-RelativePathCompat([string]$basePath, [string]$targetPath) {
+    if ([System.Type]::GetType('System.IO.Path').GetMethod('GetRelativePath', [type[]]@([string], [string]))) {
+        return [System.IO.Path]::GetRelativePath($basePath, $targetPath)
+    }
+    $baseUri = [Uri](([System.IO.Path]::GetFullPath($basePath)).TrimEnd('\', '/') + '/')
+    $targetUri = [Uri]([System.IO.Path]::GetFullPath($targetPath))
+    return [Uri]::UnescapeDataString($baseUri.MakeRelativeUri($targetUri).ToString().Replace('/', [System.IO.Path]::DirectorySeparatorChar))
+}
+
 $detected = [ordered]@{
     stack              = "unknown"
     language           = "unknown"
@@ -59,7 +68,7 @@ elseif ((Test-Path (Join-Path $ProjectRoot "Directory.Build.props")) -or (Get-Ch
     } else {
         $projFile = (Get-ChildItem -Path $ProjectRoot -Filter "*.*proj" -File -Depth 2 | Select-Object -First 1)
         if ($projFile) {
-            $relProj = [System.IO.Path]::GetRelativePath($ProjectRoot, $projFile.FullName).Replace('\', '/')
+            $relProj = (Get-RelativePathCompat $ProjectRoot $projFile.FullName).Replace('\', '/')
             $detected.lint_cmd = "dotnet format `"$relProj`" --verify-no-changes"
         } else {
             $detected.lint_cmd = "dotnet format --verify-no-changes"
