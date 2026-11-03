@@ -26,6 +26,9 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
+            if [[ -z "$REPO_ROOT" && ! "$1" =~ ^- ]]; then
+                REPO_ROOT="$1"
+            fi
             shift
             ;;
     esac

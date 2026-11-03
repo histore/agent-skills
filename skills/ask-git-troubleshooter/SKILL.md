@@ -26,7 +26,7 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
 1. **Mandatory Safety Snapshot**:
    - Before executing any rebase, hard reset, merge continuation, or branch deletion, diagnose state and create a temporary backup branch snapshot via `diagnose-git-state.ps1` (or `diagnose-git-state.sh`):
      ```powershell
-     $diagScript = @("./_agents/scripts/diagnose-git-state.ps1", "./.agents/scripts/diagnose-git-state.ps1", "./scripts/diagnose-git-state.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+     $diagScript = @("./_agents/scripts/diagnose-git-state.ps1", "./.agents/scripts/diagnose-git-state.ps1", "./scripts/diagnose-git-state.ps1", "$HOME/_agents/scripts/diagnose-git-state.ps1", "$HOME/.agents/scripts/diagnose-git-state.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
      pwsh -NoProfile -ExecutionPolicy Bypass -File $diagScript -CreateSnapshot
      ```
    - Alternatively:

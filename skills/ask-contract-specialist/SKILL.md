@@ -39,12 +39,12 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - Query feature specs and manage concepts deterministically:
     - Windows:
       ```powershell
-      $specScript = @("./_agents/scripts/inspect-feature-specs.ps1", "./.agents/scripts/inspect-feature-specs.ps1", "./scripts/inspect-feature-specs.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+      $specScript = @("./_agents/scripts/inspect-feature-specs.ps1", "./.agents/scripts/inspect-feature-specs.ps1", "./scripts/inspect-feature-specs.ps1", "$HOME/_agents/scripts/inspect-feature-specs.ps1", "$HOME/.agents/scripts/inspect-feature-specs.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
       if ($specScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $specScript -ListAll }
       ```
     - macOS / Linux:
       ```bash
-      for p in ./_agents/scripts/inspect-feature-specs.sh ./.agents/scripts/inspect-feature-specs.sh ./scripts/inspect-feature-specs.sh; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
+      for p in ./_agents/scripts/inspect-feature-specs.sh ./.agents/scripts/inspect-feature-specs.sh ./scripts/inspect-feature-specs.sh "$HOME/_agents/scripts/inspect-feature-specs.sh" "$HOME/.agents/scripts/inspect-feature-specs.sh"; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
       [ -n "$SCRIPT_PATH" ] && bash "$SCRIPT_PATH" --list-all
       ```
 
@@ -55,7 +55,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Immutability & Conflict Escalation**: Existing requirements may only be modified or deprecated upon explicit user instruction. Any contradiction or duplicate across modules must be escalated directly to the user.
 - **Deterministic ID Allocation & Linting**:
   ```powershell
-  $reqScript = @("./_agents/scripts/lint-requirements.ps1", "./.agents/scripts/lint-requirements.ps1", "./scripts/lint-requirements.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $reqScript = @("./_agents/scripts/lint-requirements.ps1", "./.agents/scripts/lint-requirements.ps1", "./scripts/lint-requirements.ps1", "$HOME/_agents/scripts/lint-requirements.ps1", "$HOME/.agents/scripts/lint-requirements.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($reqScript) {
       pwsh -NoProfile -ExecutionPolicy Bypass -File $reqScript
       # Allocate next sequential ID for a scope:
@@ -70,7 +70,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Non-Breaking Evolution**: Strict backward compatibility (additive changes only; mark decaying fields `@deprecated` and emit `Sunset` / `Deprecation` HTTP headers before removal). Keep API DTOs strictly in the Interface Adapters layer with explicit mappers to Domain Entities.
 - **Validation**: Lint API contracts deterministically:
   ```powershell
-  $apiScript = @("./_agents/scripts/lint-api-contracts.ps1", "./.agents/scripts/lint-api-contracts.ps1", "./scripts/lint-api-contracts.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $apiScript = @("./_agents/scripts/lint-api-contracts.ps1", "./.agents/scripts/lint-api-contracts.ps1", "./scripts/lint-api-contracts.ps1", "$HOME/_agents/scripts/lint-api-contracts.ps1", "$HOME/.agents/scripts/lint-api-contracts.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($apiScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $apiScript }
   ```
 
@@ -82,7 +82,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Query Performance & Concurrency**: Prevent N+1 queries via explicit eager loading, order composite B-tree indexes by `(Equality, Range, Sort)`, use precision-safe types (`DECIMAL`, `TIMESTAMPTZ`, `UUID`), and enforce optimistic concurrency tokens.
 - **Validation**: Lint migrations deterministically:
   ```powershell
-  $dbScript = @("./_agents/scripts/lint-db-migrations.ps1", "./.agents/scripts/lint-db-migrations.ps1", "./scripts/lint-db-migrations.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $dbScript = @("./_agents/scripts/lint-db-migrations.ps1", "./.agents/scripts/lint-db-migrations.ps1", "./scripts/lint-db-migrations.ps1", "$HOME/_agents/scripts/lint-db-migrations.ps1", "$HOME/.agents/scripts/lint-db-migrations.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($dbScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $dbScript }
   ```
 
@@ -97,14 +97,15 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - **Project-Level Configuration via `.git/config`**:
     ```powershell
     # Configure external path in local .git/config (never committed to repo):
-    $diffScript = @("./_agents/scripts/get-arch-diff.ps1", "./.agents/scripts/get-arch-diff.ps1", "./scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $diffScript = @("./_agents/scripts/get-arch-diff.ps1", "./.agents/scripts/get-arch-diff.ps1", "./scripts/get-arch-diff.ps1", "$HOME/_agents/scripts/get-arch-diff.ps1", "$HOME/.agents/scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
     pwsh -NoProfile -ExecutionPolicy Bypass -File $diffScript -SetDocDir "C:/path/to/external-arch-docs/my-project"
     pwsh -NoProfile -ExecutionPolicy Bypass -File $diffScript -SetMode external
     ```
     ```bash
     # macOS / Linux:
-    bash ./_agents/scripts/get-arch-diff.sh --set-doc-dir "/path/to/external-arch-docs/my-project"
-    bash ./_agents/scripts/get-arch-diff.sh --set-mode external
+    for p in ./_agents/scripts/get-arch-diff.sh ./.agents/scripts/get-arch-diff.sh ./scripts/get-arch-diff.sh "$HOME/_agents/scripts/get-arch-diff.sh" "$HOME/.agents/scripts/get-arch-diff.sh"; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
+    bash "$SCRIPT_PATH" --set-doc-dir "/path/to/external-arch-docs/my-project"
+    bash "$SCRIPT_PATH" --set-mode external
     ```
   - **5-Level Intentional Override Hierarchy** (resolved automatically by `get-arch-diff`, returning `doc_dir` and `storage_mode` in JSON output):
     1. CLI Parameter: `-DocDir <path>` (`--doc-dir <path>`) or `-StateFile <path>`
@@ -114,7 +115,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
     5. Default Fallback: `<RepoRoot>/docs/architecture`
 - **Deterministic Pre-Filtering, Initialization & Checkpointing**:
   ```powershell
-  $diffScript = @("./_agents/scripts/get-arch-diff.ps1", "./.agents/scripts/get-arch-diff.ps1", "./scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $diffScript = @("./_agents/scripts/get-arch-diff.ps1", "./.agents/scripts/get-arch-diff.ps1", "./scripts/get-arch-diff.ps1", "$HOME/_agents/scripts/get-arch-diff.ps1", "$HOME/.agents/scripts/get-arch-diff.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($diffScript) {
       # 1. Detect architectural drift since last checkpoint (0 tokens):
       pwsh -NoProfile -ExecutionPolicy Bypass -File $diffScript
@@ -136,7 +137,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - When multimodal inputs (wireframes, screenshots, DOM trees) are provided or modified, verify visual layout consistency, responsive overflow behavior, and state indicators (loading, empty, error states).
 - **Validation**: Audit i18n coverage deterministically:
   ```powershell
-  $i18nScript = @("./_agents/scripts/audit-i18n.ps1", "./.agents/scripts/audit-i18n.ps1", "./scripts/audit-i18n.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $i18nScript = @("./_agents/scripts/audit-i18n.ps1", "./.agents/scripts/audit-i18n.ps1", "./scripts/audit-i18n.ps1", "$HOME/_agents/scripts/audit-i18n.ps1", "$HOME/.agents/scripts/audit-i18n.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($i18nScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $i18nScript }
   ```
 - **Resource Key Taxonomy**: Organize keys hierarchically (`Scope.Component.Element`, e.g. `MainWindow.Header.Title`, `Errors.Network.Timeout`) with English (`en`) as fallback.
@@ -146,7 +147,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Language-Idiomatic Source Documentation**: Author public API doc comments in English adhering to native conventions (C# XML `/// <summary>`, Rustdoc `///` with `# Errors`/`# Panics`, TypeScript TSDoc `/** ... */`, Python PEP 257 docstrings, Go doc comments) without altering executable code.
 - **Relative Links & Documentation Integrity**: All markdown links must use portable relative paths (`../ARCHITECTURE.md`, `docs/features/FEAT-*.md`). Validate links and documentation parity deterministically:
   ```powershell
-  $docsScript = @("./_agents/scripts/lint-docs.ps1", "./.agents/scripts/lint-docs.ps1", "./scripts/lint-docs.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $docsScript = @("./_agents/scripts/lint-docs.ps1", "./.agents/scripts/lint-docs.ps1", "./scripts/lint-docs.ps1", "$HOME/_agents/scripts/lint-docs.ps1", "$HOME/.agents/scripts/lint-docs.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($docsScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $docsScript }
   ```
 

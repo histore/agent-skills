@@ -80,7 +80,19 @@ if [[ "$STACK" == "unknown" || -z "$BUILD_CMD" ]]; then
   exit 0
 fi
 
-START_TIME=$(date +%s%N 2>/dev/null || date +%s)
+get_time_ns() {
+  local d
+  d=$(date +%s%N 2>/dev/null || true)
+  if [[ "$d" =~ ^[0-9]+$ ]]; then
+    echo "$d"
+  elif command -v python3 &>/dev/null; then
+    python3 -c 'import time; print(int(time.time()*1e9))'
+  else
+    echo "$(( $(date +%s) * 1000000000 ))"
+  fi
+}
+
+START_TIME=$(get_time_ns)
 FAILED_STEP=""
 ERROR_LOG=""
 
@@ -136,7 +148,7 @@ if [[ "$OVERALL_PASS" == "true" && "$SKIP_GUARDRAILS" == "false" ]]; then
   fi
 fi
 
-END_TIME=$(date +%s%N 2>/dev/null || true)
+END_TIME=$(get_time_ns)
 DURATION_MS=0
 if [[ "$END_TIME" =~ ^[0-9]+$ && "$START_TIME" =~ ^[0-9]+$ && ${#END_TIME} -gt 10 ]]; then
   DURATION_MS=$(( (END_TIME - START_TIME) / 1000000 ))

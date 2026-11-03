@@ -18,7 +18,12 @@ while [[ "$#" -gt 0 ]]; do
         -c|--cache-path) cache_path="$2"; shift 2 ;;
         -m|--max-age-hours) max_age_hours="$2"; shift 2 ;;
         -f|--force) force=true; shift ;;
-        *) shift ;;
+        *)
+            if [[ -z "$output_path" && ! "$1" =~ ^- ]]; then
+                output_path="$1"
+            fi
+            shift
+            ;;
     esac
 done
 

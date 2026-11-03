@@ -31,7 +31,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Reproduction Test Specification (Phase RED)**:
   - Extract compacted test failure messages and stack traces from JUnit/TRX reports without flooding the context window via `collect-test-failures.ps1` (`collect-test-failures.sh`):
     ```powershell
-    $failScript = @("./_agents/scripts/collect-test-failures.ps1", "./.agents/scripts/collect-test-failures.ps1", "./scripts/collect-test-failures.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $failScript = @("./_agents/scripts/collect-test-failures.ps1", "./.agents/scripts/collect-test-failures.ps1", "./scripts/collect-test-failures.ps1", "$HOME/_agents/scripts/collect-test-failures.ps1", "$HOME/.agents/scripts/collect-test-failures.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
     if ($failScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $failScript -JsonOutput }
     ```
   - Formulate an explicit, deterministic Arrange-Act-Assert reproduction test scenario.
@@ -59,7 +59,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Boy Scout Cleanup & Orphaned Assets Detection**:
   - Audit the workspace for unreferenced media assets or unindexed modular documentation files via `find-orphaned-assets.ps1` (`find-orphaned-assets.sh`):
     ```powershell
-    $orphanScript = @("./_agents/scripts/find-orphaned-assets.ps1", "./.agents/scripts/find-orphaned-assets.ps1", "./scripts/find-orphaned-assets.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $orphanScript = @("./_agents/scripts/find-orphaned-assets.ps1", "./.agents/scripts/find-orphaned-assets.ps1", "./scripts/find-orphaned-assets.ps1", "$HOME/_agents/scripts/find-orphaned-assets.ps1", "$HOME/.agents/scripts/find-orphaned-assets.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
     if ($orphanScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $orphanScript -JsonOutput }
     ```
 
@@ -69,12 +69,12 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - Profile startup time and throughput via zero-token helper scripts:
   - Windows:
     ```powershell
-    $benchScript = @("./_agents/scripts/benchmark-startup.ps1", "./.agents/scripts/benchmark-startup.ps1", "./scripts/benchmark-startup.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $benchScript = @("./_agents/scripts/benchmark-startup.ps1", "./.agents/scripts/benchmark-startup.ps1", "./scripts/benchmark-startup.ps1", "$HOME/_agents/scripts/benchmark-startup.ps1", "$HOME/.agents/scripts/benchmark-startup.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
     if ($benchScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $benchScript }
     ```
   - macOS / Linux:
     ```bash
-    for p in ./_agents/scripts/benchmark-startup.sh ./.agents/scripts/benchmark-startup.sh ./scripts/benchmark-startup.sh; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
+    for p in ./_agents/scripts/benchmark-startup.sh ./.agents/scripts/benchmark-startup.sh ./scripts/benchmark-startup.sh "$HOME/_agents/scripts/benchmark-startup.sh" "$HOME/.agents/scripts/benchmark-startup.sh"; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
     [ -n "$SCRIPT_PATH" ] && bash "$SCRIPT_PATH"
     ```
 

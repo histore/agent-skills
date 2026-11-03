@@ -45,7 +45,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ### 1. SemVer Calculation & Release Tagging
 - **Consolidated Pre-Flight & SemVer Calculation (Single Tool Call)**:
   ```powershell
-  $semverScript = @("./_agents/scripts/calculate-semver.ps1", "./.agents/scripts/calculate-semver.ps1", "./scripts/calculate-semver.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $semverScript = @("./_agents/scripts/calculate-semver.ps1", "./.agents/scripts/calculate-semver.ps1", "./scripts/calculate-semver.ps1", "$HOME/_agents/scripts/calculate-semver.ps1", "$HOME/.agents/scripts/calculate-semver.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($semverScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $semverScript -CheckSync -JsonOutput }
   ```
 - **Null-Safe Branch Resolution**:
@@ -62,7 +62,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ### 2. Automated Changelog & Documentation Generation
 - Generate release notes and maintain `CHANGELOG.md` adhering to **Keep a Changelog** (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`) and SemVer conventions:
   ```powershell
-  $changelogScript = @("./_agents/scripts/generate-changelog.ps1", "./.agents/scripts/generate-changelog.ps1", "./scripts/generate-changelog.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $changelogScript = @("./_agents/scripts/generate-changelog.ps1", "./.agents/scripts/generate-changelog.ps1", "./scripts/generate-changelog.ps1", "$HOME/_agents/scripts/generate-changelog.ps1", "$HOME/.agents/scripts/generate-changelog.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($changelogScript) {
       pwsh -NoProfile -ExecutionPolicy Bypass -File $changelogScript
       # Or prepend directly to CHANGELOG.md on feature/release branches:
@@ -75,19 +75,19 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Multi-Stage Dockerfiles**: Separate SDK build stages from slim/distroless runtime images, order layers from least- to most-frequently changed, enforce non-root execution (`USER appuser`), and maintain `.dockerignore` and `healthcheck` definitions.
 - Validate workflows and container files deterministically:
   ```powershell
-  $ciScript = @("./_agents/scripts/lint-ci-workflows.ps1", "./.agents/scripts/lint-ci-workflows.ps1", "./scripts/lint-ci-workflows.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $ciScript = @("./_agents/scripts/lint-ci-workflows.ps1", "./.agents/scripts/lint-ci-workflows.ps1", "./scripts/lint-ci-workflows.ps1", "$HOME/_agents/scripts/lint-ci-workflows.ps1", "$HOME/.agents/scripts/lint-ci-workflows.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($ciScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $ciScript }
   ```
 
 ### 4. Security Auditing & Guardrails Scanner (6 Audit Vectors)
 - **1. Supply Chain & Dependency CVEs**: Audit third-party packages (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`, `govulncheck`) via `run-security-audit.ps1`:
   ```powershell
-  $secScript = @("./_agents/scripts/run-security-audit.ps1", "./.agents/scripts/run-security-audit.ps1", "./scripts/run-security-audit.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $secScript = @("./_agents/scripts/run-security-audit.ps1", "./.agents/scripts/run-security-audit.ps1", "./scripts/run-security-audit.ps1", "$HOME/_agents/scripts/run-security-audit.ps1", "$HOME/.agents/scripts/run-security-audit.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($secScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $secScript }
   ```
 - **2. Secret & Guardrail Scanning**: Scan for high-entropy secrets, private keys, CRLF violations, safe-Rust (`unsafe` blocks), and submodule leakage (`-StagedOnly` for pre-commit):
   ```powershell
-  $guardScript = @("./_agents/scripts/scan-guardrails.ps1", "./.agents/scripts/scan-guardrails.ps1", "./scripts/scan-guardrails.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $guardScript = @("./_agents/scripts/scan-guardrails.ps1", "./.agents/scripts/scan-guardrails.ps1", "./scripts/scan-guardrails.ps1", "$HOME/_agents/scripts/scan-guardrails.ps1", "$HOME/.agents/scripts/scan-guardrails.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($guardScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $guardScript }
   ```
 - **3. Command & Process Injection Prevention**: Never pass unsafely interpolated user input to shell interpreters; enforce strict argument vector escaping.

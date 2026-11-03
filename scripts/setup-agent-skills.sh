@@ -75,9 +75,14 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "Unknown option: $1" >&2
-      print_usage
-      exit 1
+      if [[ -z "$TARGET_PROJECT" && ! "$1" =~ ^- ]]; then
+        TARGET_PROJECT="$1"
+        shift
+      else
+        echo "Unknown option: $1" >&2
+        print_usage
+        exit 1
+      fi
       ;;
   esac
 done
