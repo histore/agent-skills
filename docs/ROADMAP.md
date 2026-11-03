@@ -31,13 +31,14 @@ pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase 0
 | Phase 0 | `FEAT-ROLE-001` | Specialized Subagent Role System | VERIFIED | `ROLES` | [features/FEAT-ROLE-001-subagent-role-system.md](features/FEAT-ROLE-001-subagent-role-system.md) | `v0.1.0` |
 | Phase 0 | `FEAT-TOOL-001` | Deterministic Zero-Token Script Toolkit | VERIFIED | `TOOLING` | [features/FEAT-TOOL-001-zero-token-scripts.md](features/FEAT-TOOL-001-zero-token-scripts.md) | `v0.1.0` |
 | Phase 0 | `FEAT-SPEC-001` | Living Modular Documentation & Phased Specs | VERIFIED | `SPEC` | [features/FEAT-SPEC-001-living-modular-docs.md](features/FEAT-SPEC-001-living-modular-docs.md) | `v0.1.0` |
+| Phase 0 | `FEAT-EFF-001` | Next-Gen LLM Efficiency & AST Inspector | VERIFIED | `EFFICIENCY` | [features/FEAT-EFF-001-next-gen-llm-efficiency.md](features/FEAT-EFF-001-next-gen-llm-efficiency.md) | `v0.2.2` |
 
 ---
 
 ## 3. Implementation Progress Summary
 
-- **Total Features Registered**: 4
-- **Completed & Verified (Phase 0 Baseline)**: 4 (100%)
+- **Total Features Registered**: 5
+- **Completed & Verified (Phase 0 Baseline)**: 5 (100%)
 - **In Progress**: 0
 - **Proposed / Planned (Phase 1)**: 0
 

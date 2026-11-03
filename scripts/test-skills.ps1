@@ -902,6 +902,28 @@ try {
     if (Test-Path $tempTrace) { Remove-Item -LiteralPath $tempTrace -Force -ErrorAction SilentlyContinue }
 }
 
+# 45. Validate code outline AST inspector scripts and next-gen LLM efficiency invariants
+Write-Host "`n45. Validating code outline AST inspector scripts and next-gen LLM efficiency invariants..." -ForegroundColor Yellow
+$outlinePs1 = Join-Path $repoRoot "scripts\get-code-outline.ps1"
+$outlineSh = Join-Path $repoRoot "scripts\get-code-outline.sh"
+Assert-Condition (Test-Path $outlinePs1) "scripts/get-code-outline.ps1 exists" "scripts/get-code-outline.ps1 not found"
+Assert-Condition (Test-Path $outlineSh) "scripts/get-code-outline.sh exists" "scripts/get-code-outline.sh not found"
+
+if (Test-Path $outlinePs1) {
+    try {
+        $outlineOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $outlinePs1 -Path $repoRoot -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($outlineOut.status -eq "pass") "get-code-outline.ps1 executes cleanly and outputs valid JSON" "get-code-outline.ps1 reported failure"
+    } catch {
+        Assert-Condition $false "get-code-outline.ps1 executes cleanly" "Execution error: $_"
+    }
+}
+
+Assert-Condition ($agentsContent -match 'Surgical Edit First') "AGENTS.md enforces Surgical Edit First Invariant" "AGENTS.md missing Surgical Edit First Invariant"
+Assert-Condition ($agentsContent -match 'Two-Zone Prompt Cache Architecture') "AGENTS.md enforces Two-Zone Prompt Cache Architecture" "AGENTS.md missing Two-Zone Prompt Cache Architecture"
+Assert-Condition ($controlContent -match 'Thinking Budget Clamping') "ask-control enforces Thinking Budget Clamping" "ask-control missing Thinking Budget Clamping"
+$modelTiersRaw = Get-Content -Path $modelTiersFile -Raw -Encoding UTF8
+Assert-Condition ($modelTiersRaw -match 'thinking_budget_guardrail' -and $modelTiersRaw -match 'split_phase_profile_b') "model-tiers.json documents thinking budget guardrail and split-phase execution" "model-tiers.json missing efficiency guardrails"
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

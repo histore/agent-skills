@@ -220,6 +220,34 @@
           "agy_uses_underscore_agents"
         ]
       }
+    },
+    {
+      "id": "EVAL-EFF-001",
+      "name": "Surgical Editing and Prompt Caching Invariant",
+      "category": "efficiency",
+      "description": "Agent must enforce surgical block-level edits over full file rewrites and maintain a two-zone prompt cache architecture.",
+      "input": "Passe die ValidateUser-Methode in UserService.cs an.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "surgical_editing_first",
+          "prompt_cache_two_zone"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-EFF-002",
+      "name": "Reasoning Budget Clamping and Zero-Token Log Compaction",
+      "category": "efficiency",
+      "description": "Clamps thinking tokens for mechanical TDD phases and compacts testrunner failure logs before LLM ingestion.",
+      "input": "Behebe den Assertion-Fehler im AuthenticationTests-Lauf.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "reasoning_budget_clamped",
+          "zero_token_log_compaction"
+        ]
+      }
     }
   ]
 }

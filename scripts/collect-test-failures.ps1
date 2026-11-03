@@ -30,6 +30,12 @@ param(
     [string]$ResultsPath,
 
     [Parameter(Mandatory = $false)]
+    [string]$LogFile,
+
+    [Parameter(Mandatory = $false)]
+    [string]$LogText,
+
+    [Parameter(Mandatory = $false)]
     [switch]$Run,
 
     [Parameter(Mandatory = $false)]
@@ -185,6 +191,41 @@ foreach ($rf in $reportFiles) {
         }
     } catch {
         # skip malformed xml
+    }
+}
+
+# 3c. Direct text log parsing for zero-token failure extraction
+$rawLog = ""
+if ($LogFile -and (Test-Path $LogFile)) {
+    try { $rawLog = [System.IO.File]::ReadAllText($LogFile, [System.Text.Encoding]::UTF8) } catch {}
+} elseif ($LogText) {
+    $rawLog = $LogText
+}
+
+if ($rawLog) {
+    $logLines = $rawLog -split "`r?`n"
+    for ($i = 0; $i -lt $logLines.Length; $i++) {
+        $l = $logLines[$i].Trim()
+        if ($l -match '(?i)(?:FAILED|FAIL)\s+([A-Za-z0-9_.:]+)' -or $l -match '(?i)Test\s+([A-Za-z0-9_.]+)\s+failed') {
+            $testName = if ($matches[1]) { $matches[1] } else { "UnknownTest" }
+            $errMsg = ""
+            for ($k = $i + 1; $k -le [Math]::Min($logLines.Length - 1, $i + 5); $k++) {
+                if ($logLines[$k] -match '(?i)assert|error|exception|expected') {
+                    $errMsg = $logLines[$k].Trim()
+                    break
+                }
+            }
+            $totalTests++
+            $totalFailed++
+            $failures.Add([PSCustomObject]@{
+                TestName = $testName
+                Outcome = "Failed"
+                Duration = "0s"
+                ErrorMessage = $errMsg
+                StackTrace = ""
+                ReportFile = if ($LogFile) { [System.IO.Path]::GetFileName($LogFile) } else { "log-stream" }
+            })
+        }
     }
 }
 

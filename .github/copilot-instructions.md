@@ -14,6 +14,7 @@ Classify every incoming request before acting and modulate your thinking budget 
 1. **Clean Code & SOLID**:
    - Write clean, idiomatic, and maintainable code adhering to SOLID, DRY, KISS, and YAGNI.
    - All source code comments and docstrings must be in English.
+   - **Surgical Edit First Invariant**: Always modify existing files using targeted block edits rather than rewriting full files, saving ~85% of output tokens.
 2. **Clean Architecture**:
    - Maintain strict inward dependency flow: Domain/Entities -> Application/Service Contracts -> Interface Adapters/Controllers/ViewModels -> External Frameworks/UI/DB.
 3. **Safe Systems Programming (Rust)**:
@@ -50,8 +51,9 @@ Classify every incoming request before acting and modulate your thinking budget 
    - In all documentation (`*.md`), **always use relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-*.md`). Absolute paths (`C:\...`, `/home/...`, `file:///...`) are strictly forbidden in committed docs.
 9. **MCP & External Tool Governance (Local-First Priority)**:
    - Deterministic zero-token scripts (`.agents/scripts/*.ps1`, `.agents/scripts/*.sh`, or `~/.agents/scripts/*`) always take precedence over external MCP servers for local repository, build, lint, or Git operations. Read-only MCP queries (documentation, schema lookups) are auto-approved; state-mutating MCP calls (DB mutations, remote issue/PR writes) require explicit user intent matching Atomic Lifecycle Governance.
-10. **Output Brevity & Token Hygiene**:
+10. **Output Brevity, Prompt Caching & Token Hygiene**:
     - Keep phase transitions (`### [Phase: ...]`) concise (max 3–5 bullet points for state checkpoints). Never echo full modified source files back in chat after applying file edits.
+    - Maintain Two-Zone Prompt Architecture (Zone 1 Static Frozen Prefix, Zone 2 Dynamic Tail) to preserve 75–90% KV-cache discounts.
 
 ## 3. On-Demand Specialist Workflows (V2 Capability Packs via `.agents`)
 When encountering specialized tasks requiring deep domain expertise, consult the consolidated capability pack guides in `.agents/skills/` (user-level fallback: `~/.agents/skills/`) on demand:

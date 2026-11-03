@@ -246,6 +246,29 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'agy_uses_underscore_agents' violated in AGENTS.md")
                 }
             }
+            "surgical_editing_first" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'Surgical Edit First' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Surgical Edit First') {
+                    $failures.Add("Invariant 'surgical_editing_first' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "prompt_cache_two_zone" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'Two-Zone Prompt Cache Architecture' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Two-Zone Prompt Architecture') {
+                    $failures.Add("Invariant 'prompt_cache_two_zone' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "reasoning_budget_clamped" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if (-not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Thinking Budget Clamping') {
+                    $failures.Add("Invariant 'reasoning_budget_clamped' missing in ask-control/SKILL.md")
+                }
+            }
+            "zero_token_log_compaction" {
+                if ($agentsContent -notmatch 'Zero-Token Log Compaction') {
+                    $failures.Add("Invariant 'zero_token_log_compaction' missing in AGENTS.md")
+                }
+            }
         }
     }
 

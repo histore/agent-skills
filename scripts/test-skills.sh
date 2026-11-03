@@ -718,6 +718,38 @@ else
 fi
 rm -f "$TEMP_TRACE"
 
+# 45. Validate code outline AST inspector scripts and next-gen LLM efficiency invariants
+echo -e "\n\033[33m45. Validating code outline AST inspector scripts and next-gen LLM efficiency invariants...\033[0m"
+if [ -f "$REPO_ROOT/scripts/get-code-outline.ps1" ] && [ -f "$REPO_ROOT/scripts/get-code-outline.sh" ]; then
+    assert_condition 0 "get-code-outline scripts exist (.ps1 and .sh)" "get-code-outline scripts missing"
+else
+    assert_condition 1 "get-code-outline scripts exist (.ps1 and .sh)" "get-code-outline scripts missing"
+fi
+
+if bash "$REPO_ROOT/scripts/get-code-outline.sh" "$REPO_ROOT" --json 2>/dev/null | grep -q '"status":"pass"'; then
+    assert_condition 0 "get-code-outline.sh executes cleanly and outputs valid JSON" "get-code-outline.sh execution failed"
+else
+    assert_condition 1 "get-code-outline.sh executes cleanly and outputs valid JSON" "get-code-outline.sh execution failed"
+fi
+
+if grep -q 'Surgical Edit First' "$REPO_ROOT/AGENTS.md" && grep -q 'Two-Zone Prompt Cache Architecture' "$REPO_ROOT/AGENTS.md"; then
+    assert_condition 0 "AGENTS.md enforces Surgical Edit First and Two-Zone Prompt Cache Architecture" "AGENTS.md missing efficiency invariants"
+else
+    assert_condition 1 "AGENTS.md enforces Surgical Edit First and Two-Zone Prompt Cache Architecture" "AGENTS.md missing efficiency invariants"
+fi
+
+if grep -q 'Thinking Budget Clamping' "$REPO_ROOT/skills/ask-control/SKILL.md"; then
+    assert_condition 0 "ask-control enforces Thinking Budget Clamping" "ask-control missing Thinking Budget Clamping"
+else
+    assert_condition 1 "ask-control enforces Thinking Budget Clamping" "ask-control missing Thinking Budget Clamping"
+fi
+
+if grep -q 'thinking_budget_guardrail' "$REPO_ROOT/rules/model-tiers.json" && grep -q 'split_phase_profile_b' "$REPO_ROOT/rules/model-tiers.json"; then
+    assert_condition 0 "model-tiers.json documents thinking budget guardrail and split-phase execution" "model-tiers.json missing efficiency guardrails"
+else
+    assert_condition 1 "model-tiers.json documents thinking budget guardrail and split-phase execution" "model-tiers.json missing efficiency guardrails"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

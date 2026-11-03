@@ -173,6 +173,14 @@ for c in cases:
             failures.append("Invariant 'copilot_uses_dot_agents' violated in .github/copilot-instructions.md")
         elif inv == 'agy_uses_underscore_agents' and ('./_agents/' not in agents_content or '~/_agents/' not in agents_content):
             failures.append("Invariant 'agy_uses_underscore_agents' violated in AGENTS.md")
+        elif inv == 'surgical_editing_first' and ('Surgical Edit First' not in agents_content or 'Surgical Edit First' not in read_skill('ask-control')):
+            failures.append("Invariant 'surgical_editing_first' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'prompt_cache_two_zone' and ('Two-Zone Prompt Cache Architecture' not in agents_content or 'Two-Zone Prompt Architecture' not in read_skill('ask-control')):
+            failures.append("Invariant 'prompt_cache_two_zone' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'reasoning_budget_clamped' and 'Thinking Budget Clamping' not in read_skill('ask-control'):
+            failures.append("Invariant 'reasoning_budget_clamped' missing in ask-control/SKILL.md")
+        elif inv == 'zero_token_log_compaction' and 'Zero-Token Log Compaction' not in agents_content:
+            failures.append("Invariant 'zero_token_log_compaction' missing in AGENTS.md")
 
     if transcript_path:
         if not os.path.isfile(transcript_path):

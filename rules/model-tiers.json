@@ -93,10 +93,27 @@
       "subagent_policy": "invoke_subagent is reserved strictly for divergent research, broad exploratory repository searches, or independent background sidecars. Exploratory research subagents ('research') should be dispatched with Model='flash' (ECO) to avoid burning flagship quota on file grepping.",
       "phase_reasoning_budgets": {
         "specification_and_architecture": "high",
-        "implementation_inner_loop": "low_minimal",
+        "implementation_inner_loop": "minimal",
         "test_execution": "minimal",
         "verification_and_gate": "low_minimal",
         "lifecycle_git": "minimal"
+      },
+      "thinking_budget_guardrail": {
+        "enabled": true,
+        "description": "Clamps thinking/reasoning token expenditure during deterministic and mechanical phases (TDD implementation, test fixes, Git lifecycle) to eliminate latency and token waste.",
+        "clamped_phases": ["implementation_inner_loop", "test_execution", "lifecycle_git"]
+      },
+      "split_phase_profile_b": {
+        "enabled": true,
+        "description": "Profile B architecture & contract definition runs in BALANCED class, while mechanical Inner-Loop TDD implementation downshifts to ECO (Flash / Mini) protected by targeted unit tests and two-stage gates."
+      },
+      "surgical_editing_guardrail": {
+        "enabled": true,
+        "description": "Enforces block-level diffs (edit_file) over full-file rewrites (write_file) for existing files to minimize output token consumption (saving ~85% output tokens) and prevent accidental code regressions."
+      },
+      "prompt_cache_architecture": {
+        "enabled": true,
+        "description": "Two-Zone prompt structure: Zone 1 (Static Frozen Prefix: base governance, tool declarations, schemata) remains 100% byte-identical across turns to maximize KV-cache hits (75-90% discount). Zone 2 (Dynamic Tail: diffs, logs, user input) is strictly append-only at prompt tail."
       },
       "output_brevity_guardrail": "Leverage platform-native reasoning effort controls where available; enforce strict output brevity between persona phases (max 3-5 bullet points per state checkpoint; never echo full modified source files in chat)."
     },

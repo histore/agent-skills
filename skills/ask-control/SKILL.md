@@ -18,17 +18,19 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
 
 1. **Dynamic Stack & 4-Step Codebase Analysis**:
    - Detect language, framework, and test runner dynamically from project manifests (`Cargo.toml`, `Directory.Build.props`, `package.json`, `pyproject.toml`, `go.mod`).
-   - Follow the 4-Step Analysis Protocol (`ARCHITECTURE.md` / `docs/architecture/modules/*.md` -> sync via `get-arch-diff` if needed -> deduce contracts -> targeted code reads). **Pragmatic Bypass**: Inspect single known files directly for localized queries or isolated fixes.
+   - Follow the 4-Step Analysis Protocol (`ARCHITECTURE.md` / `docs/architecture/modules/*.md` -> sync via `get-arch-diff` if needed -> deduce contracts -> targeted code reads via `get-code-outline.ps1`). **Pragmatic Bypass**: Inspect single known files directly for localized queries or isolated fixes.
 
 2. **Adaptive Execution Profiles & Strictness (`Standard` [Default], `Enterprise`, `Legacy`, `Prototype`)**:
    - **Profile 0 (Size 0 - Read-Only / Q&A)**: Direct concise answer (**Class ECO**). Zero Git commands (`git status`, `git branch`), zero test execution, zero architecture sync.
    - **Profile A (Size S - Bugfixes, Tweaks, Docs, Track B `concept > impl`)**: Direct **Inner-Loop TDD** -> Verification -> Commit (if requested) (**Class ECO**). Omit build/test runners for markdown, comments, or non-executable files.
-   - **Profile B (Size M - Standard Features, Track A `concept > req > impl`)**: Acceptance Criteria & Architecture Contract -> **Inner-Loop TDD** -> Two-Stage Quality Gate -> Developer Review Gate -> Atomic Commit (**Class BALANCED**).
+   - **Profile B (Size M - Standard Features, Track A `concept > req > impl`)**: Acceptance Criteria & Architecture Contract (**Class BALANCED**) -> **Inner-Loop TDD** (**Class ECO/Flash Split-Phase**) -> Two-Stage Quality Gate -> Developer Review Gate -> Atomic Commit.
    - **Profile C (Size L - Architectural Redesigns / Deadlocks)**: Modular Contracts -> Integration Tests -> Implementation -> Specialist Packs -> Two-Stage Gate (**Class PREMIUM**, subject to **Quota Protection User Gate**).
    - **Selective Subagent Forking & Parallel Worktrees (`invoke_subagent`)**: Dispatch `research` (`Model: "flash"`) only for noisy divergent exploration. For independent Profile C subsystems or A/B prototyping, write-enabled subagents may run in isolated worktrees (`Workspace: "share"`).
 
 3. **Engineering & Inner-Loop TDD Invariants**:
    - **Clean Architecture & Clean Code**: Inward dependencies only; SOLID/DRY/KISS/YAGNI; English code comments. In Rust codebases, `unsafe` blocks and functions are strictly forbidden.
+   - **Surgical Edit First Invariant**: Always modify existing files using targeted block edits (`edit_file`) rather than full-file rewrites (`write_file`), saving ~85% of output tokens and preventing regressions.
+   - **Thinking Budget Clamping**: Clamp reasoning effort to `minimal`/`low` during mechanical TDD implementation and test fixes to eliminate latency.
    - **Inner-Loop TDD & Circuit Breaker**: Author targeted Arrange-Act-Assert unit tests alongside executable changes. Run only affected tests (`--filter`, `-k`) in quiet mode (`-q`, `--verbosity quiet`) with `pwsh -NoProfile`. Never weaken or delete assertions. Cap test-fix retries at a **maximum of 3** iterations before triggering Circuit Breaking (Level 1 Strategic Pivot -> Level 2 `ask-troubleshooter` -> Level 3 Context Purge -> Level 4 User Escalation).
 
 4. **Two-Stage Quality Gate**:
@@ -61,7 +63,7 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
    - **Quota Protection User Gate**: On Profile C / Premium tasks, pause before consuming quota and offer `[1] PREMIUM`, `[2] BALANCED (~70% savings)`, `[3] ECO` (via `ask_question` in Antigravity or chat prompt in Copilot; bypassed if `--eco`, `--balanced`, or `--premium` is in prompt).
 
 8. **Context Compaction, Output Brevity & Telemetry**:
-   - **Output Brevity**: Keep phase checkpoints (`### [Phase: ...]`) to max 3–5 bullet points; never echo full modified source files in chat. Lazy-load only the single active spec (`inspect-feature-specs.ps1`).
+   - **Output Brevity & Prompt Caching**: Keep phase checkpoints (`### [Phase: ...]`) to max 3–5 bullet points; never echo full modified source files in chat. Maintain Two-Zone Prompt Architecture (Zone 1 Frozen Prefix for governance, Zone 2 Dynamic Tail) to ensure 75–90% KV-cache discounts. Lazy-load only the single active spec (`inspect-feature-specs.ps1`).
    - **Telemetry Hook**:
      ```powershell
      $telemetryScript = @("./_agents/scripts/record-telemetry.ps1", "./.agents/scripts/record-telemetry.ps1", "./scripts/record-telemetry.ps1", "$HOME/_agents/scripts/record-telemetry.ps1", "$HOME/.agents/scripts/record-telemetry.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
