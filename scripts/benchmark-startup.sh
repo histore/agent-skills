@@ -54,13 +54,25 @@ if [[ -z "$EXECUTABLE_PATH" || ! -f "$EXECUTABLE_PATH" ]]; then
   exit 0
 fi
 
+get_time_ns() {
+  local d
+  d=$(date +%s%N 2>/dev/null || true)
+  if [[ "$d" =~ ^[0-9]+$ ]]; then
+    echo "$d"
+  elif command -v python3 &>/dev/null; then
+    python3 -c 'import time; print(int(time.time()*1e9))'
+  else
+    echo "$(( $(date +%s) * 1000000000 ))"
+  fi
+}
+
 TOTAL_MS=0
 RUNS=()
 
 for ((i=1; i<=ITERATIONS; i++)); do
-  START=$(date +%s%N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1e9))')
+  START=$(get_time_ns)
   "$EXECUTABLE_PATH" --version >/dev/null 2>&1 || true
-  END=$(date +%s%N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1e9))')
+  END=$(get_time_ns)
   DUR_MS=$(( (END - START) / 1000000 ))
   TOTAL_MS=$((TOTAL_MS + DUR_MS))
   RUNS+=("$DUR_MS")

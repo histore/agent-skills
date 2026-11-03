@@ -67,7 +67,7 @@ fi
 
 # Rotate if > 10MB
 if [[ -f "$TELEMETRY_PATH" ]]; then
-  SIZE=$(wc -c < "$TELEMETRY_PATH" 2>/dev/null || stat -c%s "$TELEMETRY_PATH" 2>/dev/null || echo 0)
+  SIZE=$(wc -c < "$TELEMETRY_PATH" 2>/dev/null | tr -d ' ' || echo 0)
   if (( SIZE > 10485760 )); then
     mv -f "$TELEMETRY_PATH" "${TELEMETRY_PATH}.bak" 2>/dev/null || true
   fi
