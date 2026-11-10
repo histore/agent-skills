@@ -198,6 +198,7 @@ if ($Global) {
         Write-Host "`nAntigravity / Gemini Setup (~/_agents):" -ForegroundColor Cyan
         Write-Host "  - User Root: $agyUserDir" -ForegroundColor White
         Write-Host "  - Auto-Discovery: ~/.gemini/config/skills & ~/.gemini/config/rules -> ~/_agents" -ForegroundColor White
+        Write-Host "  - Optional Global Rules: Add Control orchestrator defaults to ~/.gemini/GEMINI.md (preserved if already present)" -ForegroundColor Gray
     }
 
     if ($setupCopilot) {

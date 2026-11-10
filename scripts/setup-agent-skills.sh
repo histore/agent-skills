@@ -157,6 +157,7 @@ if [[ "$GLOBAL_MODE" == true ]]; then
     echo "Antigravity / Gemini Setup (~/_agents):"
     echo "  - User Root: ${AGY_USER_DIR}"
     echo "  - Auto-Discovery: ~/.gemini/config/skills & ~/.gemini/config/rules -> ~/_agents"
+    echo "  - Optional Global Rules: Add Control orchestrator defaults to ~/.gemini/GEMINI.md (preserved if already present)"
   fi
 
   if [[ "$SETUP_COPILOT" == true ]]; then

@@ -48,7 +48,7 @@ Four domain-specific capability packs engaged conditionally when deep specializa
 1. **Troubleshooter** (`ask-troubleshooter`, `Tier 1 | Deep Reasoning`):
    Consolidated diagnostics and code health: systematic root cause analysis (RCA), failing reproduction test specifications (Phase RED), adversarial code review (hunting edge-case regressions, concurrency hazards, memory leaks), safe Fowler refactoring, and startup/throughput profiling (`benchmark-startup.ps1`).
 2. **GitTroubleshooter** (`ask-git-troubleshooter`, `Tier 1 | Deep Reasoning`):
-   Git safety and recovery: diagnoses repository anomalies (`diagnose-git-state.ps1`), creates pre-mutation safety snapshots (`create-safety-backup.ps1`), resolves 3-way merge/rebase conflicts, recovers detached states via reflog, and enforces a strict zero-data-loss invariant.
+   Git safety and recovery: diagnoses repository anomalies and creates pre-mutation safety snapshots (`diagnose-git-state.ps1 -CreateSnapshot`), resolves 3-way merge/rebase conflicts, recovers detached states via reflog, and enforces a strict zero-data-loss invariant.
 3. **ContractSpecialist** (`ask-contract-specialist`, `Tier 2 | Analytical`):
    System specifications and contracts: authors living feature specs (`docs/features/FEAT-*.md`) and concept tracks (`concept > req > impl` and `concept > impl`) via `inspect-feature-specs.ps1`, requirements governance (`lint-requirements.ps1`), REST OpenAPI / gRPC Protobuf contracts (`lint-api-contracts.ps1`), database migrations and ORM models (`lint-db-migrations.ps1`), incremental architecture synchronization (`get-arch-diff.ps1`), and bilingual i18n audits (`audit-i18n.ps1`).
 4. **ReleaseManager** (`ask-release-manager`, `Tier 4 | Fast Deterministic`):
@@ -131,8 +131,7 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 | `generate-changelog.ps1/.sh` | `ask-release-manager` | Generates Keep-a-Changelog compatible release notes from git commits since last tag. |
 | `audit-i18n.ps1/.sh` | `ask-contract-specialist` | Verifies key parity between German (`de`) and English (`en`) localization resource files. |
 | `generate-pr-summary.ps1/.sh` | `ask-control` | Generates structured PR descriptions, commit listings, and test evidence summaries. |
-| `diagnose-git-state.ps1/.sh` | `ask-git-troubleshooter` | Analyzes branch state, dirty working tree, diverged commits, and merge/rebase status. |
-| `create-safety-backup.ps1/.sh` | `ask-git-troubleshooter` | Creates zero-data-loss backup branches and stashes prior to destructive Git operations. |
+| `diagnose-git-state.ps1/.sh` | `ask-git-troubleshooter` | Analyzes branch state, dirty working tree, diverged commits, merge/rebase status, and creates zero-data-loss backup snapshots (`-CreateSnapshot`). |
 | `run-security-audit.ps1/.sh` | `ask-release-manager` | Universal dependency CVE audit runner (`dotnet list package --vulnerable`, `cargo audit`, `npm audit`, `pip-audit`). |
 | `check-test-coverage.ps1/.sh` | `ask-control` | Parses Cobertura XML, LCOV, and coverage JSON to assert coverage threshold compliance. |
 | `collect-test-failures.ps1/.sh` | `ask-troubleshooter`, `ask-control` | Parses JUnit/TRX test reports and extracts compacted failure messages and stack traces. |
@@ -183,7 +182,7 @@ Both **Google Antigravity (AGY / Gemini)** and **GitHub Copilot (VS Code & CLI)*
 
 | AI Assistant | Canonical Directory | User Level (Global Machine Scope) | Project Level (Project Scope) |
 | :--- | :--- | :--- | :--- |
-| **Google Antigravity (AGY / Gemini)** | **`_agents`** | `~/_agents/` linked into `~/.gemini/config/` (`skills`, `rules`) + global `~/.gemini/GEMINI.md` | Directory link or submodule in `_agents/` + project `AGENTS.md` |
+| **Google Antigravity (AGY / Gemini)** | **`_agents`** | `~/_agents/` linked into `~/.gemini/config/` (`skills`, `rules`) + optional `~/.gemini/GEMINI.md` | Directory link or submodule in `_agents/` + project `AGENTS.md` |
 | **GitHub Copilot (VS Code & CLI)** | **`.agents`** | `~/.agents/` + Zero-Reload inlined `~/.copilot/instructions/agent-skills.instructions.md` | Directory link or submodule in `.agents/` + `.github/copilot-instructions.md` |
 | **Automated 1-Click Setup (Both)** | `_agents` & `.agents` | `pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -Global`<br>`./scripts/setup-agent-skills.sh --global` | `pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject <dir>`<br>`./scripts/setup-agent-skills.sh -p <dir>` |
 

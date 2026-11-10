@@ -24,7 +24,7 @@ Classify every incoming request before acting and modulate your thinking budget 
    - **Test Integrity**: Never weaken, disable, or delete assertions to fake passing tests.
    - **3-Iteration Circuit Breaker**: Run only targeted tests (`--filter`, `-k`, test name) in quiet mode (`-q`, `--verbosity quiet`) with `pwsh -NoProfile`. If a test-fix loop fails 3 consecutive times, halt and escalate to the user.
 5. **Single-Command Stage-1 Quality Gate (Zero-Token Script)**:
-   - After modifying executable production code, validate build, quiet tests, linter, Clean Architecture boundaries, and Safe-Rust/Secret guardrails in **one single command**:
+   - After modifying executable production code, validate build, quiet tests, linter, Clean Architecture boundaries, and Safe-Rust/Secret guardrails in **one single command** (on Windows, fall back to `powershell -NoProfile` if `pwsh` resolves to a blocked `WindowsApps\pwsh.exe` Store alias):
      `pwsh -NoProfile -ExecutionPolicy Bypass -File ./.agents/scripts/run-fast-gate.ps1` (fallback `~/.agents/scripts/run-fast-gate.ps1` or `./scripts/run-fast-gate.ps1`; Bash: `run-fast-gate.sh`).
 6. **Git & Submodule Safety**:
    - Execute Git commands **only** when committing, pushing, or creating PRs (never proactively on read-only tasks).

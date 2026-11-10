@@ -1,7 +1,7 @@
 # System Architecture Baseline: Agent Skills Toolkit
 
 > **Status**: APPROVED  
-> **Last Synchronized**: 2026-10-24  
+> **Last Synchronized**: 2026-11-10  
 > **Governance Authority**: `AGENTS.md`  
 
 This document describes the architectural baseline of the **Agent Skills Toolkit**, providing specialized subagent roles, adaptive execution pipelines, deterministic zero-token helper scripts, and automated quality gates for Google Antigravity and GitHub Copilot.
@@ -39,7 +39,7 @@ The toolkit is structured in strict accordance with Clean Architecture principle
                                 v
 +---------------------------------------------------------------+
 | Layer 4: Evaluation & Observability (evals/, telemetry)       |
-|   - 9 Synthetic Scenario Benchmarks (eval-cases.json)         |
+|   - 14 Synthetic Scenario Benchmarks (eval-cases.json)        |
 |   - Local Telemetry Logging & Reporting                       |
 +---------------------------------------------------------------+
 ```

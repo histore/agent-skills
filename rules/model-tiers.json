@@ -29,7 +29,7 @@
           "profiles": ["Profile B"],
           "characteristics": "High code quality, reliable Clean Code implementation and inner-loop TDD, balanced quota consumption.",
           "models": {
-            "antigravity": "inherit / gemini-4-argon-medium / gemini-3.8-flash-high",
+            "antigravity": "inherit / gemini-4-argon-medium / gemini-3.8-flash-medium / gemini-3.8-flash-high",
             "copilot": "gpt-6.1-sol / gpt-6 / claude-sonnet-5.5 / gpt-5.4",
             "generic": "balanced-coder-efficient-mini"
           },

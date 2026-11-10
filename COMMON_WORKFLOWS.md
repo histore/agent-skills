@@ -260,7 +260,7 @@ pwsh -NoProfile -File ./.agents/scripts/diagnose-git-state.ps1
   ```
 * **GitHub Copilot**:
   ```text
-  Load .agents/skills/ask-git-troubleshooter/SKILL.md. Create a safety backup via ./.agents/scripts/create-safety-backup.ps1 and guide me step-by-step through the conflict resolution.
+  Load .agents/skills/ask-git-troubleshooter/SKILL.md. Create a safety backup via ./.agents/scripts/diagnose-git-state.ps1 -CreateSnapshot and guide me step-by-step through the conflict resolution.
   ```
 
 ---

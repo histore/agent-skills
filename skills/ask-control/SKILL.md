@@ -72,6 +72,7 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
      ```
 
 ## Tooling & Path Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
+- **Windows PowerShell Sandbox Fallback**: Prefer `pwsh -NoProfile`; if `pwsh` resolves to a blocked Microsoft Store alias (`WindowsApps\pwsh.exe`) or fails in sandboxed terminals, fall back immediately to `powershell -NoProfile`.
 - **Zero-Probe Environment Detection**: Infer mode from tool declarations (`invoke_subagent` = Antigravity Multi-Agent; else Sequential Persona Mode per [`rules/model-tiers.json`](../../rules/model-tiers.json)). Run `detect-models` only for explicit diagnostics:
   ```powershell
   $detectScript = @("./_agents/scripts/detect-models.ps1", "./.agents/scripts/detect-models.ps1", "./scripts/detect-models.ps1", "$HOME/_agents/scripts/detect-models.ps1", "$HOME/.agents/scripts/detect-models.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
