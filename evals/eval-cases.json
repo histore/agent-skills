@@ -248,6 +248,19 @@
           "zero_token_log_compaction"
         ]
       }
+    },
+    {
+      "id": "EVAL-GIT-002",
+      "name": "Deferred Format Check and Prepare-Commit Normalization",
+      "category": "git_hygiene",
+      "description": "Code checks run after edits without blocking on CRLF/pure formatters; deferred formatting and whitespace cleanup run in prepare-commit before committing, even on direct commit commands.",
+      "input": "Bereite den Commit vor und entferne ungewollte CRLF-Änderungen.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "deferred_format_prepare_commit"
+        ]
+      }
     }
   ]
 }

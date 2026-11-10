@@ -42,6 +42,8 @@ $detected = [ordered]@{
     test_cmd           = ""
     test_filter_syntax = ""
     lint_cmd           = ""
+    format_check_cmd   = ""
+    format_fix_cmd     = ""
     manifest_file      = ""
 }
 
@@ -53,6 +55,8 @@ if (Test-Path (Join-Path $ProjectRoot "Cargo.toml")) {
     $detected.test_cmd = "cargo test -q"
     $detected.test_filter_syntax = "cargo test -q {filter}"
     $detected.lint_cmd = "cargo clippy -q"
+    $detected.format_check_cmd = "cargo fmt --check"
+    $detected.format_fix_cmd = "cargo fmt"
     $detected.manifest_file = "Cargo.toml"
 }
 # 2. .NET (Directory.Build.props, *.sln, *.csproj)
@@ -62,16 +66,20 @@ elseif ((Test-Path (Join-Path $ProjectRoot "Directory.Build.props")) -or (Get-Ch
     $detected.build_cmd = "dotnet build -v quiet"
     $detected.test_cmd = "dotnet test --verbosity quiet"
     $detected.test_filter_syntax = "dotnet test --verbosity quiet --filter {filter}"
+    $detected.lint_cmd = ""
     $slnFile = (Get-ChildItem -Path $ProjectRoot -Filter "*.sln" -File -Depth 1 | Select-Object -First 1)
     if ($slnFile) {
-        $detected.lint_cmd = "dotnet format `"$($slnFile.Name)`" --verify-no-changes"
+        $detected.format_check_cmd = "dotnet format `"$($slnFile.Name)`" --verify-no-changes"
+        $detected.format_fix_cmd = "dotnet format `"$($slnFile.Name)`""
     } else {
         $projFile = (Get-ChildItem -Path $ProjectRoot -Filter "*.*proj" -File -Depth 2 | Select-Object -First 1)
         if ($projFile) {
             $relProj = (Get-RelativePathCompat $ProjectRoot $projFile.FullName).Replace('\', '/')
-            $detected.lint_cmd = "dotnet format `"$relProj`" --verify-no-changes"
+            $detected.format_check_cmd = "dotnet format `"$relProj`" --verify-no-changes"
+            $detected.format_fix_cmd = "dotnet format `"$relProj`""
         } else {
-            $detected.lint_cmd = "dotnet format --verify-no-changes"
+            $detected.format_check_cmd = "dotnet format --verify-no-changes"
+            $detected.format_fix_cmd = "dotnet format"
         }
     }
     $detected.manifest_file = "Directory.Build.props / *.csproj / *.sln"
@@ -85,6 +93,11 @@ elseif (Test-Path (Join-Path $ProjectRoot "package.json")) {
     $detected.test_cmd = "npm test --silent"
     $detected.test_filter_syntax = "npm test --silent -- {filter}"
     $detected.lint_cmd = "npm run lint --if-present"
+    try {
+        $pkgRaw = Get-Content -Path (Join-Path $ProjectRoot "package.json") -Raw -Encoding UTF8
+        if ($pkgRaw -match '"format:check"\s*:') { $detected.format_check_cmd = "npm run format:check" }
+        if ($pkgRaw -match '"format"\s*:') { $detected.format_fix_cmd = "npm run format" }
+    } catch {}
     $detected.manifest_file = "package.json"
 }
 # 4. Python (pyproject.toml, requirements.txt, Pipfile)
@@ -94,7 +107,12 @@ elseif ((Test-Path (Join-Path $ProjectRoot "pyproject.toml")) -or (Test-Path (Jo
     $detected.build_cmd = "python -m compileall -q ."
     $detected.test_cmd = "pytest -q"
     $detected.test_filter_syntax = "pytest -q -k {filter}"
-    $detected.lint_cmd = if (Get-Command ruff -ErrorAction SilentlyContinue) { "ruff check -q" } else { "flake8 -q" }
+    $hasRuff = ($null -ne (Get-Command ruff -ErrorAction SilentlyContinue))
+    $detected.lint_cmd = if ($hasRuff) { "ruff check -q" } else { "flake8 -q" }
+    if ($hasRuff) {
+        $detected.format_check_cmd = "ruff format --check -q"
+        $detected.format_fix_cmd = "ruff format -q"
+    }
     $detected.manifest_file = if (Test-Path (Join-Path $ProjectRoot "pyproject.toml")) { "pyproject.toml" } else { "requirements.txt" }
 }
 # 5. Go (go.mod)
@@ -105,6 +123,8 @@ elseif (Test-Path (Join-Path $ProjectRoot "go.mod")) {
     $detected.test_cmd = "go test ./..."
     $detected.test_filter_syntax = "go test -run {filter} ./..."
     $detected.lint_cmd = "golangci-lint run"
+    $detected.format_check_cmd = "gofmt -l ."
+    $detected.format_fix_cmd = "gofmt -w ."
     $detected.manifest_file = "go.mod"
 }
 

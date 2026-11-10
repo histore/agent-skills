@@ -28,7 +28,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
    - **Purpose-Driven & Targeted Test Execution**: Tests run ONLY when executable code was modified and tests apply. Target only affected test files/classes (`--filter`, specific paths); full suite runs during final verification.
    - **No-Premature-Tests Invariant (Deferred-Test Execution)**: Zero test execution during concept drafting (`docs/concepts/`) and feature specification (`docs/features/`). In the implementation phase, test runners and fast-gates must NEVER run speculatively as "baseline checks" before code or tests are modified. Stage-1 fast-gate automatically bypasses build and test steps when no executable code was changed in the working tree (override via `-Force`).
    - **Two-Stage Quality Gate (Shift-Left Validation)**:
-     - **Stage 1 (Deterministic Fast-Gate - Zero Tokens)**: Native build, linter, quiet tests, Clean Architecture check, and safe-Rust guardrails via `pwsh -NoProfile -File ./scripts/run-fast-gate.ps1` (`run-fast-gate.sh`). Immediate return on failure.
+     - **Stage 1 (Deterministic Fast-Gate - Zero Tokens)**: Native build, semantic linter, quiet tests, Clean Architecture check, and Safe-Rust/Secret guardrails via `pwsh -NoProfile -File ./scripts/run-fast-gate.ps1` (`run-fast-gate.sh`) after code changes. Pure formatters and CRLF checks are deferred to pre-commit (`prepare-commit`) so multi-step edits are never slowed down. Immediate return on failure.
      - **Stage 2 (Concise Traceability Gate)**: `Verifikation` audits acceptance criteria, Clean Architecture, and correctness.
    - **Zero-Token Log Compaction**: Build and test failures are compacted before LLM ingestion via `pwsh -NoProfile -File ./scripts/collect-test-failures.ps1` (`collect-test-failures.sh`) and `run-fast-gate.ps1`, passing only the focused error matrix (file, line, assertion delta) into context rather than raw CLI dumps.
    - **Split-Phase Inner-Loop Downgrading**: In Profile B, while specifications and contracts use BALANCED, the Developer Inner-Loop TDD may leverage fast ECO/Flash models safely under the protection of the targeted test suite and fast-gate.
@@ -63,9 +63,13 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 13. **Four-Step Codebase Analysis Protocol**: Check baseline (`ARCHITECTURE.md`) -> Sync if needed (`ask-contract-specialist`) -> Deduce state from module docs -> Targeted code inspection only when essential (leverage `scripts/get-code-outline.ps1` to inspect structural signatures before reading large implementation files). Localized fixes inspect the single file directly.
 14. **Lifecycle Action Execution Governance (Commit, Push, PR Merge, Release)**:
     - **Strict Atomic Action**: Execute only what was requested (commit does not auto-push).
+    - **Deferred Format & Commit Preparation (`prepare-commit`)**: Pure formatting checks, whitespace-only diff cleanup, and CRLF->LF normalization run via `scripts/prepare-commit.ps1` (`prepare-commit.sh`) immediately before committing (never during intermediate coding steps). In doubt (e.g. legacy CRLF files), ask the user before normalizing via script (zero tokens).
+    - **Two Commit Modes**:
+      - *Prepare Commit* (default review flow): Run `prepare-commit`, resolve any ambiguous normalization with the user, present the commit message for review, and upon acceptance offer to execute the commit directly.
+      - *Direct Commit* (explicit user commit instruction, skipping preparation): Skip user confirmation of the commit message, but **still execute** `prepare-commit -Direct` (format/CRLF checks and safe normalization) before `git commit`.
     - **State-Driven Prerequisites**: Automatically resolve prerequisites (e.g. commit uncommitted changes before push).
     - **Proactive Next-Step Offering**: Proactively suggest the logical successor action upon completion.
-    - **Adaptive Gate Resolution**: Direct user instructions execute without redundant confirmation unless out-of-scope changes or anomalies occur.
+    - **Adaptive Gate Resolution**: Direct user instructions execute without redundant confirmation unless out-of-scope changes, ambiguous normalizations, or anomalies occur.
     - **Clean Release Tagging**: Tag HEAD directly on `main` (`vX.Y.Z`). No standalone changelog commits on `main`.
 15. **Adaptive Governance Strictness Levels**: `Standard` (Default), `Enterprise` (strict formal coverage), `Legacy` (pragmatic compiler-first), `Prototype` (speed-first MVP).
 16. **Purpose-Driven Execution & Anti-Ceremony Guardrail (No Process for Process's Sake)**:

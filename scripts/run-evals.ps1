@@ -269,6 +269,13 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'zero_token_log_compaction' missing in AGENTS.md")
                 }
             }
+            "deferred_format_prepare_commit" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                $prepScript = Join-Path $repoRoot "scripts\prepare-commit.ps1"
+                if (-not (Test-Path $prepScript) -or $agentsContent -notmatch 'prepare-commit' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'prepare-commit') {
+                    $failures.Add("Invariant 'deferred_format_prepare_commit' missing in AGENTS.md, ask-control/SKILL.md, or scripts/prepare-commit.ps1")
+                }
+            }
         }
     }
 

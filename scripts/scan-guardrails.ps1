@@ -34,6 +34,9 @@ param(
     [switch]$Fix,
 
     [Parameter(Mandatory = $false)]
+    [switch]$SkipLineEndings,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -133,45 +136,47 @@ foreach ($filePath in $filesToScan) {
         $bytes = [System.IO.File]::ReadAllBytes($filePath)
         if ($bytes.Length -eq 0) { continue }
 
-        # 3. CRLF Line Ending Check
-        $hasCrlf = $false
-        for ($i = 0; $i -lt $bytes.Length - 1; $i++) {
-            if ($bytes[$i] -eq 13 -and $bytes[$i+1] -eq 10) {
-                $hasCrlf = $true
-                break
+        # 3. CRLF Line Ending Check (can be deferred to prepare-commit via -SkipLineEndings)
+        if (-not $SkipLineEndings) {
+            $hasCrlf = $false
+            for ($i = 0; $i -lt $bytes.Length - 1; $i++) {
+                if ($bytes[$i] -eq 13 -and $bytes[$i+1] -eq 10) {
+                    $hasCrlf = $true
+                    break
+                }
             }
-        }
 
-        if ($hasCrlf) {
-            if ($Fix) {
-                try {
-                    $rawText = [System.Text.Encoding]::UTF8.GetString($bytes)
-                    $fixedText = $rawText.Replace("`r`n", "`n")
-                    [System.IO.File]::WriteAllText($filePath, $fixedText, (New-Object System.Text.UTF8Encoding($false)))
-                    if ($StagedOnly) {
-                        git -C $ScanPath add $filePath 2>$null
+            if ($hasCrlf) {
+                if ($Fix) {
+                    try {
+                        $rawText = [System.Text.Encoding]::UTF8.GetString($bytes)
+                        $fixedText = $rawText.Replace("`r`n", "`n")
+                        [System.IO.File]::WriteAllText($filePath, $fixedText, (New-Object System.Text.UTF8Encoding($false)))
+                        if ($StagedOnly) {
+                            git -C $ScanPath add $filePath 2>$null
+                        }
+                        $fixedViolations.Add([PSCustomObject]@{
+                            Rule = "LineEndings"
+                            File = $relPath
+                            Action = "Normalized CRLF to LF"
+                        })
+                        $bytes = [System.IO.File]::ReadAllBytes($filePath)
+                    } catch {
+                        $violations.Add([PSCustomObject]@{
+                            Rule = "LineEndings"
+                            File = $relPath
+                            Line = 0
+                            Message = "CRLF detected, auto-fix failed: $_"
+                        })
                     }
-                    $fixedViolations.Add([PSCustomObject]@{
-                        Rule = "LineEndings"
-                        File = $relPath
-                        Action = "Normalized CRLF to LF"
-                    })
-                    $bytes = [System.IO.File]::ReadAllBytes($filePath)
-                } catch {
+                } else {
                     $violations.Add([PSCustomObject]@{
                         Rule = "LineEndings"
                         File = $relPath
                         Line = 0
-                        Message = "CRLF detected, auto-fix failed: $_"
+                        Message = "CRLF line endings detected (must be LF)"
                     })
                 }
-            } else {
-                $violations.Add([PSCustomObject]@{
-                    Rule = "LineEndings"
-                    File = $relPath
-                    Line = 0
-                    Message = "CRLF line endings detected (must be LF)"
-                })
             }
         }
 

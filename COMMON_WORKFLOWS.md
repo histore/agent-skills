@@ -294,13 +294,27 @@ pwsh -NoProfile -File ./.agents/scripts/get-arch-diff.ps1
 
 ---
 
-## 9. Atomic Git Commit & Remote Push Governance
+## 9. Atomic Git Commit, Prepare-Commit & Remote Push Governance
 
-Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prerequisite commit checks.
+Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prerequisite commit checks. Pure format and CRLF checks run in `prepare-commit` directly before committing (not during intermediate coding steps).
+
+### Prepare Commit vs. Direct Commit
+* **Prepare Commit (Review Flow)**:
+  ```powershell
+  pwsh -NoProfile -File ./.agents/scripts/prepare-commit.ps1
+  # On unambiguous whitespace-only / CRLF issues:
+  pwsh -NoProfile -File ./.agents/scripts/prepare-commit.ps1 -RevertWhitespaceOnly -FixLineEndings
+  ```
+  If ambiguous legacy CRLF files exist, the user decides before normalizing via `-ForceNormalize`. Once clean, the commit message is shown for review; upon acceptance, direct commit execution is offered.
+* **Direct Commit (Skip Confirmation, Keep Format Checks)**:
+  Instructing a commit directly skips commit-message approval, while still running `prepare-commit.ps1 -Direct` (format/CRLF checks and safe normalization) before `git commit`.
 
 ### Antigravity (AGY)
 ```text
-# Commit only (no push)
+# Prepare commit (deferred format check + whitespace cleanup + commit message review)
+/ask-control Prepare commit for the current changes.
+
+# Direct commit (skip confirmation, still enforce deferred format/CRLF checks)
 /ask-control Commit the changes with an appropriate conventional commit message.
 
 # Push (resolves uncommitted changes beforehand)
@@ -309,8 +323,8 @@ Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prer
 
 ### GitHub Copilot
 ```text
-# Pre-Commit Guardrail Scan
-pwsh -NoProfile -File ./.agents/scripts/scan-guardrails.ps1 -StagedOnly
+# Prepare Commit (Deferred Format Check & Safe Normalization)
+pwsh -NoProfile -File ./.agents/scripts/prepare-commit.ps1
 
 # Commit via Copilot
 Draft a conventional commit message for current changes and commit upon my confirmation (do not push).

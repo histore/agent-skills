@@ -924,6 +924,70 @@ Assert-Condition ($controlContent -match 'Thinking Budget Clamping') "ask-contro
 $modelTiersRaw = Get-Content -Path $modelTiersFile -Raw -Encoding UTF8
 Assert-Condition ($modelTiersRaw -match 'thinking_budget_guardrail' -and $modelTiersRaw -match 'split_phase_profile_b') "model-tiers.json documents thinking budget guardrail and split-phase execution" "model-tiers.json missing efficiency guardrails"
 
+# 46. Validate deferred formatting, prepare-commit hygiene, and AGY 24KB rule cap
+Write-Host "`n46. Validating deferred formatting, prepare-commit hygiene, and AGY 24KB rule cap..." -ForegroundColor Yellow
+$prepCommitPs1 = Join-Path $repoRoot "scripts\prepare-commit.ps1"
+$prepCommitSh = Join-Path $repoRoot "scripts\prepare-commit.sh"
+Assert-Condition (Test-Path $prepCommitPs1) "scripts/prepare-commit.ps1 exists" "scripts/prepare-commit.ps1 not found"
+Assert-Condition (Test-Path $prepCommitSh) "scripts/prepare-commit.sh exists" "scripts/prepare-commit.sh not found"
+
+$agentsBytes = (Get-Item (Join-Path $repoRoot "AGENTS.md")).Length
+$subagentsBytes = (Get-Item (Join-Path $repoRoot "rules\subagents.md")).Length
+Assert-Condition ($agentsBytes -le 24000 -and $subagentsBytes -le 24000) "AGENTS.md ($agentsBytes B) and rules/subagents.md ($subagentsBytes B) stay within AGY 24KB rule limit" "Rule file exceeds 24000 bytes (AGENTS=$agentsBytes, subagents=$subagentsBytes)"
+
+$tempFmtDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+New-Item -ItemType Directory -Path $tempFmtDir | Out-Null
+try {
+    [System.IO.File]::WriteAllText((Join-Path $tempFmtDir "App.csproj"), "<Project Sdk=`"Microsoft.NET.Sdk`"></Project>`n", (New-Object System.Text.UTF8Encoding($false)))
+    $dotnetStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -ProjectRoot $tempFmtDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ([string]::IsNullOrEmpty($dotnetStack.lint_cmd) -and $dotnetStack.format_check_cmd -match 'dotnet format') "detect-tech-stack.ps1 separates dotnet format into format_check_cmd (fast inner-loop)" "detect-tech-stack.ps1 still couples dotnet format into lint_cmd"
+
+    $crlfRust = Join-Path $tempFmtDir "sample.rs"
+    [System.IO.File]::WriteAllText($crlfRust, "pub fn ok() -> i32 { 1 }`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $skipEolOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $tempFmtDir -SkipLineEndings -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($skipEolOut.status -eq "pass") "scan-guardrails.ps1 -SkipLineEndings defers CRLF check during inner-loop" "scan-guardrails.ps1 -SkipLineEndings failed on safe CRLF file"
+
+    # Git repo tests for prepare-commit.ps1
+    $prepRepo = Join-Path $tempFmtDir "repo"
+    New-Item -ItemType Directory -Path $prepRepo | Out-Null
+    git -C $prepRepo init -q 2>$null
+    git -C $prepRepo config user.email "test@example.com"
+    git -C $prepRepo config user.name "Test User"
+    git -C $prepRepo config core.autocrlf false
+
+    $lfFile = Join-Path $prepRepo "notes.md"
+    $legacyCrlfFile = Join-Path $prepRepo "legacy.txt"
+    [System.IO.File]::WriteAllText($lfFile, "# Title`nLine 2`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($legacyCrlfFile, "alpha`r`nbeta`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    git -C $prepRepo add notes.md legacy.txt
+    git -C $prepRepo commit -q -m "chore: init"
+
+    # 46a. Whitespace-only (CRLF) change on LF file -> detected and reverted cleanly
+    [System.IO.File]::WriteAllText($lfFile, "# Title`r`nLine 2`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $wsDetect = $null
+    try { $wsDetect = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -JsonOutput 2>$null | ConvertFrom-Json } catch {}
+    Assert-Condition ($null -ne $wsDetect -and $wsDetect.status -eq "needs_decision" -and ($wsDetect.whitespace_only_files -contains "notes.md")) "prepare-commit.ps1 detects whitespace/CRLF-only diff against HEAD" "prepare-commit.ps1 failed to detect whitespace-only diff"
+
+    $wsRevert = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -RevertWhitespaceOnly -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($wsRevert.status -eq "clean" -and ($wsRevert.reverted_whitespace_files -contains "notes.md")) "prepare-commit.ps1 -RevertWhitespaceOnly reverts noise diffs to HEAD" "prepare-commit.ps1 failed to revert whitespace-only diff"
+
+    # 46b. Real edit + CRLF on LF file -> normalized automatically under -Direct
+    [System.IO.File]::WriteAllText($lfFile, "# Title`r`nLine 2`r`nLine 3`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $directRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -Direct -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($directRes.status -eq "ready" -and $directRes.next_step -eq "execute_commit" -and ($directRes.normalized_files -contains "notes.md")) "prepare-commit.ps1 -Direct normalizes unambiguous CRLF->LF and signals execute_commit" "prepare-commit.ps1 -Direct failed on unambiguous edit"
+
+    # 46c. Ambiguous legacy CRLF file -> pauses for user decision even with -Direct until -ForceNormalize
+    [System.IO.File]::WriteAllText($legacyCrlfFile, "alpha`r`nbeta`r`ngamma`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $ambigRes = $null
+    try { $ambigRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -Direct -JsonOutput 2>$null | ConvertFrom-Json } catch {}
+    Assert-Condition ($null -ne $ambigRes -and $ambigRes.status -eq "needs_decision" -and ($ambigRes.ambiguous_files -contains "legacy.txt")) "prepare-commit.ps1 pauses for user decision on ambiguous legacy CRLF file" "prepare-commit.ps1 normalized ambiguous file without permission"
+
+    $forceRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -Direct -ForceNormalize -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($forceRes.status -eq "ready" -and ($forceRes.normalized_files -contains "legacy.txt")) "prepare-commit.ps1 -ForceNormalize normalizes legacy CRLF after confirmation" "prepare-commit.ps1 -ForceNormalize failed"
+} finally {
+    if (Test-Path $tempFmtDir) { Remove-Item -LiteralPath $tempFmtDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

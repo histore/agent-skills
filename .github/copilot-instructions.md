@@ -24,10 +24,11 @@ Classify every incoming request before acting and modulate your thinking budget 
    - **Test Integrity**: Never weaken, disable, or delete assertions to fake passing tests.
    - **3-Iteration Circuit Breaker**: Run only targeted tests (`--filter`, `-k`, test name) in quiet mode (`-q`, `--verbosity quiet`) with `pwsh -NoProfile`. If a test-fix loop fails 3 consecutive times, halt and escalate to the user.
 5. **Single-Command Stage-1 Quality Gate (Zero-Token Script)**:
-   - After modifying executable production code, validate build, quiet tests, linter, Clean Architecture boundaries, and Safe-Rust/Secret guardrails in **one single command** (on Windows, fall back to `powershell -NoProfile` if `pwsh` resolves to a blocked `WindowsApps\pwsh.exe` Store alias):
+   - After modifying executable production code, validate build, quiet tests, semantic linter, Clean Architecture boundaries, and Safe-Rust/Secret guardrails in **one single command** (pure formatters and CRLF checks are deferred to `prepare-commit` before committing; on Windows, fall back to `powershell -NoProfile` if `pwsh` resolves to a blocked `WindowsApps\pwsh.exe` Store alias):
      `pwsh -NoProfile -ExecutionPolicy Bypass -File ./.agents/scripts/run-fast-gate.ps1` (fallback `~/.agents/scripts/run-fast-gate.ps1` or `./scripts/run-fast-gate.ps1`; Bash: `run-fast-gate.sh`).
-6. **Git & Submodule Safety**:
+6. **Git, Prepare-Commit & Submodule Safety**:
    - Execute Git commands **only** when committing, pushing, or creating PRs (never proactively on read-only tasks).
+   - **Commit Preparation vs. Direct Commit**: Run `./.agents/scripts/prepare-commit.ps1` (`prepare-commit.sh`) immediately before committing to execute deferred formatting checks, whitespace-only diff cleanup, and CRLF->LF normalization (asking the user on ambiguous files). In *Prepare Commit*, present the commit message for approval and offer direct commit upon acceptance. On a direct commit instruction, skip commit-message confirmation but **still run** `prepare-commit.ps1 -Direct` (format/CRLF checks remain mandatory).
    - Never run destructive Git commands (`git reset --hard`, `git push --force`) without explicit user instruction. Never stage or commit changes inside `.agents/` or `_agents/` submodules during host project commits.
 7. **Living Modular Documentation & Lazy Loading Protocol**:
    - Grow specifications incrementally as isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md` or `docs/requirements/modules/<module>.md`).

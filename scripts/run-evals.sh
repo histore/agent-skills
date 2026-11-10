@@ -181,6 +181,10 @@ for c in cases:
             failures.append("Invariant 'reasoning_budget_clamped' missing in ask-control/SKILL.md")
         elif inv == 'zero_token_log_compaction' and 'Zero-Token Log Compaction' not in agents_content:
             failures.append("Invariant 'zero_token_log_compaction' missing in AGENTS.md")
+        elif inv == 'deferred_format_prepare_commit':
+            prep_ok = os.path.isfile(os.path.join(repo_root, 'scripts', 'prepare-commit.sh'))
+            if not prep_ok or 'prepare-commit' not in agents_content or 'prepare-commit' not in read_skill('ask-control'):
+                failures.append("Invariant 'deferred_format_prepare_commit' missing in AGENTS.md, ask-control/SKILL.md, or scripts/prepare-commit.sh")
 
     if transcript_path:
         if not os.path.isfile(transcript_path):

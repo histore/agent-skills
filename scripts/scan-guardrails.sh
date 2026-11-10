@@ -8,6 +8,7 @@ SCAN_PATH=""
 STAGED_ONLY=false
 WORKING_TREE=false
 FIX=false
+SKIP_LINE_ENDINGS=false
 JSON_OUTPUT=false
 
 while [[ $# -gt 0 ]]; do
@@ -26,6 +27,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --fix|-f)
       FIX=true
+      shift
+      ;;
+    --skip-line-endings)
+      SKIP_LINE_ENDINGS=true
       shift
       ;;
     --json|-j)
@@ -100,9 +105,9 @@ for file in "${FILES[@]}"; do
     VIOLATIONS+=("[SubmoduleIsolation] ${rel_path}: Staged change originates inside submodule path")
   fi
 
-  # CRLF check
+  # CRLF check (can be deferred to prepare-commit via --skip-line-endings)
   if file -b --mime "$file" 2>/dev/null | grep -q 'text'; then
-    if grep -q $'\r' "$file" 2>/dev/null; then
+    if [[ "$SKIP_LINE_ENDINGS" != "true" ]] && grep -q $'\r' "$file" 2>/dev/null; then
       if [[ "$FIX" == "true" ]]; then
         tr -d '\r' < "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
         if [[ "$STAGED_ONLY" == "true" ]]; then

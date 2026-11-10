@@ -35,7 +35,7 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
    - **No-Premature-Tests Invariant (Deferred-Test Execution)**: Zero test execution during concept drafting and feature specification. In the implementation phase, never run test runners or fast-gate speculatively before code or test files are touched. Fast-gate automatically bypasses build and test steps when no executable code was changed in the working tree (use `-Force` for intentional full runs).
 
 4. **Two-Stage Quality Gate**:
-   - **Consolidated Deterministic Fast-Gate (Stage 1 - Zero Tokens)**: Validate build, quiet tests, linter, working-tree Clean Architecture (`lint-clean-architecture -WorkingTree`), and Safe-Rust/Secret/CRLF guardrails (`scan-guardrails -WorkingTree`) in one call when executable code changed:
+   - **Consolidated Deterministic Fast-Gate (Stage 1 - Zero Tokens)**: Validate build, quiet tests, semantic linter, working-tree Clean Architecture (`lint-clean-architecture -WorkingTree`), and Safe-Rust/Secret guardrails (`scan-guardrails -WorkingTree -SkipLineEndings`) in one call when executable code changed (pure formatters and CRLF checks are deferred to `prepare-commit` before committing):
      - Windows:
        ```powershell
        $gateScript = @("./_agents/scripts/run-fast-gate.ps1", "./.agents/scripts/run-fast-gate.ps1", "./scripts/run-fast-gate.ps1", "$HOME/_agents/scripts/run-fast-gate.ps1", "$HOME/.agents/scripts/run-fast-gate.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -48,8 +48,12 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
        ```
    - **Concise Traceability Gate (Stage 2)**: Audit acceptance criteria, error paths, i18n/a11y, and active `Strictness Level`.
 
-5. **Lifecycle Git, MCP & Submodule Isolation Guardrail**:
+5. **Lifecycle Git, Deferred Formatting & Submodule Isolation Guardrail**:
    - Execute Git commands strictly when committing, pushing, or creating PRs. Execute only the requested atomic action, resolve state prerequisites automatically, and offer the next logical step.
+   - **Prepare Commit vs. Direct Commit (`prepare-commit`)**:
+     - Resolve `prepare-commit.ps1` (`.sh`) across `_agents` / `.agents` / `scripts/`.
+     - *Prepare Commit* (review flow): Run `prepare-commit.ps1` (deferred format check, whitespace-only diff detection, CRLF->LF analysis). If ambiguous files exist, ask the user before normalizing via script (`-RevertWhitespaceOnly -FixLineEndings -ForceNormalize`). Once clean, present the commit message for approval and offer to execute the commit directly upon acceptance.
+     - *Direct Commit* (explicit commit instruction): Skip commit-message confirmation, **but always execute** `prepare-commit.ps1 -Direct` (enforcing format checks and safe normalization; pausing only on ambiguous files or hard errors) before `git commit`.
    - **Submodule Isolation Guardrail**: Run `scan-guardrails.ps1 -StagedOnly` before committing. Never stage or commit changes inside `_agents/` or `.agents/`; scope commits strictly to **host workspace** files (`git add <host-files>`, never blind `git add .`).
    - Draft PRs via `generate-pr-summary.ps1`; monitor CI via `gh pr checks --watch` or a single timer (`DurationSeconds=75`, never shell `sleep` loops). Place release tags (`vX.Y.Z`) directly on `main` HEAD. Prefer local `scripts/` over external MCP tools.
 

@@ -750,6 +750,22 @@ else
     assert_condition 1 "model-tiers.json documents thinking budget guardrail and split-phase execution" "model-tiers.json missing efficiency guardrails"
 fi
 
+# 46. Validate deferred formatting, prepare-commit scripts, and AGY 24KB rule cap
+echo -e "\n\033[33m46. Validating deferred formatting, prepare-commit scripts, and AGY 24KB rule cap...\033[0m"
+if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/prepare-commit.sh" ]; then
+    assert_condition 0 "prepare-commit scripts exist (.ps1 and .sh)" "prepare-commit scripts missing"
+else
+    assert_condition 1 "prepare-commit scripts exist (.ps1 and .sh)" "prepare-commit scripts missing"
+fi
+
+AGENTS_BYTES=$(wc -c < "$REPO_ROOT/AGENTS.md")
+SUBAGENTS_BYTES=$(wc -c < "$REPO_ROOT/rules/subagents.md")
+if [ "$AGENTS_BYTES" -le 24000 ] && [ "$SUBAGENTS_BYTES" -le 24000 ]; then
+    assert_condition 0 "AGENTS.md (${AGENTS_BYTES} B) and rules/subagents.md (${SUBAGENTS_BYTES} B) stay within AGY 24KB rule limit" "Rule file exceeds 24000 bytes"
+else
+    assert_condition 1 "AGENTS.md (${AGENTS_BYTES} B) and rules/subagents.md (${SUBAGENTS_BYTES} B) stay within AGY 24KB rule limit" "Rule file exceeds 24000 bytes"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

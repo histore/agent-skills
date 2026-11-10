@@ -204,7 +204,7 @@ if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails)
     $scanScript = Join-Path $scriptDir "scan-guardrails.ps1"
     if ($guardrailsSuccess -and (Test-Path $scanScript)) {
         try {
-            $scanRes = & $scanScript -ScanPath $ProjectRoot -WorkingTree -JsonOutput | ConvertFrom-Json
+            $scanRes = & $scanScript -ScanPath $ProjectRoot -WorkingTree -SkipLineEndings -JsonOutput | ConvertFrom-Json
             if ($scanRes.status -eq "fail") {
                 $guardrailsSuccess = $false
                 $failedStep = "Guardrails"
