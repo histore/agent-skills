@@ -596,6 +596,13 @@ if (Test-Path $cleanArchPs1) {
     try {
         $archOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $cleanArchPs1 -JsonOutput | ConvertFrom-Json
         Assert-Condition ($archOut.status -eq "pass") "lint-clean-architecture.ps1 passes on repository files (0 errors)" "lint-clean-architecture.ps1 detected $($archOut.error_count) errors"
+
+        $tempArchDir = Join-Path ([System.IO.Path]::GetTempPath()) "arch_test_$([guid]::NewGuid().ToString('N'))"
+        New-Item -ItemType Directory -Path (Join-Path $tempArchDir "domain") -Force | Out-Null
+        Set-Content -Path (Join-Path $tempArchDir "domain\Widget.tsx") -Value "import React from 'infrastructure/db';" -NoNewline
+        $tsxArchOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $cleanArchPs1 -TargetPath $tempArchDir -JsonOutput | ConvertFrom-Json
+        Remove-Item -Path $tempArchDir -Recurse -Force -ErrorAction SilentlyContinue
+        Assert-Condition ($tsxArchOut.status -eq "fail" -and $tsxArchOut.error_count -ge 1) "lint-clean-architecture.ps1 catches boundary violation in .tsx files" "lint-clean-architecture.ps1 missed .tsx boundary violation"
     } catch {
         Assert-Condition $false "lint-clean-architecture.ps1 executes cleanly" "Execution error: $_"
     }

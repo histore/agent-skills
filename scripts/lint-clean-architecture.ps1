@@ -45,9 +45,11 @@ if (-not $TargetPath) {
     $TargetPath = (Get-Location).Path
 }
 
-# 1. Resolve rules file
+# 1. Resolve rules file (host project TargetPath takes precedence over submodule repoRoot)
 if (-not $RulesPath) {
     $candidateRules = @(
+        (Join-Path $TargetPath ".agent-lint.json"),
+        (Join-Path $TargetPath "rules\clean-architecture.json"),
         (Join-Path $repoRoot ".agent-lint.json"),
         (Join-Path $repoRoot "rules\clean-architecture.json"),
         (Join-Path $repoRoot "_agents\rules\clean-architecture.json"),
@@ -75,7 +77,7 @@ $layerBoundaries = if ($rules -and $rules.layer_boundaries) { $rules.layer_bound
 
 # 2. Collect files
 $filesToScan = [System.Collections.Generic.List[string]]::new()
-$srcExts = @(".rs", ".cs", ".ts", ".js", ".py", ".go")
+$srcExts = @(".rs", ".cs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go")
 
 if ($StagedOnly) {
     $staged = git -C $TargetPath diff --name-only --cached 2>$null
@@ -138,7 +140,7 @@ $funcRegex = '^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\(
 
 foreach ($filePath in $filesToScan) {
     $relPath = $filePath.Replace($TargetPath + "\", "").Replace($TargetPath + "/", "")
-    $lines = Get-Content -Path $filePath -Encoding UTF8
+    $lines = @(Get-Content -Path $filePath -Encoding UTF8)
 
     # Metric 1: Max file lines
     if ($lines.Length -gt $maxFileLines) {

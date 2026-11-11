@@ -463,6 +463,16 @@ fi
 
 if [ -f "$REPO_ROOT/scripts/run-fast-gate.ps1" ] && [ -f "$REPO_ROOT/scripts/run-fast-gate.sh" ]; then
     assert_condition 0 "run-fast-gate scripts exist (.ps1 and .sh)" "run-fast-gate scripts missing"
+    TEMP_FG_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'fg')
+    git -C "$TEMP_FG_DIR" init -q 2>/dev/null || true
+    printf 'pub fn bad() { unsafe { } }\n' > "$TEMP_FG_DIR/lib.rs"
+    FG_OUT=$(bash "$REPO_ROOT/scripts/run-fast-gate.sh" "$TEMP_FG_DIR" --json 2>/dev/null || true)
+    rm -rf "$TEMP_FG_DIR"
+    if echo "$FG_OUT" | grep -Eq '"status":[[:space:]]*"fail"'; then
+        assert_condition 0 "run-fast-gate.sh enforces guardrails even without build_cmd" "run-fast-gate.sh skipped guardrails when build_cmd was empty"
+    else
+        assert_condition 1 "run-fast-gate.sh enforces guardrails even without build_cmd" "run-fast-gate.sh skipped guardrails when build_cmd was empty"
+    fi
 else
     assert_condition 1 "run-fast-gate scripts exist (.ps1 and .sh)" "run-fast-gate scripts missing"
 fi
@@ -532,6 +542,16 @@ fi
 
 if [ -f "$REPO_ROOT/scripts/lint-clean-architecture.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-clean-architecture.sh" ]; then
     assert_condition 0 "lint-clean-architecture scripts exist (.ps1 and .sh)" "lint-clean-architecture scripts missing"
+    TEMP_ARCH_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'arch')
+    mkdir -p "$TEMP_ARCH_DIR/domain"
+    printf "import React from 'infrastructure/db';\n" > "$TEMP_ARCH_DIR/domain/Widget.tsx"
+    TSX_ARCH_OUT=$(bash "$REPO_ROOT/scripts/lint-clean-architecture.sh" "$TEMP_ARCH_DIR" --json 2>/dev/null || true)
+    rm -rf "$TEMP_ARCH_DIR"
+    if echo "$TSX_ARCH_OUT" | grep -Eq '"status":[[:space:]]*"fail"'; then
+        assert_condition 0 "lint-clean-architecture.sh catches boundary violation in .tsx files" "lint-clean-architecture.sh missed .tsx boundary violation"
+    else
+        assert_condition 1 "lint-clean-architecture.sh catches boundary violation in .tsx files" "lint-clean-architecture.sh missed .tsx boundary violation"
+    fi
 else
     assert_condition 1 "lint-clean-architecture scripts exist (.ps1 and .sh)" "lint-clean-architecture scripts missing"
 fi

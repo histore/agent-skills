@@ -154,9 +154,9 @@ if ($hasReqFiles) {
     })
 }
 
-# 5. Stage-1 Fast-Gate (Build & Quiet Tests)
+# 5. Stage-1 Fast-Gate (Build & Quiet Tests; skip guardrails/arch since Gates 1 & 2 already ran them)
 if (-not $Fast) {
-    $results.Add((Run-Gate -Name "Stage-1 Fast-Gate (Build & Tests)" -ScriptFile "run-fast-gate.ps1" -ScriptArgs @("-ProjectRoot", $RepoRoot, "-Force")))
+    $results.Add((Run-Gate -Name "Stage-1 Fast-Gate (Build & Tests)" -ScriptFile "run-fast-gate.ps1" -ScriptArgs @("-ProjectRoot", $RepoRoot, "-Force", "-SkipGuardrails")))
 }
 
 $swTotal.Stop()
