@@ -371,3 +371,4 @@ bash ./.agents/scripts/calculate-semver.sh
 | **Clean Architecture**| `/ask-troubleshooter` (`./_agents/scripts/lint-clean-architecture.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/lint-clean-architecture.ps1` |
 | **i18n Key Parity** | `/ask-contract-specialist` (`./_agents/scripts/audit-i18n.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/audit-i18n.ps1` |
 | **Next SemVer Tag** | `/ask-release-manager` (`./_agents/scripts/calculate-semver.ps1`) | `pwsh -NoProfile -File ./.agents/scripts/calculate-semver.ps1` |
+| **Skillset Audit** | `/ask-skill-auditor` (`./_agents/scripts/test-skills.ps1`) | `Consult .agents/skills/ask-skill-auditor/SKILL.md` |

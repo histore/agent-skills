@@ -70,7 +70,7 @@ if ($modelTiersExist) {
             $tierDispatch.tier_3_balanced.roles +
             $tierDispatch.tier_4_fast_deterministic.roles
         )
-        Assert-Condition ($registeredRoles.Count -eq 5) "All 5 roles are registered in model-tiers.json (Found $($registeredRoles.Count))" "Expected 5 roles in model-tiers.json, but found $($registeredRoles.Count)"
+        Assert-Condition ($registeredRoles.Count -eq 6) "All 6 roles are registered in model-tiers.json (Found $($registeredRoles.Count))" "Expected 6 roles in model-tiers.json, but found $($registeredRoles.Count)"
 
         # Validate Cost-Efficiency Policy
         $hasCostEfficiency = ($null -ne $modelTiersData.cost_efficiency_policy -and $modelTiersData.cost_efficiency_policy.default_to_cost_efficient -eq $true)
@@ -91,10 +91,10 @@ if ($modelTiersExist) {
     }
 }
 
-# 2. Validate all 5 skills in skills/ directory
+# 2. Validate all 6 skills in skills/ directory
 Write-Host "`n2. Validating skills directory structure and frontmatter..." -ForegroundColor Yellow
 $skillDirs = Get-ChildItem -Path $skillsDir -Directory | Sort-Object Name
-Assert-Condition ($skillDirs.Count -eq 5) "Exactly 5 skill directories found in skills/ (Found $($skillDirs.Count))" "Expected 5 skill directories, but found $($skillDirs.Count)"
+Assert-Condition ($skillDirs.Count -eq 6) "Exactly 6 skill directories found in skills/ (Found $($skillDirs.Count))" "Expected 6 skill directories, but found $($skillDirs.Count)"
 
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -271,8 +271,8 @@ if (Test-Path $archDiffSh) {
 }
 Assert-Condition $hasShExclusion "get-arch-diff.sh excludes _agents and .agents submodules" "get-arch-diff.sh missing _agents or .agents exclusion"
 
-# 9. Validate model tier references in all 5 skills
-Write-Host "`n9. Validating model tier references in all 5 skills..." -ForegroundColor Yellow
+# 9. Validate model tier references in all 6 skills
+Write-Host "`n9. Validating model tier references in all 6 skills..." -ForegroundColor Yellow
 $missingTierRef = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -283,9 +283,9 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingTierRef.Count -eq 0) "All 5 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference: $($missingTierRef -join ', ')"
+Assert-Condition ($missingTierRef.Count -eq 0) "All 6 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference: $($missingTierRef -join ', ')"
 
-# 10. Validate Tooling & Path Compatibility and host project orientation in all 5 skills
+# 10. Validate Tooling & Path Compatibility and host project orientation in all 6 skills
 Write-Host "`n10. Validating Tooling & Path Compatibility and host project orientation..." -ForegroundColor Yellow
 $missingPathCompat = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
@@ -299,10 +299,10 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingPathCompat.Count -eq 0) "All 5 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: $($missingPathCompat -join ', ')"
+Assert-Condition ($missingPathCompat.Count -eq 0) "All 6 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: $($missingPathCompat -join ', ')"
 
-# 11. Validate Submodule Asset Resolution in all 5 skills
-Write-Host "`n11. Validating Submodule Asset Resolution in all 5 skills..." -ForegroundColor Yellow
+# 11. Validate Submodule Asset Resolution in all 6 skills
+Write-Host "`n11. Validating Submodule Asset Resolution in all 6 skills..." -ForegroundColor Yellow
 $missingAssetRes = [System.Collections.Generic.List[string]]::new()
 foreach ($sDir in $skillDirs) {
     $skillMd = Join-Path $sDir.FullName "SKILL.md"
@@ -313,7 +313,7 @@ foreach ($sDir in $skillDirs) {
         }
     }
 }
-Assert-Condition ($missingAssetRes.Count -eq 0) "All 5 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: $($missingAssetRes -join ', ')"
+Assert-Condition ($missingAssetRes.Count -eq 0) "All 6 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: $($missingAssetRes -join ', ')"
 
 # 12. Validate deterministic script lookups in ask-contract-specialist (No recursive disk scans)
 Write-Host "`n12. Validating deterministic script lookups in ask-contract-specialist..." -ForegroundColor Yellow
@@ -332,7 +332,8 @@ $rustAuditFiles = @(
     (Join-Path $skillsDir "ask-control\SKILL.md"),
     (Join-Path $skillsDir "ask-troubleshooter\SKILL.md"),
     (Join-Path $skillsDir "ask-contract-specialist\SKILL.md"),
-    (Join-Path $skillsDir "ask-release-manager\SKILL.md")
+    (Join-Path $skillsDir "ask-release-manager\SKILL.md"),
+    (Join-Path $skillsDir "ask-skill-auditor\SKILL.md")
 )
 $missingSafeRust = [System.Collections.Generic.List[string]]::new()
 foreach ($f in $rustAuditFiles) {
@@ -941,6 +942,9 @@ Assert-Condition (Test-Path $prepCommitSh) "scripts/prepare-commit.sh exists" "s
 $agentsBytes = (Get-Item (Join-Path $repoRoot "AGENTS.md")).Length
 $subagentsBytes = (Get-Item (Join-Path $repoRoot "rules\subagents.md")).Length
 Assert-Condition ($agentsBytes -le 24000 -and $subagentsBytes -le 24000) "AGENTS.md ($agentsBytes B) and rules/subagents.md ($subagentsBytes B) stay within AGY 24KB rule limit" "Rule file exceeds 24000 bytes (AGENTS=$agentsBytes, subagents=$subagentsBytes)"
+
+$auditorSkillContent = Get-Content -Path (Join-Path $skillsDir "ask-skill-auditor\SKILL.md") -Raw -Encoding UTF8
+Assert-Condition ($auditorSkillContent -match 'Rules A1' -and $auditorSkillContent -match 'CONVERGED & SATURATED' -and $auditorSkillContent -match 'Monotonic Audit Ratchet') "ask-skill-auditor enforces deterministic A1-A10 rules, anti-oscillation saturation gate, and monotonic self-audit" "ask-skill-auditor missing mandatory audit sections"
 
 $tempFmtDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $tempFmtDir | Out-Null

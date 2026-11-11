@@ -36,7 +36,7 @@
      - **Stage 1 (Deterministic Fast-Gate - Zero Tokens)**: Native build (`dotnet build`, `cargo check`), semantic linter, and quiet native test runner (0 errors, 100% pass) executed deterministically via `run-fast-gate.ps1` (`run-fast-gate.sh`), followed by `check-test-coverage.ps1` when coverage reports are present. Pure format and CRLF checks are deferred to `prepare-commit.ps1` before committing.
      - **Stage 2 (Concise Traceability Gate)**: `Verifikation` audits acceptance criteria fulfillment and Clean Architecture boundaries (enforced deterministically via `lint-clean-architecture.ps1` and [`rules/clean-architecture.json`](clean-architecture.json)).
    - **Circuit Breaker**: The `Developer`'s local targeted feedback loop (`Code` -> `Run Targeted Tests` -> `Fix`) is limited to a maximum of 3 cycles before escalation.
-   - **On-Demand Specialist Capability Packs**: Four domain-specific capability packs (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`) engage selectively on-demand (see **Subagent Roles & Governance Mappings** below).
+   - **On-Demand Specialist Capability Packs**: Five domain-specific capability packs (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`, `ask-skill-auditor`) engage selectively on-demand (see **Subagent Roles & Governance Mappings** below).
 6. **Systematic Root Cause Analysis & Reproduction TDD**: `Troubleshooter` performs RCA and delivers a failing reproduction test specification (Phase RED) before or alongside fixes.
 7. **Full Internationalization (i18n & l10n)**: Enforced via `ContractSpecialist` (0% hardcoded UI strings; bilingual `de` and `en` resources).
 8. **Requirements Governance & Modular Architecture**:
@@ -68,13 +68,14 @@
 ---
 
 ## Subagent Roles & Governance Mappings
-All 5 consolidated subagent capability packs, their cognitive tiers, reference models, and thinking budgets are declaratively maintained in the Single Source of Truth: [`rules/model-tiers.json`](model-tiers.json).
+All 6 consolidated subagent capability packs, their cognitive tiers, reference models, and thinking budgets are declaratively maintained in the Single Source of Truth: [`rules/model-tiers.json`](model-tiers.json).
 - **Core Lifecycle Engineer**: `Control` (`ask-control` — Unified Core Lifecycle Engineer & Orchestrator: Planning, Contracts, Inner-Loop TDD, Two-Stage Quality Gate, Lifecycle Git).
 - **On-Demand Specialist Capability Packs**:
   - `Troubleshooter` (`ask-troubleshooter`): Systematic RCA, reproduction tests, adversarial code review, safe Fowler refactoring, performance profiling.
   - `GitTroubleshooter` (`ask-git-troubleshooter`): Git safety, 3-way merge/rebase conflict resolution, reflog recovery, safety backups.
   - `ContractSpecialist` (`ask-contract-specialist`): Living feature specs, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, UI/UX tokens, a11y, and i18n.
   - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security CVE audits, Git release tags.
+  - `SkillAuditor` (`ask-skill-auditor`): Goal-driven skillset auditing, `[K]/[R]/[V]` classification, anti-oscillation value gating (`CONVERGED`), and LLM-evolution self-audits.
 
 Operational execution instructions are defined exclusively in each role's skill specification in [`skills/`](../skills/).
 

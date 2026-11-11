@@ -41,10 +41,10 @@ if [ -f "$MODEL_TIERS_FILE" ]; then
         if jq empty "$MODEL_TIERS_FILE" 2>/dev/null; then
             assert_condition 0 "model-tiers.json is valid JSON" "model-tiers.json has invalid JSON syntax"
             ROLE_COUNT=$(jq '.execution_modes.multi_agent.tier_dispatch | [.[].roles[]] | length' "$MODEL_TIERS_FILE")
-            if [ "$ROLE_COUNT" -eq 5 ]; then
-                assert_condition 0 "All 5 roles are registered in model-tiers.json" "Expected 5 roles, found $ROLE_COUNT"
+            if [ "$ROLE_COUNT" -eq 6 ]; then
+                assert_condition 0 "All 6 roles are registered in model-tiers.json" "Expected 6 roles, found $ROLE_COUNT"
             else
-                assert_condition 1 "All 5 roles are registered in model-tiers.json" "Expected 5 roles, found $ROLE_COUNT"
+                assert_condition 1 "All 6 roles are registered in model-tiers.json" "Expected 6 roles, found $ROLE_COUNT"
             fi
 
             # Validate Cost-Efficiency Policy
@@ -78,10 +78,10 @@ fi
 # 2. Validate skills directory
 echo -e "\n\033[33m2. Validating skills directory structure and frontmatter...\033[0m"
 SKILL_COUNT=$(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l)
-if [ "$SKILL_COUNT" -eq 5 ]; then
-    assert_condition 0 "Exactly 5 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 5 directories"
+if [ "$SKILL_COUNT" -eq 6 ]; then
+    assert_condition 0 "Exactly 6 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 6 directories"
 else
-    assert_condition 1 "Exactly 5 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 5 skill directories, found $SKILL_COUNT"
+    assert_condition 1 "Exactly 6 skill directories found in skills/ (Found $SKILL_COUNT)" "Expected 6 skill directories, found $SKILL_COUNT"
 fi
 
 for skill_path in "$SKILLS_DIR"/*; do
@@ -245,8 +245,8 @@ else
     assert_condition 1 "get-arch-diff.sh regex correctly matches and excludes _agents and .agents submodules" "get-arch-diff.sh missing or flawed exclusions"
 fi
 
-# 9. Validate model tier references in all 5 skills
-echo -e "\n\033[33m9. Validate model tier references in all 5 skills...\033[0m"
+# 9. Validate model tier references in all 6 skills
+echo -e "\n\033[33m9. Validate model tier references in all 6 skills...\033[0m"
 MISSING_TIER_REF=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
     skill_name=$(basename "$skill_dir")
@@ -259,12 +259,12 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_TIER_REF[@]} -eq 0 ]; then
-    assert_condition 0 "All 5 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference"
+    assert_condition 0 "All 6 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json reference"
 else
-    assert_condition 1 "All 5 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json: ${MISSING_TIER_REF[*]}"
+    assert_condition 1 "All 6 skills reference rules/model-tiers.json" "Skills missing rules/model-tiers.json: ${MISSING_TIER_REF[*]}"
 fi
 
-# 10. Validate Tooling & Path Compatibility and host project orientation in all 5 skills
+# 10. Validate Tooling & Path Compatibility and host project orientation in all 6 skills
 echo -e "\n\033[33m10. Validating Tooling & Path Compatibility and host project orientation...\033[0m"
 MISSING_PATH_COMPAT=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
@@ -280,13 +280,13 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_PATH_COMPAT[@]} -eq 0 ]; then
-    assert_condition 0 "All 5 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation"
+    assert_condition 0 "All 6 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation"
 else
-    assert_condition 1 "All 5 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: ${MISSING_PATH_COMPAT[*]}"
+    assert_condition 1 "All 6 skills have Tooling & Path Compatibility and host project orientation" "Skills missing path compatibility or host orientation: ${MISSING_PATH_COMPAT[*]}"
 fi
 
-# 11. Validate Submodule Asset Resolution in all 5 skills
-echo -e "\n\033[33m11. Validating Submodule Asset Resolution in all 5 skills...\033[0m"
+# 11. Validate Submodule Asset Resolution in all 6 skills
+echo -e "\n\033[33m11. Validating Submodule Asset Resolution in all 6 skills...\033[0m"
 MISSING_ASSET_RES=()
 for skill_dir in "$REPO_ROOT"/skills/*/; do
     skill_name=$(basename "$skill_dir")
@@ -299,9 +299,9 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
 done
 
 if [ ${#MISSING_ASSET_RES[@]} -eq 0 ]; then
-    assert_condition 0 "All 5 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution"
+    assert_condition 0 "All 6 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution"
 else
-    assert_condition 1 "All 5 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: ${MISSING_ASSET_RES[*]}"
+    assert_condition 1 "All 6 skills explain Submodule Asset Resolution" "Skills missing Submodule Asset Resolution: ${MISSING_ASSET_RES[*]}"
 fi
 
 # 12. Validate deterministic script lookups in ask-contract-specialist (No recursive disk scans)
@@ -322,6 +322,7 @@ RUST_AUDIT_FILES=(
     "$REPO_ROOT/skills/ask-troubleshooter/SKILL.md"
     "$REPO_ROOT/skills/ask-contract-specialist/SKILL.md"
     "$REPO_ROOT/skills/ask-release-manager/SKILL.md"
+    "$REPO_ROOT/skills/ask-skill-auditor/SKILL.md"
 )
 MISSING_SAFE_RUST=()
 for rf in "${RUST_AUDIT_FILES[@]}"; do
@@ -844,6 +845,13 @@ if [ "$AGENTS_BYTES" -le 24000 ] && [ "$SUBAGENTS_BYTES" -le 24000 ]; then
     assert_condition 0 "AGENTS.md (${AGENTS_BYTES} B) and rules/subagents.md (${SUBAGENTS_BYTES} B) stay within AGY 24KB rule limit" "Rule file exceeds 24000 bytes"
 else
     assert_condition 1 "AGENTS.md (${AGENTS_BYTES} B) and rules/subagents.md (${SUBAGENTS_BYTES} B) stay within AGY 24KB rule limit" "Rule file exceeds 24000 bytes"
+fi
+
+AUDITOR_SKILL_FILE="$REPO_ROOT/skills/ask-skill-auditor/SKILL.md"
+if [ -f "$AUDITOR_SKILL_FILE" ] && grep -q 'Rules A1' "$AUDITOR_SKILL_FILE" && grep -q 'CONVERGED & SATURATED' "$AUDITOR_SKILL_FILE" && grep -q 'Monotonic Audit Ratchet' "$AUDITOR_SKILL_FILE"; then
+    assert_condition 0 "ask-skill-auditor enforces deterministic A1-A10 rules, anti-oscillation saturation gate, and monotonic self-audit" "ask-skill-auditor missing mandatory audit sections"
+else
+    assert_condition 1 "ask-skill-auditor enforces deterministic A1-A10 rules, anti-oscillation saturation gate, and monotonic self-audit" "ask-skill-auditor missing mandatory audit sections"
 fi
 
 # Summary
