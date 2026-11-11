@@ -42,39 +42,19 @@
      - `GitTroubleshooter` (`ask-git-troubleshooter`): Git safety, 3-way merge/rebase conflict resolution, reflog recovery, safety backups.
      - `ContractSpecialist` (`ask-contract-specialist`): Living feature specs, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, i18n.
      - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security audits, Git release tags.
-6. **Systematic Root Cause Analysis & Reproduction TDD**:
-   - `Troubleshooter` diagnoses bugs, analyzes event hierarchies and call stacks, and delivers an explicit reproduction test specification (Phase RED) before or alongside the code fix.
-7. **Full Internationalization (i18n & l10n)**:
-   - Enforced via `ContractSpecialist` (0% hardcoded UI strings, bilingual German `de` and English `en` resource files).
-8. **Performance, Security, Persistence, DevOps & Code Health**:
-   - `Troubleshooter` enforces zero-allocation patterns, memory leak prevention, Fowler refactoring, and adversarial review.
-   - `ContractSpecialist` governs API contracts (OpenAPI/gRPC), database migrations, and incremental architecture synchronization (`get-arch-diff.ps1`).
-   - `ReleaseManager` governs CI/CD automation, security CVE audits, and clean Git release tagging on `main`.
-   - `GitTroubleshooter` governs repository anomalies, 3-way merge/rebase conflict resolutions, and state recovery under zero-data-loss invariants.
-9. **Strict Requirements Governance & Modular Architecture**:
-   - **Check Against Existing Requirements**: Every new requirement must be validated against existing requirements.
-   - **Single-File vs. Modular Hub-and-Spoke Architecture**:
-     - *Single-File (`REQUIREMENTS.md`)*: Used for smaller projects or initial prototypes (< ~30–50 requirements).
-     - *Modular Architecture (`docs/requirements/modules/<module>.md`)*: For growing codebases or multi-module projects, requirements are segmented per module. The root `REQUIREMENTS.md` serves as the central Hub, Index, ID Registry, and Non-Functional Requirements (NFR) Baseline.
-   - **Living Modular Documentation & Phased Feature Specs**:
-     - *Append-Only / Delta Growth*: Never generate or mutate monolithic specifications. Documents grow step-by-step as isolated feature files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md` or `docs/requirements/modules/<module>.md`).
-     - *Zero-Full-Diff Guarantee*: Changes and additions affect strictly the single target feature file and append a 1-line link to `docs/ROADMAP.md` or `REQUIREMENTS.md`, eliminating multi-page diff thrashing.
-     - *Phase-Driven Progression*: Group features into distinct implementation phases (`phase: 1`, `phase: 2`, etc.) with explicit lifecycle status (`PROPOSED`, `APPROVED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`).
-     - *Lazy Loading & Token-Hygiene Protocol (Zero Full-Parse Invariant)*: On subsequent runs, agents inspect only the central index table first. Load strictly the single target feature file into context. Never bulk-read or parse all specification files.
-     - *Zero-Token Offloading*: Query features by phase and scaffold templates without token usage via `scripts/inspect-feature-specs.ps1` (`inspect-feature-specs.sh`).
-   - **Namespaced IDs & Lifecycle Tracking**: Standardized IDs (`REQ-<SCOPE>-XXX`) and explicit lifecycle status (`PROPOSED`, `APPROVED`, `IMPLEMENTED`, `VERIFIED`, `DEPRECATED`).
-   - **User Decision on Conflicts/Duplicates**: Contradictions or duplicates must be escalated to the user for explicit decision.
-   - **Immutability of Existing Requirements**: Existing requirements may only be modified with explicit user instruction.
-   - **100% Coverage for Functional Features**: 100% of newly introduced functional features in Enterprise mode must be covered by approved requirements. Trivial bug fixes, minor tweaks, refactorings, documentation updates, and prototype work do not require bureaucratic requirement documentation.
-10. **Branch & PR Process Model with Developer Testing & Review Gate**: All development must occur on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Prior to Pull Request creation, the developer is provided with the opportunity to review the code, test application functionality interactively/manually, and request adjustments or fixes. Merging into `main` occurs solely via Pull Requests using Squash-and-Merge after explicit user sign-off and passing CI per [CONTRIBUTING.md](../CONTRIBUTING.md).
-    - **Purpose-Bound Git Operations**: Git status checks, branch creation, or checkout commands must **ONLY** be executed when changes are actively being committed or pushed, or when explicitly requested by the user. Do **NOT** invoke git commands proactively during read-only queries or local edits.
-11. **Four-Step Codebase Analysis Protocol & Modular Architecture Depth**:
-    Whenever a codebase is analyzed, explored, or investigated for structural or architectural tasks, agents must strictly follow a 4-step workflow:
-    1. **Check Current Modular Architecture Baseline**: Check `ARCHITECTURE.md`, module specifications in `docs/architecture/modules/*.md`, and `.arch-sync.json`.
-    2. **Synchronize Architecture if Needed**: If the documentation is missing, outdated, or desynchronized from recent git commits, invoke `ContractSpecialist` (`ask-contract-specialist` via `get-arch-diff.ps1` / `get-arch-diff.sh`) to synchronize affected module specifications.
-    3. **Deduce State from Modular Architecture Documentation**: Derive component responsibilities, public contracts, data flows, and runtime state directly from the relevant modular architecture specification (`docs/architecture/modules/<module>.md`).
-    4. **Targeted Code Inspection Only for Critical Details**: Read concrete source code files strictly when specific low-level implementation details (e.g. algorithmic nuance, interop declarations, exact event routing lines) are indispensable.
-    **Pragmatic Bypass**: For localized questions, simple queries, or isolated bugfixes within a single known file, bypass this multi-step protocol and inspect the relevant file directly without checking git deltas or architecture synchronizations.
+6. **Systematic Root Cause Analysis & Reproduction TDD**: `Troubleshooter` performs RCA and delivers a failing reproduction test specification (Phase RED) before or alongside fixes.
+7. **Full Internationalization (i18n & l10n)**: Enforced via `ContractSpecialist` (0% hardcoded UI strings; bilingual `de` and `en` resources).
+8. **Domain Specialist Governance**: `Troubleshooter` handles performance/memory profiling, Fowler refactoring, and adversarial review; `ContractSpecialist` owns API contracts, DB migrations, and `get-arch-diff.ps1` sync; `ReleaseManager` owns CI/CD, CVE audits, and clean release tags on `main`; `GitTroubleshooter` owns conflict/state recovery under zero-data-loss invariants.
+9. **Requirements Governance & Modular Architecture**:
+   - Validate new requirements against existing ones; use `REQUIREMENTS.md` for small projects (< ~30–50 items) or `docs/requirements/modules/<module>.md` with `REQUIREMENTS.md` as Hub/Registry.
+   - **Living Modular Specs**: Append-only isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md`) with a 1-line link in `docs/ROADMAP.md` or `REQUIREMENTS.md` (Zero-Full-Diff Guarantee), phase grouping (`phase: 1`, etc.), lazy index-first loading, and zero-token queries via `scripts/inspect-feature-specs.ps1` (`.sh`).
+   - **IDs & Lifecycle**: `REQ-<SCOPE>-XXX` (`PROPOSED`, `APPROVED`, `IMPLEMENTED`, `VERIFIED`, `DEPRECATED`). Escalate conflicts/duplicates to user; modify existing requirements only on explicit user instruction; require full coverage in Enterprise mode (bypass for trivial fixes/docs/prototypes).
+10. **Branch & PR Process Model**: Develop on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`); allow developer review/testing before Squash-and-Merge PRs per [CONTRIBUTING.md](../CONTRIBUTING.md). Run Git status/branch checks **only** when committing, pushing, or explicitly requested.
+11. **Four-Step Codebase Analysis Protocol**:
+    1. Check `ARCHITECTURE.md`, `docs/architecture/modules/*.md`, and `.arch-sync.json`.
+    2. Sync outdated docs via `ContractSpecialist` (`ask-contract-specialist` / `get-arch-diff.ps1`).
+    3. Deduce contracts and state from `docs/architecture/modules/<module>.md`.
+    4. Inspect concrete source files only for critical low-level details (**Pragmatic Bypass**: inspect single known files directly for localized queries/fixes).
 12. **Lifecycle Action Execution Governance (Commit, Push, PR Merge, Release)**:
     Defined Git and release actions adhere to seven explicit execution principles:
     1. **Strict Action Execution (Atomic Scope)**: When the user requests a specific action (e.g. `commit`), execute only that action (e.g. commit only, do not automatically push).

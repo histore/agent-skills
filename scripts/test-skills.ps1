@@ -713,8 +713,8 @@ Assert-Condition (Test-Path $ciLintSh) "scripts/lint-ci-workflows.sh exists" "sc
 
 if (Test-Path $ciLintPs1) {
     try {
-        $ciOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $ciLintPs1 -RepoRoot $repoRoot -JsonOutput | ConvertFrom-Json
-        Assert-Condition ($ciOut.status -eq "pass") "lint-ci-workflows.ps1 executes cleanly and returns pass ($($ciOut.status))" "lint-ci-workflows.ps1 reported failure"
+        $ciOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $ciLintPs1 -RepoRoot $repoRoot -Strict -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($ciOut.status -eq "pass") "lint-ci-workflows.ps1 -Strict executes cleanly and returns pass ($($ciOut.status))" "lint-ci-workflows.ps1 -Strict reported failure or warning"
     } catch {
         Assert-Condition $false "lint-ci-workflows.ps1 executes cleanly" "Execution error: $_"
     }
@@ -984,6 +984,15 @@ try {
 
     $forceRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -Direct -ForceNormalize -JsonOutput | ConvertFrom-Json
     Assert-Condition ($forceRes.status -eq "ready" -and ($forceRes.normalized_files -contains "legacy.txt")) "prepare-commit.ps1 -ForceNormalize normalizes legacy CRLF after confirmation" "prepare-commit.ps1 -ForceNormalize failed"
+
+    # 46d. Governance/tooling mixed commit heuristic -> chore(tooling) (not feat(tests))
+    git -C $prepRepo add notes.md legacy.txt
+    git -C $prepRepo commit -q -m "chore: sync"
+    New-Item -ItemType Directory -Path (Join-Path $prepRepo "scripts") -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo "AGENTS.md"), "# Agents`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo "scripts\test-skills.ps1"), "Write-Host 'ok'`n", (New-Object System.Text.UTF8Encoding($false)))
+    $toolingRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($toolingRes.status -eq "ready" -and $toolingRes.suggested_commit_message -match '^chore\(tooling\):') "prepare-commit.ps1 classifies docs+scripts/test-skills as chore(tooling) ($($toolingRes.suggested_commit_message))" "prepare-commit.ps1 misclassified governance/tooling commit: $($toolingRes.suggested_commit_message)"
 } finally {
     if (Test-Path $tempFmtDir) { Remove-Item -LiteralPath $tempFmtDir -Recurse -Force -ErrorAction SilentlyContinue }
 }

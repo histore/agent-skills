@@ -353,11 +353,11 @@ $nextStep = switch ($overallStatus) {
 # 6. Draft Conventional Commit message deterministically only when ready
 $suggestedCommit = ""
 if ($overallStatus -eq "ready" -and $hostFiles.Count -gt 0) {
-    $allDocs = ($hostFiles | Where-Object { $_ -notmatch '\.md$' }).Count -eq 0
-    $allScripts = ($hostFiles | Where-Object { $_ -notmatch '^(scripts/|rules/|\.github/)' }).Count -eq 0
-    $hasTests = ($hostFiles | Where-Object { $_ -match '(test|spec)' }).Count -gt 0
-    $prefix = if ($allDocs) { "docs" } elseif ($allScripts) { "chore" } else { "feat" }
-    $scope = if ($allDocs) { "docs" } elseif ($allScripts) { "tooling" } elseif ($hasTests) { "tests" } else { "core" }
+    $allDocs = ($hostFiles | Where-Object { $_ -notmatch '(\.md$|^docs/)' }).Count -eq 0
+    $allMetaOrTooling = ($hostFiles | Where-Object { $_ -notmatch '(\.md$|^(docs/|scripts/|rules/|skills/|evals/|\.github/)|^\.(gitignore|gitattributes|editorconfig)$)' }).Count -eq 0
+    $hasTests = ($hostFiles | Where-Object { $_ -match '(^|/)(tests?|specs?)/|(\.|_)(test|spec)\.' }).Count -gt 0
+    $prefix = if ($allDocs) { "docs" } elseif ($allMetaOrTooling) { "chore" } elseif ($hasTests) { "test" } else { "feat" }
+    $scope = if ($allDocs) { "docs" } elseif ($allMetaOrTooling) { "tooling" } elseif ($hasTests) { "tests" } else { "core" }
     $firstLeaf = [System.IO.Path]::GetFileNameWithoutExtension($hostFiles[0])
     $suggestedCommit = if ($hostFiles.Count -eq 1) {
         "${prefix}(${scope}): update $firstLeaf"

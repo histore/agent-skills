@@ -415,6 +415,12 @@ fi
 
 if [ -f "$REPO_ROOT/scripts/run-evals.ps1" ] && [ -f "$REPO_ROOT/scripts/run-evals.sh" ]; then
     assert_condition 0 "run-evals scripts exist (.ps1 and .sh)" "run-evals scripts missing"
+    EVALS_OUT=$(bash "$REPO_ROOT/scripts/run-evals.sh" --json 2>/dev/null || true)
+    if echo "$EVALS_OUT" | grep -q '"failed":0' && ! echo "$EVALS_OUT" | grep -q '"passed":0'; then
+        assert_condition 0 "run-evals.sh benchmark passes 100%" "run-evals.sh failed benchmark cases"
+    else
+        assert_condition 1 "run-evals.sh benchmark passes 100%" "run-evals.sh failed benchmark cases"
+    fi
 else
     assert_condition 1 "run-evals scripts exist (.ps1 and .sh)" "run-evals scripts missing"
 fi
@@ -754,6 +760,60 @@ fi
 echo -e "\n\033[33m46. Validating deferred formatting, prepare-commit scripts, and AGY 24KB rule cap...\033[0m"
 if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/prepare-commit.sh" ]; then
     assert_condition 0 "prepare-commit scripts exist (.ps1 and .sh)" "prepare-commit scripts missing"
+
+    TEMP_PREP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'prep')
+    git -C "$TEMP_PREP_DIR" init -q 2>/dev/null || true
+    git -C "$TEMP_PREP_DIR" config user.email "test@example.com"
+    git -C "$TEMP_PREP_DIR" config user.name "Test User"
+    git -C "$TEMP_PREP_DIR" config core.autocrlf false
+
+    printf '# Title\nLine 2\n' > "$TEMP_PREP_DIR/notes.md"
+    printf 'alpha\r\nbeta\r\n' > "$TEMP_PREP_DIR/legacy.txt"
+    git -C "$TEMP_PREP_DIR" add notes.md legacy.txt
+    git -C "$TEMP_PREP_DIR" commit -q -m "chore: init"
+
+    # 46a. Whitespace-only (CRLF) diff -> needs_decision without draft message, then --revert-whitespace-only -> clean
+    printf '# Title\r\nLine 2\r\n' > "$TEMP_PREP_DIR/notes.md"
+    WS_DETECT=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --json 2>/dev/null || true)
+    if echo "$WS_DETECT" | grep -q '"status":"needs_decision"' && echo "$WS_DETECT" | grep -q '"suggested_commit_message":""'; then
+        assert_condition 0 "prepare-commit.sh detects whitespace/CRLF-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
+    else
+        assert_condition 1 "prepare-commit.sh detects whitespace/CRLF-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
+    fi
+
+    WS_REVERT=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --revert-whitespace-only --json 2>/dev/null || true)
+    if echo "$WS_REVERT" | grep -q '"status":"clean"' && echo "$WS_REVERT" | grep -q '"reverted_whitespace_count":1'; then
+        assert_condition 0 "prepare-commit.sh --revert-whitespace-only reverts noise diffs to HEAD" "prepare-commit.sh failed to revert whitespace-only diff"
+    else
+        assert_condition 1 "prepare-commit.sh --revert-whitespace-only reverts noise diffs to HEAD" "prepare-commit.sh failed to revert whitespace-only diff"
+    fi
+
+    # 46b. Real edit + CRLF on LF file -> normalized under --direct
+    printf '# Title\r\nLine 2\r\nLine 3\r\n' > "$TEMP_PREP_DIR/notes.md"
+    DIRECT_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
+    if echo "$DIRECT_RES" | grep -q '"status":"ready"' && echo "$DIRECT_RES" | grep -q '"next_step":"execute_commit"' && echo "$DIRECT_RES" | grep -q '"normalized_count":1'; then
+        assert_condition 0 "prepare-commit.sh --direct normalizes unambiguous CRLF->LF and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit"
+    else
+        assert_condition 1 "prepare-commit.sh --direct normalizes unambiguous CRLF->LF and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit"
+    fi
+
+    # 46c. Ambiguous legacy CRLF file -> pauses under --direct until --force-normalize
+    printf 'alpha\r\nbeta\r\ngamma\r\n' > "$TEMP_PREP_DIR/legacy.txt"
+    AMBIG_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
+    if echo "$AMBIG_RES" | grep -q '"status":"needs_decision"' && echo "$AMBIG_RES" | grep -q '"ambiguous_count":1'; then
+        assert_condition 0 "prepare-commit.sh pauses for user decision on ambiguous legacy CRLF file" "prepare-commit.sh normalized ambiguous file without permission"
+    else
+        assert_condition 1 "prepare-commit.sh pauses for user decision on ambiguous legacy CRLF file" "prepare-commit.sh normalized ambiguous file without permission"
+    fi
+
+    FORCE_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --force-normalize --json 2>/dev/null || true)
+    if echo "$FORCE_RES" | grep -q '"status":"ready"' && echo "$FORCE_RES" | grep -q '"normalized_count":1'; then
+        assert_condition 0 "prepare-commit.sh --force-normalize normalizes legacy CRLF after confirmation" "prepare-commit.sh --force-normalize failed"
+    else
+        assert_condition 1 "prepare-commit.sh --force-normalize normalizes legacy CRLF after confirmation" "prepare-commit.sh --force-normalize failed"
+    fi
+
+    rm -rf "$TEMP_PREP_DIR"
 else
     assert_condition 1 "prepare-commit scripts exist (.ps1 and .sh)" "prepare-commit scripts missing"
 fi

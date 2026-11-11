@@ -35,7 +35,7 @@ agent-skills/
 ## Available Roles & Capability Packs (V2 Architecture)
 
 ### 1. Unified Core Lifecycle Engineer (`ask-control`)
-- **Control** (`Tier 1 | Extended Thinking` / `Tier 3 | Low-Minimal` during Inner-Loop implementation):
+- **Control** (`BALANCED` for Contracts/Architecture, `ECO` / `minimal` reasoning during Inner-Loop implementation):
   Universal central workflow orchestrator and full-lifecycle software engineer. Executes end-to-end development phases via **Compound Phased Execution** in Antigravity or **Sequential Persona Transitions** in GitHub Copilot:
   - **Dynamic Tech Stack Discovery**: Dynamically identifies project language, framework, and test runners without hardcoded assumptions.
   - **T-Shirt Sizing & Execution Profiles**: Profile 0 (Direct Response, zero git/tests), Profile A (Fast-Track Developer Inner-Loop TDD), Profile B (Standard feature engineering with contracts), Profile C (Complex architecture redesigns).
@@ -89,7 +89,7 @@ This repository supports cross-platform execution across **Google Antigravity**,
 1. **Compound Phased Execution (Default & Recommended)**:
    - The primary agent executes role phases sequentially within a single persistent session (Control -> Requirement -> Architekt -> Developer -> Verifikation).
    - **KV-Cache Continuity**: Retaining the conversation history unlocks 75–90% prompt caching discounts across turns, dramatically slashing latency and token expenditure.
-   - **Calibrated Thinking Budgets**: Developer and Tester use `low` reasoning budgets because compiler diagnostics and test suites act as deterministic ground truth.
+   - **Calibrated Thinking Budgets**: Inner-Loop implementation and test execution clamp reasoning budgets to `minimal` (`ECO` / Flash Split-Phase) because compiler diagnostics and test suites act as deterministic ground truth.
    - **Terminal Hygiene**: Scripts and testrunners run quietly (`dotnet test --verbosity quiet`, `cargo test -q`, PowerShell `-NoProfile`) to eliminate terminal spam.
 2. **Selective Subagent Forking (Antigravity / AGY)**:
    - Subagents (`invoke_subagent`) are leveraged selectively for **divergent, high-noise exploration** (broad file searches, web research, multi-repo audits) to prevent polluting the primary thread's cache prefix.
@@ -97,7 +97,7 @@ This repository supports cross-platform execution across **Google Antigravity**,
    - For clients lacking subagent-forking APIs, a single agent executes role phases sequentially using semantic prompt-based thinking budgets.
 
 ### Zero-Token Runtime Capability Detection & 24h Persistent Caching
-To determine the active environment and available models at zero token cost:
+During normal tasks, agents infer the environment (`multi_agent` vs. `sequential_persona`) directly from available tool declarations without running scripts (**Zero-Probe Environment Detection**). For explicit diagnostics or manual environment checks at zero token cost:
 
 ```powershell
 # Windows (Cached for 24 hours across sessions & skills)
@@ -144,6 +144,7 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 | `lint-docs.ps1/.sh` | `ask-contract-specialist` | Validates relative markdown links (ignoring fenced/inline code) and modular architecture parity. |
 | `inspect-feature-specs.ps1/.sh` | `ask-contract-specialist`, `ask-control` | Living modular feature spec inspector, concept scaffolding (`-NewConcept`), and state checkpoint hash tracker. |
 | `get-arch-diff.ps1/.sh` | `ask-contract-specialist` | Identifies modified host files since last sync commit, strictly excluding submodules. |
+| `get-code-outline.ps1/.sh` | `ask-control`, `ask-troubleshooter` | Extracts compact structural AST/signature outlines so agents inspect interfaces before reading large files. |
 | `record-telemetry.ps1/.sh` | `ask-control` | Zero-overhead lifecycle event and duration recorder. |
 | `show-telemetry.ps1/.sh` | `ask-control` | Formats local telemetry run history. |
 | `run-evals.ps1/.sh` | `ask-control` | Runs synthetic evaluation cases ([`evals/eval-cases.json`](evals/eval-cases.json)) against governance and skill file invariants. |

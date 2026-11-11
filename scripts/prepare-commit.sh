@@ -269,19 +269,19 @@ esac
 SUGGESTED_COMMIT=""
 if [[ "$STATUS" == "ready" && ${#HOST_FILES[@]} -gt 0 ]]; then
   all_docs=true
-  all_scripts=true
+  all_meta=true
   has_tests=false
   for f in "${HOST_FILES[@]}"; do
-    [[ ! "$f" =~ \.md$ ]] && all_docs=false
-    [[ ! "$f" =~ ^(scripts/|rules/|\.github/) ]] && all_scripts=false
-    [[ "$f" =~ (test|spec) ]] && has_tests=true
+    [[ ! "$f" =~ (\.md$|^docs/) ]] && all_docs=false
+    [[ ! "$f" =~ (\.md$|^(docs/|scripts/|rules/|skills/|evals/|\.github/)|^\.(gitignore|gitattributes|editorconfig)$) ]] && all_meta=false
+    [[ "$f" =~ (^|/)(tests?|specs?)/|(\.|_)(test|spec)\. ]] && has_tests=true
   done
   if [[ "$all_docs" == "true" ]]; then
     prefix="docs"; scope="docs"
-  elif [[ "$all_scripts" == "true" ]]; then
+  elif [[ "$all_meta" == "true" ]]; then
     prefix="chore"; scope="tooling"
   elif [[ "$has_tests" == "true" ]]; then
-    prefix="feat"; scope="tests"
+    prefix="test"; scope="tests"
   else
     prefix="feat"; scope="core"
   fi
@@ -293,6 +293,16 @@ if [[ "$STATUS" == "ready" && ${#HOST_FILES[@]} -gt 0 ]]; then
     SUGGESTED_COMMIT="${prefix}(${scope}): update ${first_leaf} and $((${#HOST_FILES[@]} - 1)) additional file(s)"
   fi
 fi
+
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\t'/\\t}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\n'/\\n}"
+  printf '%s' "$s"
+}
 
 join_csv() {
   local out="" item
@@ -310,7 +320,7 @@ join_csv() {
 MODE_NAME=$([[ "$DIRECT_MODE" == "true" ]] && echo "direct" || echo "prepare")
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-  escaped_commit="${SUGGESTED_COMMIT//\"/\\\"}"
+  escaped_commit=$(json_escape "$SUGGESTED_COMMIT")
   echo "{\"status\":\"$STATUS\",\"mode\":\"$MODE_NAME\",\"next_step\":\"$NEXT_STEP\",\"host_files_count\":${#HOST_FILES[@]},\"reverted_whitespace_count\":${#REVERTED_WS_FILES[@]},\"normalized_count\":${#NORMALIZED_FILES[@]},\"whitespace_only_count\":${#WS_ONLY_FILES[@]},\"crlf_count\":${#CRLF_FILES[@]},\"ambiguous_count\":${#AMBIGUOUS_FILES[@]},\"submodule_count\":${#SUBMODULE_FILES[@]},\"format_status\":\"$FORMAT_STATUS\",\"guardrails_status\":\"$GUARDRAILS_STATUS\",\"arch_status\":\"$ARCH_STATUS\",\"suggested_commit_message\":\"$escaped_commit\"}"
 else
   echo "============================================="

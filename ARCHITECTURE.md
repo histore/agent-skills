@@ -1,7 +1,7 @@
 # System Architecture Baseline: Agent Skills Toolkit
 
 > **Status**: APPROVED  
-> **Last Synchronized**: 2026-11-10  
+> **Last Synchronized**: 2026-11-11  
 > **Governance Authority**: `AGENTS.md`  
 
 This document describes the architectural baseline of the **Agent Skills Toolkit**, providing specialized subagent roles, adaptive execution pipelines, deterministic zero-token helper scripts, and automated quality gates for Google Antigravity and GitHub Copilot.
@@ -71,7 +71,7 @@ The toolkit is structured in strict accordance with Clean Architecture principle
 - **Hash-Based State Tracking**: `docs/.spec-state.json` tracks SHA-256 hashes of all feature documents, eliminating redundant file parsing.
 
 ### 2.4 Deterministic Zero-Token Script Toolkit
-- Over 20 dual-platform script pairs (`.ps1` and `.sh`) that execute natively without consuming LLM tokens:
+- 30 dual-platform script pairs (`.ps1` and `.sh`) that execute natively without consuming LLM tokens:
   - Fast-Gate & Tech Stack detection (`detect-tech-stack`, `run-fast-gate`)
   - Architectural & code linters (`lint-clean-architecture`, `lint-docs`, `scan-guardrails`)
   - SemVer and release calculators (`calculate-semver`, `generate-changelog`)
