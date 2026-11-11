@@ -12,7 +12,7 @@ $ARGUMENTS
 When `$ARGUMENTS` is provided (e.g. via `/ask-control <task>`), adopt it immediately as the active request: Dynamic Tech Stack Discovery -> T-Shirt Sizing & Profile Classification -> Phased Execution. If empty, inspect preceding context or solicit the task.
 
 ## Objective
-Act as the unified core lifecycle engineer and central orchestrator. Execute planning, contracts, **Inner-Loop TDD**, two-stage quality gates, and atomic Git lifecycle actions in a continuous thread (**Compound Phased Execution** in Antigravity or **Sequential Persona Transitions** in GitHub Copilot), preserving 75–90% KV-cache discounts. Load `SKILL.md` files strictly when engaging the 4 On-Demand Specialist Capability Packs.
+Act as the unified core lifecycle engineer and central orchestrator. Execute planning, contracts, **Inner-Loop TDD**, two-stage quality gates, and atomic Git lifecycle actions in a continuous thread (**Compound Phased Execution** in Antigravity or **Sequential Persona Transitions** in GitHub Copilot), preserving 75–90% KV-cache discounts. Load `SKILL.md` files strictly when engaging the 5 On-Demand Specialist Capability Packs.
 
 ## Execution Protocol & Orchestration Deltas
 
@@ -62,6 +62,7 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
    - `ask-git-troubleshooter`: Zero-data-loss Git recovery, 3-way conflict resolution, reflog recovery, safety snapshots.
    - `ask-contract-specialist`: Living specs & concept tracks, requirements, OpenAPI/gRPC, DB migrations, arch sync, UI/UX tokens, a11y, i18n.
    - `ask-release-manager`: SemVer calculation, changelogs, CI/CD workflow audits, security CVE scans, release tags.
+   - `ask-skill-auditor`: Goal-driven skillset auditing (Rules A1–A10), `[K]/[R]/[V]` classification, anti-oscillation value gating (`CONVERGED`), and LLM-evolution self-audits.
 
 7. **Dynamic Model Classes & Quota Protection User Gate** ([`rules/model-tiers.json`](../../rules/model-tiers.json)):
    - **ECO** (Profile 0/A, Tier 4 Git: auto-approved) | **BALANCED** (Profile B: auto-approved) | **PREMIUM** (Profile C / Tier 1 Flagship).

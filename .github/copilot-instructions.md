@@ -8,7 +8,7 @@ Classify every incoming request before acting and modulate your thinking budget 
 - **Profile A (Fast-Track - Bugfixes, Tweaks, Small Features, Docs)**: Bypass formal requirement/architecture ceremony (**Class ECO**). Transition directly: `### [Phase: Developer]` (targeted Inner-Loop TDD) -> `### [Phase: Verifikation]` -> `### [Phase: CommitManager]` (if requested). Omit tests/builds for markdown, comments, or non-executable files.
 - **Profile B (Standard Feature)**: Execute sequentially (**Class BALANCED**, medium reasoning): `### [Phase: Architekt]` (contract) -> `### [Phase: Developer]` (Inner-Loop TDD) -> `### [Phase: Verifikation]` (Two-Stage Gate).
 - **Profile C (Complex / Architectural Redesign / Deep Deadlocks)**: **Class PREMIUM** (extended reasoning). **Mandatory Quota Protection User Gate**: Before consuming large token volumes on Profile C tasks, pause and offer `[1] Premium`, `[2] Balanced`, or `[3] Eco` (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`).
-- **Zero-Reload Invariant**: Do **NOT** spend tool calls loading core skill files during Profile 0/A/B tasks; core lifecycle engineering rules are fully defined in this instruction file. Load `SKILL.md` files strictly for the 4 On-Demand Specialists (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`).
+- **Zero-Reload Invariant**: Do **NOT** spend tool calls loading core skill files during Profile 0/A/B tasks; core lifecycle engineering rules are fully defined in this instruction file. Load `SKILL.md` files strictly for the 5 On-Demand Specialists (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`, `ask-skill-auditor`).
 
 ## 2. Core Engineering & Verification Invariants
 1. **Clean Code & SOLID**:
@@ -62,7 +62,8 @@ When encountering specialized tasks requiring deep domain expertise, consult the
 - **Git anomalies, merge/rebase conflicts & recovery (Zero Data Loss)**: `.agents/skills/ask-git-troubleshooter/SKILL.md`
 - **Contracts, living specs, API contracts, DB migrations, UI/UX tokens, a11y & i18n**: `.agents/skills/ask-contract-specialist/SKILL.md`
 - **Release management, CI/CD, SemVer calculation & security audits**: `.agents/skills/ask-release-manager/SKILL.md`
+- **Skillset goal auditing, anti-oscillation evaluation & LLM evolution self-audit**: `.agents/skills/ask-skill-auditor/SKILL.md`
 
 > [!NOTE]
-> **Copilot Efficiency & `.agents` Integration**: Copilot integrates via `.agents` at both project level (`./.agents/`) and user level (`~/.agents/`). The V2 Architecture consolidates 23 legacy micro-roles into 1 Core Lifecycle Engineer (`ask-control`, embedded directly here for zero-reload execution) and 4 high-value On-Demand Capability Packs loaded strictly on demand from `.agents/skills/`.
+> **Copilot Efficiency & `.agents` Integration**: Copilot integrates via `.agents` at both project level (`./.agents/`) and user level (`~/.agents/`). The V2 Architecture consolidates 23 legacy micro-roles into 1 Core Lifecycle Engineer (`ask-control`, embedded directly here for zero-reload execution) and 5 high-value On-Demand Capability Packs loaded strictly on demand from `.agents/skills/`.
 

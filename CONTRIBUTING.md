@@ -11,7 +11,7 @@ Thank you for contributing to this project. To maintain high architectural integ
 
 2. **Unified Core Lifecycle vs. On-Demand Specialist Capability Packs (V2 Architecture)**:
    - **Unified Core Lifecycle Engineer** (`Control` / `ask-control`) defines the standard workflow (Planning, Architecture Contracts, Inner-Loop TDD, Two-Stage Verification Gate, Atomic Commit & PR Governance) within a single continuous session.
-   - **On-Demand Specialist Capability Packs** (`Troubleshooter` / `ask-troubleshooter`, `GitTroubleshooter` / `ask-git-troubleshooter`, `ContractSpecialist` / `ask-contract-specialist`, `ReleaseManager` / `ask-release-manager`) are bound to technical domains, not specific frameworks. They are invoked conditionally on-demand when deep domain specialization is required.
+   - **On-Demand Specialist Capability Packs** (`Troubleshooter` / `ask-troubleshooter`, `GitTroubleshooter` / `ask-git-troubleshooter`, `ContractSpecialist` / `ask-contract-specialist`, `ReleaseManager` / `ask-release-manager`, `SkillAuditor` / `ask-skill-auditor`) are bound to technical domains, not specific frameworks. They are invoked conditionally on-demand when deep domain specialization is required.
 
 3. **Documentation Language**:
    - All documentation files, markdown guides, and source code comments must be written in English.

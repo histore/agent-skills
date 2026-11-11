@@ -15,7 +15,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 3. **Dynamic Tech Stack Specialization**: Discover language, framework, and test commands dynamically without hardcoded assumptions.
 4. **Core Lifecycle vs. On-Demand Specialist Capability Packs**:
    - **Unified Core Lifecycle Engineer**: `Control` (`ask-control`). In both multi-agent (Antigravity) and single-thread (Copilot Sequential Persona Mode), `Control` executes planning, contracts, Inner-Loop TDD, two-stage verification, and atomic Git lifecycle actions directly.
-   - **On-Demand Specialist Capability Packs**: Four domain-specific packs (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`) engage selectively on-demand (see **Subagent Roles & Governance Mappings** below).
+   - **On-Demand Specialist Capability Packs**: Five domain-specific packs (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`, `ask-skill-auditor`) engage selectively on-demand (see **Subagent Roles & Governance Mappings** below).
 5. **Automated Testing, Quality & Inner-Loop TDD**:
    - **Profile 0 (Direct Response - Informational / Read-Only / Trivial)**: Answer directly. **Zero Git operations and zero test execution.**
    - **Profile A (Fast-Track - Bugs, Tweaks, Small Features)**: Direct developer loop (`Developer` -> `Verifikation` -> `CommitManager`). Tests run only when executable code was modified; omitted for markdown, docs, comments, or non-testable files.
@@ -48,7 +48,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
       - **PREMIUM**: Profile C complex architectures/deadlocks (`gemini-4-pro`, `gpt-6-astra` / `gpt-6-high`, `opus`). **Subject to Mandatory Quota Protection User Gate**.
     - **Quota Protection User Gate**: For Profile C / Premium tasks, `Control` pauses and offers `[1] Premium`, `[2] Balanced`, `[3] Eco` to protect quota (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`).
     - **Compound Phased Execution & Zero-Reload Invariant (Default Strategy)**: Single-context phased persona transitions preserve prefix continuity, unlocking 75–90% KV-cache discounts.
-      - **Zero-Reload Core Invariant**: In Profile 0/A/B, core rules for planning, contracts, Inner-Loop TDD, verification, and atomic commits are embedded here. Do NOT spend tool calls reading skill files for core tasks; load `SKILL.md` strictly for the 4 On-Demand Specialists.
+      - **Zero-Reload Core Invariant**: In Profile 0/A/B, core rules for planning, contracts, Inner-Loop TDD, verification, and atomic commits are embedded here. Do NOT spend tool calls reading skill files for core tasks; load `SKILL.md` strictly for the 5 On-Demand Specialists.
       - **Zero-Probe Environment Detection**: Determine environment (`multi_agent` if `invoke_subagent` present, else `sequential_persona`) directly from tool declarations without executing `detect-models.ps1` during normal tasks.
     - **Selective Subagent Forking & Parallel Worktrees (`invoke_subagent`)**: Reserved primarily for divergent research (`research` with `Model: "flash"`). For complex Profile C tasks with independent modules or A/B prototyping, isolated worktrees (`Workspace: "share"`) may be used for parallel implementation.
     - **Thinking Budget Clamping & Reasoning Token Guardrail**: Clamp thinking/reasoning effort for mechanical phases (TDD implementation, test fixes, Git lifecycle) to eliminate latency and token waste.
@@ -72,8 +72,8 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
     - Every tool call must serve a tangible purpose. Zero Git operations and zero test execution on read-only tasks. No test execution for markdown, docs, comments, or static text assets. Small fixes and refactorings bypass requirement registration and architecture sync.
     - **MCP & External Tool Governance (Local-First Priority)**: Deterministic local scripts (`scripts/*.ps1`, `scripts/*.sh`) always take precedence over external MCP tools. Read-only MCP queries are auto-approved; state-mutating MCP calls follow Atomic Lifecycle Action Governance.
 17. **Evidence-Based LLM Evolution & Anti-Churn Policy**:
-    - **Allowed & Desired Evolution**: Adaptations to real changes in LLM behavior, new model families/tiers in `rules/model-tiers.json`, new platform capabilities, or refined prompt guardrails against observed model failure modes are explicitly supported.
-    - **No Speculative Structural Churn**: The `1 + 4` V2 role structure (`ask-control` + 4 On-Demand Capability Packs) is structurally saturated. During package reviews or audits, do NOT propose splitting phases (`Developer`, `Architekt`, `Verifikation`, `CommitManager`) back into standalone skills or inventing speculative restructurings when `test-skills.ps1` and `run-evals.ps1` pass 100%. Every change must maintain 100% cross-file synchronization verified by `test-skills.ps1`.
+    - **Allowed & Desired Evolution**: Adaptations to real changes in LLM behavior, new model families/tiers in `rules/model-tiers.json`, new platform capabilities, or refined prompt guardrails against observed model failure modes are explicitly supported (audited via `ask-skill-auditor`).
+    - **No Speculative Structural Churn**: The `1 + 5` V2 role structure (`ask-control` + 5 On-Demand Capability Packs) is structurally saturated. During package reviews or audits, do NOT propose splitting phases (`Developer`, `Architekt`, `Verifikation`, `CommitManager`) back into standalone skills or inventing speculative restructurings when `test-skills.ps1` and `run-evals.ps1` pass 100%. Every change must maintain 100% cross-file synchronization verified by `test-skills.ps1`.
 
 ## Subagent Roles & Governance Mappings
 Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json):
@@ -83,6 +83,7 @@ Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json):
   - `GitTroubleshooter` (`ask-git-troubleshooter`): Git safety, merge/rebase conflict resolution, reflog recovery, safety backups.
   - `ContractSpecialist` (`ask-contract-specialist`): Living feature specs, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, i18n.
   - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security audits, Git release tags.
+  - `SkillAuditor` (`ask-skill-auditor`): Goal-driven skillset auditing (Rules A1–A10), `[K]/[R]/[V]` classification, anti-oscillation value gating (`CONVERGED`), and LLM-evolution self-audits.
 
 ## Context Isolation & Compaction Protocol
 - Pass downstream agents only the strictly necessary scoped context.

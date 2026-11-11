@@ -23,12 +23,13 @@ agent-skills/
 │   ├── model-tiers.json    # Universal model tier mapping and thinking budgets
 │   └── subagents.md        # Architectural rules and context-isolation protocol
 ├── scripts/                # Zero-token deterministic automation, linting, and verification scripts
-└── skills/                 # 5 Consolidated Capability Packs
+└── skills/                 # 6 Consolidated Capability Packs
     ├── ask-control/                # Unified Core Lifecycle Engineer & Orchestrator
     ├── ask-troubleshooter/         # Diagnostics, Bug RCA, Adversarial Review, Refactoring & Profiling
     ├── ask-git-troubleshooter/     # Git Safety, Conflicts & Recovery (Zero Data Loss)
     ├── ask-contract-specialist/    # Living Specs, API Contracts, DB Migrations, Arch Sync & i18n
-    └── ask-release-manager/        # Release Automation, DevOps, SemVer & Security Audits
+    ├── ask-release-manager/        # Release Automation, DevOps, SemVer & Security Audits
+    └── ask-skill-auditor/          # Goal-Driven Skillset Auditing, Anti-Oscillation & LLM Evolution
 ```
 
 > [!TIP]
@@ -47,7 +48,7 @@ agent-skills/
   - **Lifecycle Action Governance**: Atomic Git commits and PR creation with host workspace scoping and submodule isolation (`_agents`/`.agents`).
 
 ### 2. On-Demand Specialist Capability Packs
-Four domain-specific capability packs engaged conditionally when deep specialization is required:
+Five domain-specific capability packs engaged conditionally when deep specialization is required:
 1. **Troubleshooter** (`ask-troubleshooter`, `Tier 1 | Deep Reasoning`):
    Consolidated diagnostics and code health: systematic root cause analysis (RCA), failing reproduction test specifications (Phase RED), adversarial code review (hunting edge-case regressions, concurrency hazards, memory leaks), safe Fowler refactoring, and startup/throughput profiling (`benchmark-startup.ps1`).
 2. **GitTroubleshooter** (`ask-git-troubleshooter`, `Tier 1 | Deep Reasoning`):
@@ -56,6 +57,8 @@ Four domain-specific capability packs engaged conditionally when deep specializa
    System specifications and contracts: authors living feature specs (`docs/features/FEAT-*.md`) and concept tracks (`concept > req > impl` and `concept > impl`) via `inspect-feature-specs.ps1`, requirements governance (`lint-requirements.ps1`), REST OpenAPI / gRPC Protobuf contracts (`lint-api-contracts.ps1`), database migrations and ORM models (`lint-db-migrations.ps1`), incremental architecture synchronization (`get-arch-diff.ps1`), and bilingual i18n audits (`audit-i18n.ps1`).
 4. **ReleaseManager** (`ask-release-manager`, `Tier 4 | Fast Deterministic`):
    Release automation, DevOps, and security: calculates SemVer bumps (`calculate-semver.ps1`), generates release notes and `CHANGELOG.md` (`generate-changelog.ps1`), audits GitHub Actions workflows and Dockerfiles (`lint-ci-workflows.ps1`), runs dependency CVE and secret security audits (`run-security-audit.ps1`, `scan-guardrails.ps1`), and creates clean Git release tags on `main`.
+5. **SkillAuditor** (`ask-skill-auditor`, `Tier 2 | Analytical`):
+   Goal-driven skillset auditor and anti-oscillation specialist: executes the 10-rule deterministic audit catalog (Rules A1–A10), classifies findings into Corrections `[K]`, Redundancies `[R]`, and Improvements `[V]`, filters out stylistic/ping-pong churn via a strict Value-vs-Churn Gate (`STATUS: CONVERGED`), and performs LLM-evolution self-audits.
 
 ## Four-Step Codebase Analysis Protocol
 
@@ -240,7 +243,7 @@ Creates `_agents` (for Antigravity) and `.agents` + `.github/copilot-instruction
 ### Manual Setup: Google Antigravity (AGY / Gemini — `_agents`)
 
 #### A. User Level (Global Machine Scope via `~/_agents`)
-Enables all 5 capability packs, model tier mappings, and the `ask-control` orchestrator globally across all projects on your workstation.
+Enables all 6 capability packs, model tier mappings, and the `ask-control` orchestrator globally across all projects on your workstation.
 
 1. **Link `~/_agents` and User Gemini Config**:
    - **Windows (PowerShell)**:
