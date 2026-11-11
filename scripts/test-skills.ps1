@@ -966,7 +966,7 @@ try {
     [System.IO.File]::WriteAllText($lfFile, "# Title`r`nLine 2`r`n", (New-Object System.Text.UTF8Encoding($false)))
     $wsDetect = $null
     try { $wsDetect = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -JsonOutput 2>$null | ConvertFrom-Json } catch {}
-    Assert-Condition ($null -ne $wsDetect -and $wsDetect.status -eq "needs_decision" -and ($wsDetect.whitespace_only_files -contains "notes.md")) "prepare-commit.ps1 detects whitespace/CRLF-only diff against HEAD" "prepare-commit.ps1 failed to detect whitespace-only diff"
+    Assert-Condition ($null -ne $wsDetect -and $wsDetect.status -eq "needs_decision" -and ($wsDetect.whitespace_only_files -contains "notes.md") -and [string]::IsNullOrEmpty($wsDetect.suggested_commit_message)) "prepare-commit.ps1 detects whitespace/CRLF-only diff against HEAD and withholds commit message until clean" "prepare-commit.ps1 failed to detect whitespace-only diff or leaked draft message"
 
     $wsRevert = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -RevertWhitespaceOnly -JsonOutput | ConvertFrom-Json
     Assert-Condition ($wsRevert.status -eq "clean" -and ($wsRevert.reverted_whitespace_files -contains "notes.md")) "prepare-commit.ps1 -RevertWhitespaceOnly reverts noise diffs to HEAD" "prepare-commit.ps1 failed to revert whitespace-only diff"

@@ -305,9 +305,9 @@ Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prer
   # On unambiguous whitespace-only / CRLF issues:
   pwsh -NoProfile -File ./.agents/scripts/prepare-commit.ps1 -RevertWhitespaceOnly -FixLineEndings
   ```
-  If ambiguous legacy CRLF files exist, the user decides before normalizing via `-ForceNormalize`. Once clean, the commit message is shown for review; upon acceptance, direct commit execution is offered.
-* **Direct Commit (Skip Confirmation, Keep Format Checks)**:
-  Instructing a commit directly skips commit-message approval, while still running `prepare-commit.ps1 -Direct` (format/CRLF checks and safe normalization) before `git commit`.
+  If ambiguous legacy CRLF files exist, the user decides before normalizing via `-ForceNormalize`. Once clean, the commit message is shown for review; upon acceptance (with no intervening file edits), `git commit` executes directly with that exact approved message without re-running `prepare-commit` or checks.
+* **Direct Commit (Standalone Skip-Confirmation, Keep Format Checks)**:
+  A standalone direct commit instruction (without prior preparation) skips commit-message approval, while still running `prepare-commit.ps1 -Direct` (format/CRLF checks and safe normalization) before `git commit`.
 
 ### Antigravity (AGY)
 ```text

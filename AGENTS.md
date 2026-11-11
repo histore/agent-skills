@@ -65,8 +65,8 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
     - **Strict Atomic Action**: Execute only what was requested (commit does not auto-push).
     - **Deferred Format & Commit Preparation (`prepare-commit`)**: Pure formatting checks, whitespace-only diff cleanup, and CRLF->LF normalization run via `scripts/prepare-commit.ps1` (`prepare-commit.sh`) immediately before committing (never during intermediate coding steps). In doubt (e.g. legacy CRLF files), ask the user before normalizing via script (zero tokens).
     - **Two Commit Modes**:
-      - *Prepare Commit* (default review flow): Run `prepare-commit`, resolve any ambiguous normalization with the user, present the commit message for review, and upon acceptance offer to execute the commit directly.
-      - *Direct Commit* (explicit user commit instruction, skipping preparation): Skip user confirmation of the commit message, but **still execute** `prepare-commit -Direct` (format/CRLF checks and safe normalization) before `git commit`.
+      - *Prepare Commit* (default review flow): Run `prepare-commit` (resolving whitespace-only cleanups, safe normalizations, and any ambiguous decisions before drafting the message), then present the commit message for review. Upon user acceptance (with no intervening file edits), execute `git commit` **directly with that exact approved message** without re-running `prepare-commit`, quality gates, or re-drafting a new message.
+      - *Direct Commit* (standalone commit instruction without prior preparation): Skip user confirmation of the commit message, but **still execute** `prepare-commit -Direct` (format/CRLF checks and safe normalization) before `git commit`.
     - **State-Driven Prerequisites**: Automatically resolve prerequisites (e.g. commit uncommitted changes before push).
     - **Proactive Next-Step Offering**: Proactively suggest the logical successor action upon completion.
     - **Adaptive Gate Resolution**: Direct user instructions execute without redundant confirmation unless out-of-scope changes, ambiguous normalizations, or anomalies occur.

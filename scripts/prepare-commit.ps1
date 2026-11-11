@@ -326,23 +326,7 @@ if ((Test-Path $archScript) -and $hostFiles.Count -gt 0) {
     } catch {}
 }
 
-# 5. Draft Conventional Commit message deterministically
-$suggestedCommit = ""
-if ($hostFiles.Count -gt 0) {
-    $allDocs = ($hostFiles | Where-Object { $_ -notmatch '\.md$' }).Count -eq 0
-    $allScripts = ($hostFiles | Where-Object { $_ -notmatch '^(scripts/|rules/|\.github/)' }).Count -eq 0
-    $hasTests = ($hostFiles | Where-Object { $_ -match '(test|spec)' }).Count -gt 0
-    $prefix = if ($allDocs) { "docs" } elseif ($allScripts) { "chore" } else { "feat" }
-    $scope = if ($allDocs) { "docs" } elseif ($allScripts) { "tooling" } elseif ($hasTests) { "tests" } else { "core" }
-    $firstLeaf = [System.IO.Path]::GetFileNameWithoutExtension($hostFiles[0])
-    $suggestedCommit = if ($hostFiles.Count -eq 1) {
-        "${prefix}(${scope}): update $firstLeaf"
-    } else {
-        "${prefix}(${scope}): update $firstLeaf and $($hostFiles.Count - 1) additional file(s)"
-    }
-}
-
-# 6. Determine overall status & next_step
+# 5. Determine overall status & next_step
 $hasDecisionItems = ($whitespaceOnlyFiles.Count -gt 0) -or ($ambiguousFiles.Count -gt 0) -or ($crlfFiles.Count -gt 0)
 $hasHardFailures = ($guardrailsStatus -eq "fail") -or ($archStatus -eq "fail") -or ($formatStatus -eq "fail") -or ($submoduleFiles.Count -gt 0)
 
@@ -364,6 +348,22 @@ $nextStep = switch ($overallStatus) {
     "needs_decision" { "ask_user_normalization" }
     "fail"           { "resolve_format_or_guardrail_errors" }
     "ready"          { if ($Direct) { "execute_commit" } else { "present_commit_message" } }
+}
+
+# 6. Draft Conventional Commit message deterministically only when ready
+$suggestedCommit = ""
+if ($overallStatus -eq "ready" -and $hostFiles.Count -gt 0) {
+    $allDocs = ($hostFiles | Where-Object { $_ -notmatch '\.md$' }).Count -eq 0
+    $allScripts = ($hostFiles | Where-Object { $_ -notmatch '^(scripts/|rules/|\.github/)' }).Count -eq 0
+    $hasTests = ($hostFiles | Where-Object { $_ -match '(test|spec)' }).Count -gt 0
+    $prefix = if ($allDocs) { "docs" } elseif ($allScripts) { "chore" } else { "feat" }
+    $scope = if ($allDocs) { "docs" } elseif ($allScripts) { "tooling" } elseif ($hasTests) { "tests" } else { "core" }
+    $firstLeaf = [System.IO.Path]::GetFileNameWithoutExtension($hostFiles[0])
+    $suggestedCommit = if ($hostFiles.Count -eq 1) {
+        "${prefix}(${scope}): update $firstLeaf"
+    } else {
+        "${prefix}(${scope}): update $firstLeaf and $($hostFiles.Count - 1) additional file(s)"
+    }
 }
 
 $result = [ordered]@{
@@ -401,6 +401,7 @@ if ($JsonOutput) {
     if ($whitespaceOnlyFiles.Count -gt 0) { Write-Host "Whitespace-only diffs awaiting revert (-RevertWhitespaceOnly): $($whitespaceOnlyFiles -join ', ')" -ForegroundColor Yellow }
     if ($crlfFiles.Count -gt 0) { Write-Host "Unambiguous CRLF files (-FixLineEndings): $($crlfFiles -join ', ')" -ForegroundColor Yellow }
     if ($ambiguousFiles.Count -gt 0) { Write-Host "Ambiguous legacy CRLF files (user decision required, -ForceNormalize): $($ambiguousFiles -join ', ')" -ForegroundColor Yellow }
+    if ($submoduleFiles.Count -gt 0) { Write-Host "Submodule changes detected (must not be committed in host repo): $($submoduleFiles -join ', ')" -ForegroundColor Red }
     if ($formatStatus -eq "fail") { Write-Host "Format check failed ($formatCommand): $($formatErrors -join ' | ')" -ForegroundColor Red }
     if ($guardrailErrors.Count -gt 0) { Write-Host "Errors: $($guardrailErrors -join ' | ')" -ForegroundColor Red }
     if ($suggestedCommit) { Write-Host "Suggested Commit: $suggestedCommit" -ForegroundColor White }

@@ -151,6 +151,7 @@ done < <({
 FORMAT_STATUS="skipped"
 FORMAT_CMD=""
 FORMAT_FIX_CMD=""
+FORMAT_ERRORS=()
 HAS_EXEC=false
 for f in "${HOST_FILES[@]:-}"; do
   [[ -z "$f" ]] && continue
@@ -176,9 +177,13 @@ EOF
   fi
 
   if [[ -n "$FORMAT_CMD" ]]; then
+    LAST_FMT_OUT=""
     run_fmt_check() {
       local fmt_out=""
-      if ! fmt_out=$(cd "$REPO_ROOT" && eval "$FORMAT_CMD" 2>&1); then
+      local rc=0
+      fmt_out=$(cd "$REPO_ROOT" && eval "$FORMAT_CMD" 2>&1) || rc=$?
+      LAST_FMT_OUT="$fmt_out"
+      if [[ $rc -ne 0 ]]; then
         return 1
       fi
       if [[ "$FORMAT_CMD" =~ ^gofmt[[:space:]]+-l && -n "$fmt_out" ]]; then
@@ -200,25 +205,45 @@ EOF
       else
         FORMAT_STATUS="fail"
       fi
+      if [[ "$FORMAT_STATUS" == "fail" && -n "$LAST_FMT_OUT" ]]; then
+        while IFS= read -r line; do
+          [[ -n "${line// /}" ]] && FORMAT_ERRORS+=("$line")
+        done < <(printf '%s\n' "$LAST_FMT_OUT" | head -n 10)
+      fi
     fi
   fi
 fi
 
 GUARDRAILS_STATUS="pass"
+GUARDRAIL_ERRORS=()
 if [[ ${#HOST_FILES[@]} -gt 0 && -f "${SCRIPT_DIR}/scan-guardrails.sh" ]]; then
   SCAN_ARGS=("--path" "$REPO_ROOT" "--working-tree")
   if [[ ${#AMBIGUOUS_FILES[@]} -gt 0 || ${#CRLF_FILES[@]} -gt 0 || ${#WS_ONLY_FILES[@]} -gt 0 ]]; then
     SCAN_ARGS+=("--skip-line-endings")
   fi
-  if ! bash "${SCRIPT_DIR}/scan-guardrails.sh" "${SCAN_ARGS[@]}" >/dev/null 2>&1; then
+  SCAN_OUT=""
+  if ! SCAN_OUT=$(bash "${SCRIPT_DIR}/scan-guardrails.sh" "${SCAN_ARGS[@]}" 2>&1); then
     GUARDRAILS_STATUS="fail"
+    while IFS= read -r line; do
+      [[ -n "${line// /}" ]] && GUARDRAIL_ERRORS+=("$line")
+    done < <(printf '%s\n' "$SCAN_OUT" | grep -E 'FAIL|Violation|\[|Error' | head -n 10 || true)
+    if [[ ${#GUARDRAIL_ERRORS[@]} -eq 0 && -n "$SCAN_OUT" ]]; then
+      GUARDRAIL_ERRORS+=("scan-guardrails.sh failed")
+    fi
   fi
 fi
 
 ARCH_STATUS="pass"
 if [[ ${#HOST_FILES[@]} -gt 0 && -f "${SCRIPT_DIR}/lint-clean-architecture.sh" ]]; then
-  if ! bash "${SCRIPT_DIR}/lint-clean-architecture.sh" "$REPO_ROOT" --working-tree >/dev/null 2>&1; then
+  ARCH_OUT=""
+  if ! ARCH_OUT=$(bash "${SCRIPT_DIR}/lint-clean-architecture.sh" "$REPO_ROOT" --working-tree 2>&1); then
     ARCH_STATUS="fail"
+    while IFS= read -r line; do
+      [[ -n "${line// /}" ]] && GUARDRAIL_ERRORS+=("$line")
+    done < <(printf '%s\n' "$ARCH_OUT" | grep -E 'Error|FAIL|Violation' | head -n 10 || true)
+    if [[ ${#GUARDRAIL_ERRORS[@]} -eq 0 && -n "$ARCH_OUT" ]]; then
+      GUARDRAIL_ERRORS+=("lint-clean-architecture.sh failed")
+    fi
   fi
 fi
 
@@ -233,15 +258,74 @@ elif [[ ${#WS_ONLY_FILES[@]} -gt 0 || ${#AMBIGUOUS_FILES[@]} -gt 0 || ${#CRLF_FI
   STATUS="needs_decision"
 fi
 
+case "$STATUS" in
+  clean) NEXT_STEP="nothing_to_commit_whitespace_reverted" ;;
+  no_changes) NEXT_STEP="nothing_to_commit" ;;
+  needs_decision) NEXT_STEP="ask_user_normalization" ;;
+  fail) NEXT_STEP="resolve_format_or_guardrail_errors" ;;
+  ready) NEXT_STEP=$([[ "$DIRECT_MODE" == "true" ]] && echo "execute_commit" || echo "present_commit_message") ;;
+esac
+
+SUGGESTED_COMMIT=""
+if [[ "$STATUS" == "ready" && ${#HOST_FILES[@]} -gt 0 ]]; then
+  all_docs=true
+  all_scripts=true
+  has_tests=false
+  for f in "${HOST_FILES[@]}"; do
+    [[ ! "$f" =~ \.md$ ]] && all_docs=false
+    [[ ! "$f" =~ ^(scripts/|rules/|\.github/) ]] && all_scripts=false
+    [[ "$f" =~ (test|spec) ]] && has_tests=true
+  done
+  if [[ "$all_docs" == "true" ]]; then
+    prefix="docs"; scope="docs"
+  elif [[ "$all_scripts" == "true" ]]; then
+    prefix="chore"; scope="tooling"
+  elif [[ "$has_tests" == "true" ]]; then
+    prefix="feat"; scope="tests"
+  else
+    prefix="feat"; scope="core"
+  fi
+  first_base=$(basename "${HOST_FILES[0]}")
+  first_leaf="${first_base%.*}"
+  if [[ ${#HOST_FILES[@]} -eq 1 ]]; then
+    SUGGESTED_COMMIT="${prefix}(${scope}): update ${first_leaf}"
+  else
+    SUGGESTED_COMMIT="${prefix}(${scope}): update ${first_leaf} and $((${#HOST_FILES[@]} - 1)) additional file(s)"
+  fi
+fi
+
+join_csv() {
+  local out="" item
+  for item in "$@"; do
+    [[ -z "$item" ]] && continue
+    if [[ -z "$out" ]]; then
+      out="$item"
+    else
+      out="${out}, ${item}"
+    fi
+  done
+  printf '%s' "$out"
+}
+
+MODE_NAME=$([[ "$DIRECT_MODE" == "true" ]] && echo "direct" || echo "prepare")
+
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-  echo "{\"status\":\"$STATUS\",\"host_files_count\":${#HOST_FILES[@]},\"reverted_whitespace_count\":${#REVERTED_WS_FILES[@]},\"normalized_count\":${#NORMALIZED_FILES[@]},\"whitespace_only_count\":${#WS_ONLY_FILES[@]},\"crlf_count\":${#CRLF_FILES[@]},\"ambiguous_count\":${#AMBIGUOUS_FILES[@]},\"format_status\":\"$FORMAT_STATUS\",\"guardrails_status\":\"$GUARDRAILS_STATUS\",\"arch_status\":\"$ARCH_STATUS\"}"
+  escaped_commit="${SUGGESTED_COMMIT//\"/\\\"}"
+  echo "{\"status\":\"$STATUS\",\"mode\":\"$MODE_NAME\",\"next_step\":\"$NEXT_STEP\",\"host_files_count\":${#HOST_FILES[@]},\"reverted_whitespace_count\":${#REVERTED_WS_FILES[@]},\"normalized_count\":${#NORMALIZED_FILES[@]},\"whitespace_only_count\":${#WS_ONLY_FILES[@]},\"crlf_count\":${#CRLF_FILES[@]},\"ambiguous_count\":${#AMBIGUOUS_FILES[@]},\"submodule_count\":${#SUBMODULE_FILES[@]},\"format_status\":\"$FORMAT_STATUS\",\"guardrails_status\":\"$GUARDRAILS_STATUS\",\"arch_status\":\"$ARCH_STATUS\",\"suggested_commit_message\":\"$escaped_commit\"}"
 else
   echo "============================================="
   echo "Commit Preparation ($([[ "$DIRECT_MODE" == "true" ]] && echo "DIRECT" || echo "PREPARE"))"
-  echo "Status: $STATUS | Host files: ${#HOST_FILES[@]}"
-  echo "Reverted whitespace-only: ${#REVERTED_WS_FILES[@]} | Normalized LF: ${#NORMALIZED_FILES[@]}"
-  echo "Format: $FORMAT_STATUS | Guardrails: $GUARDRAILS_STATUS | Arch: $ARCH_STATUS"
   echo "============================================="
+  echo "Status: $STATUS | Next Step: $NEXT_STEP"
+  if [[ ${#REVERTED_WS_FILES[@]} -gt 0 ]]; then echo "Reverted whitespace-only files: $(join_csv "${REVERTED_WS_FILES[@]}")"; fi
+  if [[ ${#NORMALIZED_FILES[@]} -gt 0 ]]; then echo "Normalized CRLF -> LF: $(join_csv "${NORMALIZED_FILES[@]}")"; fi
+  if [[ ${#WS_ONLY_FILES[@]} -gt 0 ]]; then echo "Whitespace-only diffs awaiting revert (--revert-whitespace-only): $(join_csv "${WS_ONLY_FILES[@]}")"; fi
+  if [[ ${#CRLF_FILES[@]} -gt 0 ]]; then echo "Unambiguous CRLF files (--fix-line-endings): $(join_csv "${CRLF_FILES[@]}")"; fi
+  if [[ ${#AMBIGUOUS_FILES[@]} -gt 0 ]]; then echo "Ambiguous legacy CRLF files (user decision required, --force-normalize): $(join_csv "${AMBIGUOUS_FILES[@]}")"; fi
+  if [[ ${#SUBMODULE_FILES[@]} -gt 0 ]]; then echo "Submodule changes detected (must not be committed in host repo): $(join_csv "${SUBMODULE_FILES[@]}")"; fi
+  if [[ "$FORMAT_STATUS" == "fail" ]]; then echo "Format check failed ($FORMAT_CMD): $(join_csv "${FORMAT_ERRORS[@]:-}")"; fi
+  if [[ ${#GUARDRAIL_ERRORS[@]} -gt 0 ]]; then echo "Errors: $(join_csv "${GUARDRAIL_ERRORS[@]}")"; fi
+  if [[ -n "$SUGGESTED_COMMIT" ]]; then echo "Suggested Commit: $SUGGESTED_COMMIT"; fi
 fi
 
 if [[ "$STATUS" == "fail" || "$STATUS" == "needs_decision" ]]; then
