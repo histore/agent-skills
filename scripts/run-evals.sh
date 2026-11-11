@@ -185,6 +185,12 @@ for c in cases:
             prep_ok = os.path.isfile(os.path.join(repo_root, 'scripts', 'prepare-commit.sh'))
             if not prep_ok or 'prepare-commit' not in agents_content or 'prepare-commit' not in read_skill('ask-control'):
                 failures.append("Invariant 'deferred_format_prepare_commit' missing in AGENTS.md, ask-control/SKILL.md, or scripts/prepare-commit.sh")
+        elif inv == 'no_premature_tests':
+            if 'No-Premature-Tests Invariant' not in agents_content or 'No-Premature-Tests Invariant' not in read_skill('ask-control'):
+                failures.append("Invariant 'no_premature_tests' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'single_prepare_commit_on_confirm':
+            if 'without re-running' not in agents_content or 'do **not** re-run' not in copilot_content or 'without re-running' not in read_skill('ask-control'):
+                failures.append("Invariant 'single_prepare_commit_on_confirm' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
 
     if transcript_path:
         if not os.path.isfile(transcript_path):

@@ -39,6 +39,8 @@ fi
 
 RULES_FILE=""
 for candidate in \
+  "${TARGET_PATH}/.agent-lint.json" \
+  "${TARGET_PATH}/rules/clean-architecture.json" \
   "${REPO_ROOT}/.agent-lint.json" \
   "${REPO_ROOT}/rules/clean-architecture.json" \
   "${REPO_ROOT}/_agents/rules/clean-architecture.json" \
@@ -73,7 +75,7 @@ max_func_lines = int(metrics.get('max_function_lines', 60))
 max_nesting = int(metrics.get('max_nesting_depth', 4))
 layer_boundaries = rules.get('layer_boundaries', [])
 
-src_exts = ('.rs', '.cs', '.ts', '.js', '.py', '.go')
+src_exts = ('.rs', '.cs', '.ts', '.tsx', '.js', '.jsx', '.py', '.go')
 files_to_scan = []
 
 if staged_only:
@@ -175,6 +177,15 @@ for fp in files_to_scan:
                             'severity': 'Error',
                             'message': f"Layer '{r.get('layer')}' illegally imports '{forbidden}': {r.get('message')}"
                         })
+
+    if not is_test_file and current_func_start > 0 and (len(lines) - current_func_start) > max_func_lines:
+        violations.append({
+            'type': 'FunctionSizeLimit',
+            'file': rel,
+            'line': current_func_start,
+            'severity': 'Warning',
+            'message': f'Function starting at line {current_func_start} spans {len(lines) - current_func_start} lines (exceeds recommended limit of {max_func_lines})'
+        })
 
 errors = [v for v in violations if v['severity'] == 'Error']
 warnings = [v for v in violations if v['severity'] == 'Warning']

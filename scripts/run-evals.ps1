@@ -276,6 +276,18 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'deferred_format_prepare_commit' missing in AGENTS.md, ask-control/SKILL.md, or scripts/prepare-commit.ps1")
                 }
             }
+            "no_premature_tests" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'No-Premature-Tests Invariant' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'No-Premature-Tests Invariant') {
+                    $failures.Add("Invariant 'no_premature_tests' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "single_prepare_commit_on_confirm" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'without re-running' -or $copilotContent -notmatch 'do \*\*not\*\* re-run' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'without re-running') {
+                    $failures.Add("Invariant 'single_prepare_commit_on_confirm' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
+                }
+            }
         }
     }
 

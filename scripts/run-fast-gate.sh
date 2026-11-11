@@ -75,15 +75,6 @@ EOF
   fi
 fi
 
-if [[ "$STACK" == "unknown" || -z "$BUILD_CMD" ]]; then
-  if [[ "$JSON_OUTPUT" == "true" ]]; then
-    echo '{"status":"pass","message":"No executable stack detected; fast-gate bypassed","duration_ms":0}'
-  else
-    echo "Stage-1 Fast-Gate: Bypassed (no executable stack detected)"
-  fi
-  exit 0
-fi
-
 get_time_ns() {
   local d
   d=$(date +%s%N 2>/dev/null || true)
@@ -145,9 +136,11 @@ fi
 
 OVERALL_PASS=true
 
-if [[ "$BYPASSED_NO_CODE" != "true" ]]; then
-  if ! run_step "Build" "$BUILD_CMD"; then
-    OVERALL_PASS=false
+if [[ "$STACK" != "unknown" && "$BYPASSED_NO_CODE" != "true" ]]; then
+  if [[ -n "$BUILD_CMD" ]]; then
+    if ! run_step "Build" "$BUILD_CMD"; then
+      OVERALL_PASS=false
+    fi
   fi
 
   if [[ "$OVERALL_PASS" == "true" && -n "$TEST_CMD" ]]; then

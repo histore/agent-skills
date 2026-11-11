@@ -111,9 +111,9 @@ run_gate "Documentation & Link Integrity" "lint-docs.sh" "$REPO_ROOT"
 # 4. Requirements
 run_gate "Requirements Scoped IDs & Integrity" "lint-requirements.sh" "$REPO_ROOT"
 
-# 5. Fast-Gate
+# 5. Fast-Gate (skip guardrails/arch since Gates 1 & 2 already ran them)
 if [[ "$FAST" != "true" ]]; then
-  run_gate "Stage-1 Fast-Gate (Build & Tests)" "run-fast-gate.sh" "$REPO_ROOT"
+  run_gate "Stage-1 Fast-Gate (Build & Tests)" "run-fast-gate.sh" "$REPO_ROOT" "--force" "--skip-guardrails"
 fi
 
 PASSED_GATES=$((TOTAL_GATES - FAILED_GATES))

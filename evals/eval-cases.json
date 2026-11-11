@@ -65,7 +65,8 @@
         "required_invariants": [
           "contract_first",
           "inner_loop_tdd",
-          "two_stage_quality_gate"
+          "two_stage_quality_gate",
+          "no_premature_tests"
         ]
       }
     },
@@ -258,7 +259,8 @@
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
-          "deferred_format_prepare_commit"
+          "deferred_format_prepare_commit",
+          "single_prepare_commit_on_confirm"
         ]
       }
     }
