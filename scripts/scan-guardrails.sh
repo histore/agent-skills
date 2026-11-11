@@ -120,7 +120,7 @@ for file in "${FILES[@]}"; do
 
     # Safe-Rust check (blocks, pub/async unsafe fn, unsafe impl/trait/extern, Rust 2024 #[unsafe(...)])
     if [[ "$file" == *.rs ]]; then
-      if sed -E 's|//.*$||; s|"((\\.)|[^"\\])*"|""|g' "$file" | grep -nE '((^|[^[:alnum:]_])unsafe[[:space:]]*(\{|fn([^[:alnum:]_]|$)|impl([^[:alnum:]_]|$)|trait([^[:alnum:]_]|$)|extern([^[:alnum:]_]|$))|#\[[[:space:]]*unsafe[[:space:]]*\()' >/dev/null 2>&1; then
+      if sed -E 's#//.*$##; s#"((\\.)|[^"\\])*"#""#g' "$file" | grep -nE '((^|[^[:alnum:]_])unsafe[[:space:]]*(\{|fn([^[:alnum:]_]|$)|impl([^[:alnum:]_]|$)|trait([^[:alnum:]_]|$)|extern([^[:alnum:]_]|$))|#\[[[:space:]]*unsafe[[:space:]]*\()' >/dev/null 2>&1; then
         VIOLATIONS+=("[SafeRust] ${rel_path}: Forbidden unsafe construct detected in safe-Rust codebase")
       fi
     fi
@@ -144,7 +144,14 @@ if [[ "$JSON_OUTPUT" == "true" ]]; then
   if [[ $TOTAL_VIOLATIONS -eq 0 ]]; then
     echo "{\"status\":\"pass\",\"scanned_files_count\":${#FILES[@]},\"violations_count\":0,\"violations\":[]}"
   else
-    echo "{\"status\":\"fail\",\"scanned_files_count\":${#FILES[@]},\"violations_count\":$TOTAL_VIOLATIONS}"
+    VIOLATIONS_JSON=""
+    for v in "${VIOLATIONS[@]}"; do
+      esc_v="${v//\\/\\\\}"
+      esc_v="${esc_v//\"/\\\"}"
+      if [[ -n "$VIOLATIONS_JSON" ]]; then VIOLATIONS_JSON+=","; fi
+      VIOLATIONS_JSON+="\"$esc_v\""
+    done
+    echo "{\"status\":\"fail\",\"scanned_files_count\":${#FILES[@]},\"violations_count\":$TOTAL_VIOLATIONS,\"violations\":[$VIOLATIONS_JSON]}"
   fi
 else
   echo "============================================="

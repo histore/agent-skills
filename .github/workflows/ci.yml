@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run Skills Test Suite (Bash)
         run: bash ./scripts/test-skills.sh
@@ -26,7 +26,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run Skills Test Suite (PowerShell)
         run: pwsh -NoProfile -File ./scripts/test-skills.ps1

@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
       CATEGORY="$2"
       shift 2
       ;;
-    --case-id|-i)
+    --case-id|--case|-i)
       CASE_ID="$2"
       shift 2
       ;;
