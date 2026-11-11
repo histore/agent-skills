@@ -65,13 +65,7 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
   - Ongoing cherry-pick: `.git/CHERRY_PICK_HEAD` exists.
 
 #### Step 2: Create Safety Snapshot
-- Ensure a backup branch is created immediately:
-  ```powershell
-  $currentBranch = (git branch --show-current)
-  if (-not $currentBranch) { $currentBranch = "detached-head" }
-  git branch "backup/${currentBranch}-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-  ```
-- Reassure the user that work is safely backed up and explain the available abort command (`git merge --abort` or `git rebase --abort`).
+- Create a backup branch via `diagnose-git-state.ps1 -CreateSnapshot` (or `git branch "backup/${branch}-$(Get-Date -Format 'yyyyMMdd-HHmmss')"` per Protocol Invariant 1) and communicate the abort command (`git merge --abort` or `git rebase --abort`) to the user.
 
 #### Step 3: Three-Way Analysis & Inspection
 - Inspect the conflicted regions for each file:
@@ -92,9 +86,7 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
   - Ensure every instance of `<<<<<<<`, `=======`, and `>>>>>>>` is completely removed.
 
 #### Step 5: Verification Gate (Build & Automated Tests)
-- Before marking any file resolved or continuing Git operations, execute the project's native build and test runner in quiet mode with PowerShell `-NoProfile`:
-  - **Compile / Build Check**: Run the ecosystem compiler in quiet mode (e.g., `dotnet build -v q`, `cargo check -q`, `npm run build --silent`, `pytest -q --collect-only`).
-  - **Test Suite Execution**: Run the automated test runner in quiet mode (e.g., `dotnet test --verbosity quiet`, `cargo test -q`, `npm test -- --silent`, `pytest -q`).
+- Before marking any file resolved or continuing Git operations, execute the Stage-1 Fast-Gate (`pwsh -NoProfile -ExecutionPolicy Bypass -File ./_agents/scripts/run-fast-gate.ps1` / `./.agents/scripts/run-fast-gate.ps1` / `run-fast-gate.sh`) or the project's native build and test runner in quiet mode (`dotnet build -v q`, `dotnet test --verbosity quiet`, `cargo test -q`, `pytest -q`).
 - **Pass Criteria**:
   - 0 compilation or build errors.
   - 100% of automated unit and integration tests passing (0 failures).
@@ -245,5 +237,6 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
 ---
 
 ## Tooling & Path Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
+- **Windows PowerShell Sandbox Fallback**: Prefer `pwsh -NoProfile`; if `pwsh` resolves to a blocked Microsoft Store alias (`WindowsApps\pwsh.exe`), fall back immediately to `powershell -NoProfile`.
 - **Embedding Host Project Target**: When linked at project or user level (`_agents/` or `~/_agents/` for Antigravity; `.agents/` or `~/.agents/` for Copilot), all operations target the embedding **host repository**.
 - **Submodule Asset Resolution**: Internal skill assets, scripts, and rules reside in `./_agents/` or `$HOME/_agents/` (AGY), `./.agents/` or `$HOME/.agents/` (Copilot), or `./`.

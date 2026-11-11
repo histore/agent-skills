@@ -15,11 +15,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 3. **Dynamic Tech Stack Specialization**: Discover language, framework, and test commands dynamically without hardcoded assumptions.
 4. **Core Lifecycle vs. On-Demand Specialist Capability Packs**:
    - **Unified Core Lifecycle Engineer**: `Control` (`ask-control`). In both multi-agent (Antigravity) and single-thread (Copilot Sequential Persona Mode), `Control` executes planning, contracts, Inner-Loop TDD, two-stage verification, and atomic Git lifecycle actions directly.
-   - **On-Demand Specialist Capability Packs**: Four high-value specialist packs engage selectively on-demand:
-     - `Troubleshooter` (`ask-troubleshooter`): Systematic Root Cause Analysis, reproduction tests, adversarial code review, Fowler refactoring, and performance profiling.
-     - `GitTroubleshooter` (`ask-git-troubleshooter`): Safety-first Git recovery, 3-way merge/rebase conflict resolution, reflog recovery, and safety backups.
-     - `ContractSpecialist` (`ask-contract-specialist`): Living feature specifications, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, UI/UX tokens, a11y, and i18n.
-     - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security CVE audits, and Git release tags.
+   - **On-Demand Specialist Capability Packs**: Four domain-specific packs (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`) engage selectively on-demand (see **Subagent Roles & Governance Mappings** below).
 5. **Automated Testing, Quality & Inner-Loop TDD**:
    - **Profile 0 (Direct Response - Informational / Read-Only / Trivial)**: Answer directly. **Zero Git operations and zero test execution.**
    - **Profile A (Fast-Track - Bugs, Tweaks, Small Features)**: Direct developer loop (`Developer` -> `Verifikation` -> `CommitManager`). Tests run only when executable code was modified; omitted for markdown, docs, comments, or non-testable files.

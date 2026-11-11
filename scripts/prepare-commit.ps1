@@ -353,8 +353,8 @@ $nextStep = switch ($overallStatus) {
 # 6. Draft Conventional Commit message deterministically only when ready
 $suggestedCommit = ""
 if ($overallStatus -eq "ready" -and $hostFiles.Count -gt 0) {
-    $allDocs = ($hostFiles | Where-Object { $_ -notmatch '(\.md$|^docs/)' }).Count -eq 0
-    $allMetaOrTooling = ($hostFiles | Where-Object { $_ -notmatch '(\.md$|^(docs/|scripts/|rules/|skills/|evals/|\.github/)|^\.(gitignore|gitattributes|editorconfig)$)' }).Count -eq 0
+    $allDocs = ($hostFiles | Where-Object { $_ -notmatch '(\.(md|txt|rst)$|^docs/|^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)(\..*)?$)' }).Count -eq 0
+    $allMetaOrTooling = ($hostFiles | Where-Object { $_ -notmatch '(\.(md|txt|rst)$|^(docs/|scripts/|rules/|skills/|evals/|\.github/)|^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)(\..*)?$|^\.(gitignore|gitattributes|editorconfig)$)' }).Count -eq 0
     $hasTests = ($hostFiles | Where-Object { $_ -match '(^|/)(tests?|specs?)/|(\.|_)(test|spec)\.' }).Count -gt 0
     $prefix = if ($allDocs) { "docs" } elseif ($allMetaOrTooling) { "chore" } elseif ($hasTests) { "test" } else { "feat" }
     $scope = if ($allDocs) { "docs" } elseif ($allMetaOrTooling) { "tooling" } elseif ($hasTests) { "tests" } else { "core" }
