@@ -272,8 +272,8 @@ if [[ "$STATUS" == "ready" && ${#HOST_FILES[@]} -gt 0 ]]; then
   all_meta=true
   has_tests=false
   for f in "${HOST_FILES[@]}"; do
-    [[ ! "$f" =~ (\.md$|^docs/) ]] && all_docs=false
-    [[ ! "$f" =~ (\.md$|^(docs/|scripts/|rules/|skills/|evals/|\.github/)|^\.(gitignore|gitattributes|editorconfig)$) ]] && all_meta=false
+    [[ ! "$f" =~ (\.(md|txt|rst)$|^docs/|^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)(\..*)?$) ]] && all_docs=false
+    [[ ! "$f" =~ (\.(md|txt|rst)$|^(docs/|scripts/|rules/|skills/|evals/|\.github/)|^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)(\..*)?$|^\.(gitignore|gitattributes|editorconfig)$) ]] && all_meta=false
     [[ "$f" =~ (^|/)(tests?|specs?)/|(\.|_)(test|spec)\. ]] && has_tests=true
   done
   if [[ "$all_docs" == "true" ]]; then

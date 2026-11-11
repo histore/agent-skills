@@ -23,9 +23,9 @@ The toolkit is structured in strict accordance with Clean Architecture principle
                                 v
 +---------------------------------------------------------------+
 | Layer 2: Specialized Subagent Roles (skills/*/SKILL.md)       |
-|   - Core Lifecycle (Control, Requirements, Architecture, TDD) |
-|   - On-Demand Specialists (Troubleshooter, Reviewer, etc.)    |
-|   - Domain Specialists (Security, DB, API, i18n, UX, Perf)    |
+|   - Unified Core Engineer: ask-control (Contracts, TDD, Gate) |
+|   - On-Demand Packs: ask-troubleshooter, ask-git-troubleshooter|
+|     ask-contract-specialist, ask-release-manager              |
 +-------------------------------+-------------------------------+
                                 |
                                 v

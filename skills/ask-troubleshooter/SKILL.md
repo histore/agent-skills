@@ -26,7 +26,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - **Step 1 (Check)**: Inspect the current modular architecture specification (`ARCHITECTURE.md`, `docs/architecture/modules/<module>.md`, `.arch-sync.json`) of the suspected subsystem.
   - **Step 2 (Sync)**: Ensure architecture documentation is synchronized if recent commits introduced architectural drift (`get-arch-diff.ps1`).
   - **Step 3 (Deduce)**: Deduce expected invariants, component contracts, event propagation paths, and state flows directly from the modular documentation to understand intended behavior.
-  - **Step 4 (Targeted Inspection)**: Inspect only the precise code lines, call stack frames, and log traces relevant to the failure, avoiding whole-codebase scans.
+  - **Step 4 (Targeted Inspection)**: Use `get-code-outline.ps1` (`get-code-outline.sh`) to inspect structural signatures of large files first, then read only the precise code lines, call stack frames, and log traces relevant to the failure, avoiding whole-codebase scans.
 - **RCA vs. Symptom Patching**: Differentiate between superficial symptoms and the underlying defect mechanism (e.g., race conditions, unhandled lifecycle transitions, broken invariants).
 - **Reproduction Test Specification (Phase RED)**:
   - Extract compacted test failure messages and stack traces from JUnit/TRX reports without flooding the context window via `collect-test-failures.ps1` (`collect-test-failures.sh`):
@@ -81,5 +81,6 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ---
 
 ## Tooling & Path Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
+- **Windows PowerShell Sandbox Fallback**: Prefer `pwsh -NoProfile`; if `pwsh` resolves to a blocked Microsoft Store alias (`WindowsApps\pwsh.exe`), fall back immediately to `powershell -NoProfile`.
 - **Embedding Host Project Target**: When linked at project or user level (`_agents/` or `~/_agents/` for Antigravity; `.agents/` or `~/.agents/` for Copilot), all diagnostics and test runs target the embedding **host repository**.
 - **Submodule Asset Resolution**: Resolve helper scripts across project and user scopes: `./_agents/scripts/`, `./.agents/scripts/`, `./scripts/`, `"$HOME/_agents/scripts/"`, or `"$HOME/.agents/scripts/"`.

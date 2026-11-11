@@ -36,40 +36,34 @@
      - **Stage 1 (Deterministic Fast-Gate - Zero Tokens)**: Native build (`dotnet build`, `cargo check`), semantic linter, and quiet native test runner (0 errors, 100% pass) executed deterministically via `run-fast-gate.ps1` (`run-fast-gate.sh`), followed by `check-test-coverage.ps1` when coverage reports are present. Pure format and CRLF checks are deferred to `prepare-commit.ps1` before committing.
      - **Stage 2 (Concise Traceability Gate)**: `Verifikation` audits acceptance criteria fulfillment and Clean Architecture boundaries (enforced deterministically via `lint-clean-architecture.ps1` and [`rules/clean-architecture.json`](clean-architecture.json)).
    - **Circuit Breaker**: The `Developer`'s local targeted feedback loop (`Code` -> `Run Targeted Tests` -> `Fix`) is limited to a maximum of 3 cycles before escalation.
-   - **On-Demand Specialist Capability Packs**: Four high-value specialist capability packs engage selectively on-demand:
-     - `Troubleshooter` (`ask-troubleshooter`): Root Cause Analysis, reproduction tests, adversarial code review, safe Fowler refactoring, performance profiling.
-     - `GitTroubleshooter` (`ask-git-troubleshooter`): Git safety, 3-way merge/rebase conflict resolution, reflog recovery, safety backups.
-     - `ContractSpecialist` (`ask-contract-specialist`): Living feature specs, concept tracks, requirements governance, API contracts, DB migrations, architecture sync, i18n.
-     - `ReleaseManager` (`ask-release-manager`): Release automation, SemVer calculation, changelog generation, CI/CD workflows, security audits, Git release tags.
+   - **On-Demand Specialist Capability Packs**: Four domain-specific capability packs (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`) engage selectively on-demand (see **Subagent Roles & Governance Mappings** below).
 6. **Systematic Root Cause Analysis & Reproduction TDD**: `Troubleshooter` performs RCA and delivers a failing reproduction test specification (Phase RED) before or alongside fixes.
 7. **Full Internationalization (i18n & l10n)**: Enforced via `ContractSpecialist` (0% hardcoded UI strings; bilingual `de` and `en` resources).
-8. **Domain Specialist Governance**: `Troubleshooter` handles performance/memory profiling, Fowler refactoring, and adversarial review; `ContractSpecialist` owns API contracts, DB migrations, and `get-arch-diff.ps1` sync; `ReleaseManager` owns CI/CD, CVE audits, and clean release tags on `main`; `GitTroubleshooter` owns conflict/state recovery under zero-data-loss invariants.
-9. **Requirements Governance & Modular Architecture**:
+8. **Requirements Governance & Modular Architecture**:
    - Validate new requirements against existing ones; use `REQUIREMENTS.md` for small projects (< ~30–50 items) or `docs/requirements/modules/<module>.md` with `REQUIREMENTS.md` as Hub/Registry.
    - **Living Modular Specs**: Append-only isolated files (`docs/features/FEAT-<SCOPE>-XXX-<slug>.md`) with a 1-line link in `docs/ROADMAP.md` or `REQUIREMENTS.md` (Zero-Full-Diff Guarantee), phase grouping (`phase: 1`, etc.), lazy index-first loading, and zero-token queries via `scripts/inspect-feature-specs.ps1` (`.sh`).
    - **IDs & Lifecycle**: `REQ-<SCOPE>-XXX` (`PROPOSED`, `APPROVED`, `IMPLEMENTED`, `VERIFIED`, `DEPRECATED`). Escalate conflicts/duplicates to user; modify existing requirements only on explicit user instruction; require full coverage in Enterprise mode (bypass for trivial fixes/docs/prototypes).
-10. **Branch & PR Process Model**: Develop on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`); allow developer review/testing before Squash-and-Merge PRs per [CONTRIBUTING.md](../CONTRIBUTING.md). Run Git status/branch checks **only** when committing, pushing, or explicitly requested.
-11. **Four-Step Codebase Analysis Protocol**:
+9. **Branch & PR Process Model**: Develop on dedicated branches (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`); allow developer review/testing before Squash-and-Merge PRs per [CONTRIBUTING.md](../CONTRIBUTING.md). Run Git status/branch checks **only** when committing, pushing, or explicitly requested.
+10. **Four-Step Codebase Analysis Protocol**:
     1. Check `ARCHITECTURE.md`, `docs/architecture/modules/*.md`, and `.arch-sync.json`.
     2. Sync outdated docs via `ContractSpecialist` (`ask-contract-specialist` / `get-arch-diff.ps1`).
     3. Deduce contracts and state from `docs/architecture/modules/<module>.md`.
     4. Inspect concrete source files only for critical low-level details (**Pragmatic Bypass**: inspect single known files directly for localized queries/fixes).
-12. **Lifecycle Action Execution Governance (Commit, Push, PR Merge, Release)**:
-    Defined Git and release actions adhere to seven explicit execution principles:
-    1. **Strict Action Execution (Atomic Scope)**: When the user requests a specific action (e.g. `commit`), execute only that action (e.g. commit only, do not automatically push).
-    2. **State-Driven Prerequisite Resolution**: If the requested action requires preceding steps based on current workspace or repository state (e.g. uncommitted changes present when `push` is requested), automatically resolve the necessary prerequisites first.
-    3. **Proactive Next-Step Offering**: When an action completes and a logical subsequent step is derivable, proactively offer the user to execute it directly.
-    4. **Adaptive Gate Resolution (Intention Matching with Anomaly Fallback)**: On a standalone commit or release instruction (without prior preparation), skip redundant confirmation, **never** skip deferred format/CRLF checks (`prepare-commit -Direct` runs formatting and safe normalization; pause only on ambiguous normalization, out-of-scope changes, SemVer conflicts, or repository anomalies). In *Prepare Commit* mode, run `prepare-commit` and resolve any cleanups/ambiguous normalizations first, then present the commit message for approval; upon acceptance (with no intervening edits), execute `git commit` directly with that exact approved message without re-running `prepare-commit`, checks, or re-drafting the message.
-    5. **Explicit User Override**: The user may explicitly instruct deviating or combined behavior at any time (e.g. "commit and push directly").
-    6. **Atypical State & Anomaly Gate**: If following these instructions would produce an unusual state or require non-standard/atypical measures (e.g. detached HEAD, merge conflicts, unexpected untracked files, unverified release states, cross-cutting multi-scope changes), the agent must pause, describe the situation, and prompt the user for explicit confirmation before proceeding.
-    7. **Clean Release Tagging Invariant**: Release tags (`vX.Y.Z`) must be applied directly to the existing production/merge commit on `main`. Standalone metadata commits (such as `docs(changelog): release v...`) directly on `main` during release tagging are strictly prohibited to maintain an uncluttered Git commit history focused on actual functional changes. Release notes belong in tag annotations or GitHub Releases.
-13. **Purpose-Driven Execution & Anti-Ceremony Guardrail (No Process for Process's Sake)**:
-    - All actions, checks, and tool invocations must serve a tangible, practical purpose for the user's specific request. Steps must **NEVER** be executed merely to satisfy formal process definitions, checklists, or pipelines if they have no functional value for the task at hand:
-      - **Informational & Read-Only Requests**: When the user asks a question, requests an explanation, code review, or exploratory analysis, agents must **NEVER** run git checks (`git status`, `git branch`), test runners, or architecture synchronization. Answer directly and concisely.
-      - **Purpose-Bound Git Operations**: Git commands (`git status`, branch switching, etc.) are strictly forbidden unless a git-persisted action (commit, push, branch creation, PR) is actively being executed or explicitly requested by the user. Do not check git status proactively during simple file edits.
-      - **Context-Relevant Testing**: Test runners and compilation gates are executed strictly when executable production code has been modified and relevant automated tests exist or need to be authored. Do NOT run test suites for documentation, markdown files, comments, static text assets, simple scripts without test suites, or when tests are unrelated to the edited file.
-      - **Lightweight Trivial Changes**: Bug fixes, minor tweaks, configuration adjustments, and refactorings do not require bureaucratic upfront ceremonies (e.g. creating formal `REQ-` entries or checking `.arch-sync.json` drift) unless explicitly requested or when architectural boundaries are structurally changed.
-      - **MCP & External Tool Governance (Local-First Priority)**: Deterministic local scripts (`scripts/*.ps1`, `scripts/*.sh`) always take precedence over external MCP server calls for repository, build, lint, or Git operations. Read-only MCP tools (documentation, schema inspection) are permitted on demand; state-mutating MCP operations (database writes, remote issue/PR mutations) strictly obey Atomic Lifecycle Action Governance.
+11. **Lifecycle Action Execution Governance (Commit, Push, PR Merge, Release)**:
+    1. **Strict Atomic Action**: Execute only what was requested (e.g. `commit` does not auto-push).
+    2. **State-Driven Prerequisites**: Automatically resolve prerequisites (e.g. commit uncommitted changes before `push`).
+    3. **Proactive Next-Step Offering**: Proactively suggest the logical successor action upon completion.
+    4. **Adaptive Gate & Commit Modes**: On a standalone direct commit or release instruction (without prior preparation), skip redundant confirmation, **never** skip deferred format/CRLF checks (`prepare-commit -Direct` runs formatting and safe normalization; pause only on ambiguous normalization, out-of-scope changes, SemVer conflicts, or anomalies). In *Prepare Commit* mode, run `prepare-commit` and resolve any cleanups/ambiguous normalizations first, then present the commit message for approval; upon acceptance (with no intervening edits), execute `git commit` directly with that exact approved message without re-running `prepare-commit`, checks, or re-drafting the message.
+    5. **Explicit User Override**: The user may explicitly instruct combined behavior at any time (e.g. "commit and push directly").
+    6. **Atypical State & Anomaly Gate**: Pause and request confirmation on detached HEAD, merge conflicts, unexpected untracked files, or unverified release states.
+    7. **Clean Release Tagging Invariant**: Tag HEAD directly on `main` (`vX.Y.Z`). Standalone changelog/metadata commits on `main` are prohibited.
+12. **Purpose-Driven Execution & Anti-Ceremony Guardrail (No Process for Process's Sake)**:
+    - Every tool call must serve a tangible purpose for the user's request:
+      - **Informational & Read-Only Requests**: Never run git checks (`git status`, `git branch`), test runners, or architecture sync. Answer directly.
+      - **Purpose-Bound Git Operations**: Run Git commands only when executing a git-persisted action (commit, push, branch, PR) or explicitly requested.
+      - **Context-Relevant Testing**: Run tests/builds strictly when executable code was modified. Omit for markdown, docs, comments, or static text assets.
+      - **Lightweight Trivial Changes**: Bug fixes, minor tweaks, and refactorings bypass formal `REQ-` registration and `.arch-sync.json` checks.
+      - **MCP & External Tool Governance (Local-First Priority)**: Deterministic local scripts (`scripts/*.ps1`, `scripts/*.sh`) take precedence over external MCP tools. Read-only MCP queries are permitted on demand; state-mutating MCP calls obey Atomic Lifecycle Action Governance.
 
 ---
 

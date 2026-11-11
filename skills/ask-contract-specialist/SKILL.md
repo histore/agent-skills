@@ -155,5 +155,6 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 ---
 
 ## Tooling & Path Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
+- **Windows PowerShell Sandbox Fallback**: Prefer `pwsh -NoProfile`; if `pwsh` resolves to a blocked Microsoft Store alias (`WindowsApps\pwsh.exe`), fall back immediately to `powershell -NoProfile`.
 - **Embedding Host Project Target**: When linked at project or user level (`_agents/` or `~/_agents/` for Antigravity; `.agents/` or `~/.agents/` for Copilot), all contract operations target the embedding **host repository**.
 - **Submodule Asset Resolution**: Resolve helper scripts and templates across project and user scopes: `./_agents/scripts/`, `./.agents/scripts/`, `./scripts/`, `"$HOME/_agents/scripts/"`, or `"$HOME/.agents/scripts/"`.

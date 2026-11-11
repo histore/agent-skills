@@ -1,5 +1,7 @@
 # Agent Skills & Subagent Roles (`agent-skills`)
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 A modular, reusable repository of specialized AI subagent roles, skills, zero-token automation scripts, and governance rules designed for modern software development with Antigravity / Gemini agents and cross-platform AI assistants.
 
 **Core Mission — High Engineering Quality at Minimum Necessary Cost**:
@@ -15,6 +17,7 @@ agent-skills/
 ├── AGENTS.md               # Master guidelines and subagent governance rules
 ├── COMMON_WORKFLOWS.md     # Engineering workflows & invocation cheat sheet (AGY & Copilot)
 ├── ARCHITECTURE.md         # System architecture baseline
+├── LICENSE                 # Apache License 2.0
 ├── rules/
 │   ├── clean-architecture.json # Declarative Clean Architecture layer rules and metric thresholds
 │   ├── model-tiers.json    # Universal model tier mapping and thinking budgets
@@ -56,16 +59,10 @@ Four domain-specific capability packs engaged conditionally when deep specializa
 
 ## Four-Step Codebase Analysis Protocol
 
-Whenever an agent explores, analyzes, or debugs a codebase, it must strictly proceed in four steps:
-
-1. **Check Current Modular Architecture Baseline**: Check `ARCHITECTURE.md`, module specifications (`docs/architecture/modules/*.md`), and `.arch-sync.json`.
-2. **Synchronize Architecture if Needed**: If documentation is missing or outdated compared to recent commits, run `ContractSpecialist` (`ask-contract-specialist` via `get-arch-diff.ps1` / `get-arch-diff.sh`) to synchronize affected module documents.
-3. **Deduce State from Modular Documentation**: Derive system structure, contracts, dependencies, and state flows directly from the relevant modular architecture specification (`docs/architecture/modules/<module>.md`).
-4. **Targeted Code Inspection Only for Critical Details**: Read concrete source code files strictly when specific low-level implementation details (e.g. algorithmic nuance, interop declarations, precise event binding lines) are indispensable.
-
-> [!IMPORTANT]
-> **Modular Architecture Depth & Context Isolation**:
-> Architecture documents must be sufficiently detailed (interfaces, records, state transitions, threading guarantees) so that broad, whole-repository code scans are prevented. At the same time, maintaining separate files per module (`docs/architecture/modules/<module>.md`) ensures that agents only load the single relevant module into context, preventing the agent's context window from continuously filling up.
+1. **Check Modular Baseline**: Inspect `ARCHITECTURE.md`, `docs/architecture/modules/*.md`, and `.arch-sync.json`.
+2. **Synchronize if Needed**: Run `ContractSpecialist` (`ask-contract-specialist` via `get-arch-diff.ps1/.sh`) if module docs are outdated.
+3. **Deduce from Module Docs**: Derive contracts, dependencies, and state flows from `docs/architecture/modules/<module>.md` to avoid whole-repo scans.
+4. **Targeted Code Inspection**: Inspect structural outlines (`get-code-outline.ps1/.sh`) and read concrete source files only for essential low-level details (localized fixes inspect the single target file directly).
 
 ## Living Modular Documentation & Concept Lifecycle
 
@@ -153,22 +150,15 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 
 ## Lifecycle Action Execution Governance
 
-Defined lifecycle actions (`commit`, `push`, `pr merge`, `release`) adhere to seven core execution principles:
+Lifecycle actions (`commit`, `push`, `pr merge`, `release`) follow seven core rules (full details in [AGENTS.md](AGENTS.md) and [COMMON_WORKFLOWS.md](COMMON_WORKFLOWS.md)):
 
-1. **Strict Action Execution (Atomic Scope)**:
-   When an action is explicitly requested (e.g. `commit`), only that action is performed. Unsolicited side-actions (e.g. automatic `push`) are omitted.
-2. **State-Driven Prerequisite Resolution**:
-   If the repository or workspace state requires preceding actions (e.g. uncommitted workspace changes when `push` is requested), the necessary prerequisites are automatically resolved first.
-3. **Proactive Next-Step Offering**:
-   Upon successful completion of an action, the logical successor action is proactively offered to the user (e.g. offering `push` after `commit`, or offering PR creation after `push`).
-4. **Adaptive Gate Resolution (Intention Matching with Anomaly Fallback)**:
-   When the user's prompt directly instructs or parameterizes an action (e.g. "erstelle einen minor release", "commit with message ..."), interactive confirmation is satisfied by the prompt and executes directly. A mandatory confirmation gate pauses execution if: (a) uncommitted/untracked changes exceed the current scope, (b) SemVer history contradicts the requested release bump, or (c) atypical repository states occur.
-5. **Explicit User Override**:
-   The user may explicitly direct combined or deviating behavior at any time (e.g. "commit and push directly").
-6. **Atypical State & Safety Confirmation Gate**:
-   If following these rules encounters an unexpected or high-risk state (e.g. detached HEAD, merge conflicts, unexpected untracked files, unverified release states), the agent halts, describes the situation, and requests explicit user confirmation before proceeding.
-7. **Clean Release Tagging Invariant**:
-   Release tags (`vX.Y.Z`) must be applied directly to the existing production/merge commit on `main`. Standalone metadata commits (such as `docs(changelog): release v...`) directly on `main` during release tagging are strictly prohibited to maintain an uncluttered Git commit history focused on actual functional changes. Release notes belong in tag annotations or GitHub Releases.
+1. **Strict Atomic Scope**: Execute only what was requested (e.g. `commit` never auto-pushes).
+2. **State-Driven Prerequisites**: Automatically resolve prerequisites first (e.g. commit uncommitted changes before `push`).
+3. **Proactive Next-Step Offering**: Suggest the logical successor action upon completion.
+4. **Adaptive Gate & Commit Modes**: *Prepare Commit* runs `prepare-commit` (deferred format check + whitespace/CRLF cleanup) and presents the message for approval; once confirmed (with no intervening edits), `git commit` executes directly without re-running checks. *Direct Commit* skips confirmation while still running `prepare-commit -Direct`.
+5. **Explicit User Override**: Combined instructions (e.g. "commit and push") execute as requested.
+6. **Anomaly Gate**: Pause for confirmation on detached HEAD, merge conflicts, out-of-scope files, or ambiguous CRLF normalizations.
+7. **Clean Release Tagging**: Apply release tags (`vX.Y.Z`) directly to HEAD on `main` without standalone changelog commits on `main`.
 
 ## Integration & Usage Guide (Project & User Level)
 
@@ -355,16 +345,6 @@ GitHub Copilot operates in **Sequential Persona Mode** (`Control` -> `Developer`
 
 ---
 
-### Dual Compatibility: Antigravity (`_agents`) & Copilot (`.agents`)
-
-Antigravity uses `_agents/`, whereas GitHub Copilot uses `.agents/`. Running the default setup command configures both side-by-side cleanly:
-
-```powershell
-pwsh -NoProfile -File ./scripts/setup-agent-skills.ps1 -TargetProject "C:\path\to\target-project"
-```
-
----
-
 ### Submodule Maintenance (Cloning & Updating)
 
 #### Cloning a Repository with Submodules
@@ -382,3 +362,9 @@ git submodule update --remote _agents
 # For .agents (Copilot / Universal):
 git submodule update --remote .agents
 ```
+
+---
+
+## License
+
+This project is licensed under the **Apache License 2.0** — see the [LICENSE](LICENSE) file for details.
