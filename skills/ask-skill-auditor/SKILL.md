@@ -34,7 +34,7 @@ Every audit measures the actual implementation strictly against three non-negoti
 2. **Hard Byte-Budget Cap**: Both `AGENTS.md` and `rules/subagents.md` must stay strictly below the **24,000-byte** Antigravity rule limit (target sweet spot: **14 KB – 18 KB** each, zero intra-file duplication).
 3. **Zero-Reload Core Invariant**: Profile 0, A, and B tasks execute directly from embedded core rules without spending tool calls reading `SKILL.md` files; `SKILL.md` files load strictly on demand for the 5 specialist capability packs.
 4. **Adaptive T-Shirt Sizing & Reasoning Clamping**: Dynamic right-sizing into `ECO`, `BALANCED` (with Split-Phase ECO/Flash inner-loop), and `PREMIUM` (protected by the Mandatory Quota Protection User Gate); `minimal` reasoning during mechanical coding, test runs, and Git lifecycle actions.
-5. **Zero-Token Deterministic Offloading & Surgical Edits**: Offload build/test log compaction (`collect-test-failures.ps1/.sh`), AST signature inspection (`get-code-outline.ps1/.sh`), and formatting/CRLF normalization (`prepare-commit.ps1/.sh`) to local scripts; always use surgical block edits (`edit_file`) over full-file rewrites (`write_file`).
+5. **Zero-Token Deterministic Offloading & Surgical Edits**: Offload build/test log compaction (`collect-test-failures.ps1/.sh`), AST signature inspection (`get-code-outline.ps1/.sh`), and formatting/OS-native line-ending normalization (`CRLF` on Windows, `LF` on Linux/macOS via `prepare-commit.ps1/.sh`) to local scripts; always use surgical block edits (`edit_file`) over full-file rewrites (`write_file`).
 
 ### Goal G3: 100% Cross-Platform & Dual-Client Parity
 1. **Dual-Client Separation**: Google Antigravity uses `_agents` (`./_agents/`, `~/_agents/`); GitHub Copilot uses `.agents` (`./.agents/`, `~/.agents/`, `.github/copilot-instructions.md`).
@@ -74,7 +74,7 @@ To prevent varying findings caused by differently phrased prompts, **every audit
 - **Rule A9 (Eval-Harness Invariant Coverage)**:
   Verify that every core behavioral invariant in `AGENTS.md` is backed by an active assertion in `evals/eval-cases.json` and `scripts/run-evals.ps1/.sh`.
 - **Rule A10 (Markdown Syntax, Relative Links & Command Hygiene)**:
-  Verify 0 broken relative links, 0 absolute local paths (`C:\`, `/home/`, `file:///`), 100% LF line endings, and `-NoProfile` on all PowerShell invocations (with `powershell -NoProfile` fallback documented for sandboxed Windows Store `pwsh.exe` aliases).
+  Verify 0 broken relative links, 0 absolute local paths (`C:\`, `/home/`, `file:///`), 100% OS-native line endings (`CRLF` on Windows, `LF` on Linux/macOS), and `-NoProfile` on all PowerShell invocations (with `powershell -NoProfile` fallback documented for sandboxed Windows Store `pwsh.exe` aliases).
 
 ---
 

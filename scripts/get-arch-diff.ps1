@@ -219,8 +219,9 @@ if ($UpdateCheckpoint) {
         doc_dir            = $cfg.DocDir
     } | ConvertTo-Json -Depth 4
 
-    # Ensure LF line endings
-    [System.IO.File]::WriteAllText($cfg.StateFile, ($payload.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
+    # Ensure OS-native line endings (CRLF on Windows, LF on Linux/macOS)
+    $nl = [System.Environment]::NewLine
+    [System.IO.File]::WriteAllText($cfg.StateFile, (($payload -replace "`r?`n", $nl) + $nl), (New-Object System.Text.UTF8Encoding($false)))
     Write-Host "[OK] Architecture sync checkpoint updated to $headCommit ($timestamp) at $($cfg.StateFile)"
     exit 0
 }
@@ -260,7 +261,8 @@ High-level description of system capabilities, primary user workflows, and bound
 Detailed component specifications are maintained incrementally under [docs/architecture/modules/](docs/architecture/modules/):
 - *List modules here*
 "@
-            [System.IO.File]::WriteAllText($rootArchPath, ($rootArchTemplate.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
+            $nl = [System.Environment]::NewLine
+            [System.IO.File]::WriteAllText($rootArchPath, (($rootArchTemplate -replace "`r?`n", $nl) + $nl), (New-Object System.Text.UTF8Encoding($false)))
         }
     } else {
         $extArchPath = Join-Path $cfg.DocDir "ARCHITECTURE.md"
@@ -284,7 +286,8 @@ High-level description of system capabilities, primary user workflows, and bound
 Detailed component specifications are maintained incrementally under [modules/](modules/):
 - *List modules here*
 "@
-            [System.IO.File]::WriteAllText($extArchPath, ($extArchTemplate.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
+            $nl = [System.Environment]::NewLine
+            [System.IO.File]::WriteAllText($extArchPath, (($extArchTemplate -replace "`r?`n", $nl) + $nl), (New-Object System.Text.UTF8Encoding($false)))
         }
     }
 
@@ -296,7 +299,8 @@ Detailed component specifications are maintained incrementally under [modules/](
         doc_dir            = $cfg.DocDir
     } | ConvertTo-Json -Depth 4
 
-    [System.IO.File]::WriteAllText($cfg.StateFile, ($payload.Replace("`r`n", "`n") + "`n"), [System.Text.Encoding]::UTF8)
+    $nl = [System.Environment]::NewLine
+    [System.IO.File]::WriteAllText($cfg.StateFile, (($payload -replace "`r?`n", $nl) + $nl), (New-Object System.Text.UTF8Encoding($false)))
 
     Write-Host "[OK] Architecture structure initialized at $($cfg.DocDir) [Mode: $($cfg.StorageMode), Source: $($cfg.ResolvedFrom)] (Baseline: $headCommit)"
     exit 0

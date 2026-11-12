@@ -124,33 +124,49 @@ foreach ($filePath in $filesToScan) {
         }
     }
 
-    # 2. Text extension check (only analyze text files for CRLF and content rules)
+    # 2. Text extension check (only analyze text files for line endings and content rules)
     $ext = [System.IO.Path]::GetExtension($filePath).ToLowerInvariant()
-    $textExtensions = @(".rs", ".cs", ".ts", ".js", ".py", ".go", ".json", ".md", ".yml", ".yaml", ".toml", ".ps1", ".sh", ".axaml", ".props", ".targets", ".xml", ".txt", ".csproj", ".sln", ".editorconfig", ".gitattributes", ".gitignore", ".manifest")
-    if (-not ($textExtensions -contains $ext)) {
+    $leafName = [System.IO.Path]::GetFileName($filePath)
+    $textExtensions = @(".rs", ".cs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".java", ".kt", ".kts", ".gradle", ".c", ".cpp", ".h", ".hpp", ".json", ".md", ".yml", ".yaml", ".toml", ".ps1", ".sh", ".axaml", ".props", ".targets", ".xml", ".txt", ".csproj", ".sln", ".editorconfig", ".gitattributes", ".gitignore", ".manifest")
+    if (-not (($textExtensions -contains $ext) -or ($leafName -match '^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$'))) {
         continue
     }
 
-    # Read bytes for CRLF check and text decode
+    # Read bytes for line-ending check and text decode
     try {
         $bytes = [System.IO.File]::ReadAllBytes($filePath)
         if ($bytes.Length -eq 0) { continue }
 
-        # 3. CRLF Line Ending Check (can be deferred to prepare-commit via -SkipLineEndings)
+        # 3. OS-Specific Line Ending Check (CRLF on Windows, LF on Linux/macOS; can be deferred via -SkipLineEndings)
         if (-not $SkipLineEndings) {
-            $hasCrlf = $false
-            for ($i = 0; $i -lt $bytes.Length - 1; $i++) {
-                if ($bytes[$i] -eq 13 -and $bytes[$i+1] -eq 10) {
-                    $hasCrlf = $true
-                    break
+            $isWindowsOs = ($env:OS -eq 'Windows_NT') -or ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+            $targetEol = if ($isWindowsOs) { "CRLF" } else { "LF" }
+            $hasWrongEol = $false
+
+            if ($targetEol -eq "CRLF") {
+                for ($i = 0; $i -lt $bytes.Length; $i++) {
+                    if ($bytes[$i] -eq 10) {
+                        if ($i -eq 0 -or $bytes[$i - 1] -ne 13) { $hasWrongEol = $true; break }
+                    } elseif ($bytes[$i] -eq 13) {
+                        if (($i + 1) -ge $bytes.Length -or $bytes[$i + 1] -ne 10) { $hasWrongEol = $true; break }
+                    }
+                }
+            } else {
+                for ($i = 0; $i -lt $bytes.Length; $i++) {
+                    if ($bytes[$i] -eq 13) {
+                        $hasWrongEol = $true
+                        break
+                    }
                 }
             }
 
-            if ($hasCrlf) {
+            $hasBom = ($bytes.Length -ge 3 -and $bytes[0] -eq 239 -and $bytes[1] -eq 187 -and $bytes[2] -eq 191)
+            if ($hasWrongEol -or ($Fix -and $hasBom)) {
                 if ($Fix) {
                     try {
-                        $rawText = [System.Text.Encoding]::UTF8.GetString($bytes)
-                        $fixedText = $rawText.Replace("`r`n", "`n")
+                        $rawText = [System.Text.Encoding]::UTF8.GetString($bytes).TrimStart([char]0xFEFF)
+                        $lfText = $rawText.Replace("`r`n", "`n").Replace("`r", "`n")
+                        $fixedText = if ($targetEol -eq "CRLF") { $lfText.Replace("`n", "`r`n") } else { $lfText }
                         [System.IO.File]::WriteAllText($filePath, $fixedText, (New-Object System.Text.UTF8Encoding($false)))
                         if ($StagedOnly) {
                             git -C $ScanPath add $filePath 2>$null
@@ -158,7 +174,7 @@ foreach ($filePath in $filesToScan) {
                         $fixedViolations.Add([PSCustomObject]@{
                             Rule = "LineEndings"
                             File = $relPath
-                            Action = "Normalized CRLF to LF"
+                            Action = if ($targetEol -eq "CRLF") { "Normalized LF to CRLF" } else { "Normalized CRLF to LF" }
                         })
                         $bytes = [System.IO.File]::ReadAllBytes($filePath)
                     } catch {
@@ -166,7 +182,7 @@ foreach ($filePath in $filesToScan) {
                             Rule = "LineEndings"
                             File = $relPath
                             Line = 0
-                            Message = "CRLF detected, auto-fix failed: $_"
+                            Message = "Line-ending violation detected (expected $targetEol), auto-fix failed: $_"
                         })
                     }
                 } else {
@@ -174,7 +190,7 @@ foreach ($filePath in $filesToScan) {
                         Rule = "LineEndings"
                         File = $relPath
                         Line = 0
-                        Message = "CRLF line endings detected (must be LF)"
+                        Message = if ($targetEol -eq "CRLF") { "LF line endings detected on Windows (must be CRLF)" } else { "CRLF line endings detected (must be LF)" }
                     })
                 }
             }

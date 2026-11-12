@@ -296,18 +296,16 @@ pwsh -NoProfile -File ./.agents/scripts/get-arch-diff.ps1
 
 ## 9. Atomic Git Commit, Prepare-Commit & Remote Push Governance
 
-Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prerequisite commit checks. Pure format and CRLF checks run in `prepare-commit` directly before committing (not during intermediate coding steps).
+Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prerequisite commit checks. Pure format and OS-native line-ending checks (`CRLF` on Windows, `LF` on Linux/macOS) run in `prepare-commit` directly before committing (not during intermediate coding steps).
 
 ### Prepare Commit vs. Direct Commit
 * **Prepare Commit (Review Flow)**:
   ```powershell
-  pwsh -NoProfile -File ./.agents/scripts/prepare-commit.ps1
-  # On unambiguous whitespace-only / CRLF issues:
   pwsh -NoProfile -File ./.agents/scripts/prepare-commit.ps1 -RevertWhitespaceOnly -FixLineEndings
   ```
-  If ambiguous legacy CRLF files exist, the user decides before normalizing via `-ForceNormalize`. Once clean, the commit message is shown for review; upon acceptance (with no intervening file edits), `git commit` executes directly with that exact approved message without re-running `prepare-commit` or checks.
+  Executes deferred format check (`spotlessCheck`, `cargo fmt`, `dotnet format`), whitespace-only diff cleanup, and safe OS-native line-ending normalization in a single pass. If ambiguous legacy files with non-native line endings exist, the user decides before normalizing via `-ForceNormalize`. Once clean, the commit message is shown for review; upon acceptance (with no intervening file edits), `git commit` executes directly with that exact approved message without re-running `prepare-commit`, formatters (`spotless`), or checks.
 * **Direct Commit (Standalone Skip-Confirmation, Keep Format Checks)**:
-  A standalone direct commit instruction (without prior preparation) skips commit-message approval, while still running `prepare-commit.ps1 -Direct` (format/CRLF checks and safe normalization) before `git commit`.
+  A standalone direct commit instruction (without prior preparation) skips commit-message approval, while still running `prepare-commit.ps1 -Direct` once (format/line-ending checks and safe normalization) before `git commit`.
 
 ### Antigravity (AGY)
 ```text

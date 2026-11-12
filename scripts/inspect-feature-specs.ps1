@@ -231,8 +231,9 @@ Target Layer: Core Domain / Application
         Replace("<Author>", "User / Agent").
         Replace("<slug>", $slug)
 
-    $newContentLf = $newContent.Replace("`r`n", "`n")
-    [System.IO.File]::WriteAllText($targetFile, $newContentLf, [System.Text.UTF8Encoding]::new($false))
+    $nl = [System.Environment]::NewLine
+    $newContentEol = ($newContent -replace "`r?`n", $nl)
+    [System.IO.File]::WriteAllText($targetFile, $newContentEol, [System.Text.UTF8Encoding]::new($false))
 
     $result = [PSCustomObject]@{
         status = "created"
@@ -274,7 +275,8 @@ if ($ArchiveConcept) {
     $content = Get-Content -Path $sourceFile.FullName -Raw -Encoding UTF8
     $content = $content -replace '(?m)^\s*status:\s*["'']?(DRAFT|UNDER_REVIEW|APPROVED)["'']?', 'status: ARCHIVED'
 
-    [System.IO.File]::WriteAllText($destFile, $content.Replace("`r`n", "`n"), [System.Text.UTF8Encoding]::new($false))
+    $nl = [System.Environment]::NewLine
+    [System.IO.File]::WriteAllText($destFile, ($content -replace "`r?`n", $nl), [System.Text.UTF8Encoding]::new($false))
     Remove-Item -Path $sourceFile.FullName -Force
 
     $result = [PSCustomObject]@{
@@ -365,9 +367,10 @@ Feature specification for <Feature Title>.
         Replace("<slug>", $slug).
         Replace("<FILE_NAME>", $fileName)
 
-    # Ensure LF line endings
-    $newContentLf = $newContent.Replace("`r`n", "`n")
-    [System.IO.File]::WriteAllText($targetFile, $newContentLf, [System.Text.UTF8Encoding]::new($false))
+    # Ensure OS-native line endings (CRLF on Windows, LF on Linux/macOS)
+    $nl = [System.Environment]::NewLine
+    $newContentEol = ($newContent -replace "`r?`n", $nl)
+    [System.IO.File]::WriteAllText($targetFile, $newContentEol, [System.Text.UTF8Encoding]::new($false))
 
     # Append to docs/ROADMAP.md if present
     $roadmapUpdated = $false
@@ -376,8 +379,8 @@ Feature specification for <Feature Title>.
         $newRow = "| Phase $Phase | `$Id` | $Title | PROPOSED | `$Scope` | [$relPath]($relPath) | `$TargetRelease` |"
         $rmContent = Get-Content -Path $roadmapFile -Raw -Encoding UTF8
         if ($rmContent -match '\| :--- \| :--- \|') {
-            $rmContent = $rmContent.TrimEnd() + "`n" + $newRow + "`n"
-            [System.IO.File]::WriteAllText($roadmapFile, $rmContent.Replace("`r`n", "`n"), [System.Text.UTF8Encoding]::new($false))
+            $rmContent = $rmContent.TrimEnd() + $nl + $newRow + $nl
+            [System.IO.File]::WriteAllText($roadmapFile, ($rmContent -replace "`r?`n", $nl), [System.Text.UTF8Encoding]::new($false))
             $roadmapUpdated = $true
         }
     }
@@ -455,8 +458,9 @@ if ($CheckDrift) {
     }
 
     if ($UpdateState) {
+        $nl = [System.Environment]::NewLine
         $jsonState = $currentState | ConvertTo-Json -Depth 4
-        [System.IO.File]::WriteAllText($stateFile, $jsonState.Replace("`r`n", "`n"), [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText($stateFile, ($jsonState -replace "`r?`n", $nl), [System.Text.UTF8Encoding]::new($false))
     }
 
     $driftResult = [PSCustomObject]@{

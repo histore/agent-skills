@@ -104,6 +104,49 @@ elif [[ -f "${PROJECT_ROOT}/go.mod" ]]; then
   FORMAT_CHECK_CMD="gofmt -l ."
   FORMAT_FIX_CMD="gofmt -w ."
   MANIFEST="go.mod"
+elif [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/build.gradle" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle" ]]; then
+  STACK="gradle"
+  GRADLE_CMD="gradle"
+  [[ -f "${PROJECT_ROOT}/gradlew" ]] && GRADLE_CMD="./gradlew"
+  HAS_SPOTLESS=false
+  if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qi "spotless" {} + 2>/dev/null; then
+    HAS_SPOTLESS=true
+  fi
+  if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" \) -exec grep -qi "kotlin" {} + 2>/dev/null; then
+    LANG="kotlin"
+  else
+    LANG="java"
+  fi
+  if [[ "$HAS_SPOTLESS" == "true" ]]; then
+    BUILD_CMD="${GRADLE_CMD} classes testClasses -x spotlessCheck -q"
+    TEST_CMD="${GRADLE_CMD} test -x spotlessCheck -q"
+    FILTER_SYNTAX="${GRADLE_CMD} test --tests {filter} -x spotlessCheck -q"
+    FORMAT_CHECK_CMD="${GRADLE_CMD} spotlessCheck -q"
+    FORMAT_FIX_CMD="${GRADLE_CMD} spotlessApply -q"
+  else
+    BUILD_CMD="${GRADLE_CMD} classes testClasses -q"
+    TEST_CMD="${GRADLE_CMD} test -q"
+    FILTER_SYNTAX="${GRADLE_CMD} test --tests {filter} -q"
+  fi
+  LINT_CMD=""
+  if [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]]; then MANIFEST="build.gradle.kts"
+  elif [[ -f "${PROJECT_ROOT}/build.gradle" ]]; then MANIFEST="build.gradle"
+  elif [[ -f "${PROJECT_ROOT}/settings.gradle.kts" ]]; then MANIFEST="settings.gradle.kts"
+  else MANIFEST="settings.gradle"; fi
+elif [[ -f "${PROJECT_ROOT}/pom.xml" ]]; then
+  STACK="maven"
+  LANG="java"
+  MVN_CMD="mvn"
+  [[ -f "${PROJECT_ROOT}/mvnw" ]] && MVN_CMD="./mvnw"
+  BUILD_CMD="${MVN_CMD} test-compile -q"
+  TEST_CMD="${MVN_CMD} test -q"
+  FILTER_SYNTAX="${MVN_CMD} test -q -Dtest={filter}"
+  LINT_CMD=""
+  if grep -qi "spotless" "${PROJECT_ROOT}/pom.xml" 2>/dev/null; then
+    FORMAT_CHECK_CMD="${MVN_CMD} spotless:check -q"
+    FORMAT_FIX_CMD="${MVN_CMD} spotless:apply -q"
+  fi
+  MANIFEST="pom.xml"
 fi
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then

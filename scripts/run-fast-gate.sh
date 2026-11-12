@@ -121,8 +121,8 @@ if [[ "$FORCE" != "true" && -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && "$STACK"
         FILE_PATH="${line:3}"
         [[ "$FILE_PATH" =~ "->" ]] && FILE_PATH="${FILE_PATH##*-> }"
         FILE_NAME="$(basename "$FILE_PATH")"
-        if [[ "$FILE_NAME" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$ ]] || \
-           [[ "$FILE_NAME" =~ ^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|build\.gradle(\.kts)?|CMakeLists\.txt|Makefile)$ ]]; then
+        if [[ "$FILE_NAME" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$ ]] || \
+           [[ "$FILE_NAME" =~ ^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|(build|settings)\.gradle(\.kts)?|libs\.versions\.toml|CMakeLists\.txt|Makefile)$ ]]; then
           HAS_CODE=true
           break
         fi

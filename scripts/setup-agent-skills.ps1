@@ -229,7 +229,8 @@ description: "Universal Clean Code, Clean Architecture, and Zero-Reload Copilot 
 $inlinedBody
 "@
 
-        [System.IO.File]::WriteAllText($userInstructionsFile, ($instructionContent -replace "`r?`n", "`n"), (New-Object System.Text.UTF8Encoding($false)))
+        $nl = [System.Environment]::NewLine
+        [System.IO.File]::WriteAllText($userInstructionsFile, ($instructionContent -replace "`r?`n", $nl), (New-Object System.Text.UTF8Encoding($false)))
         Write-Host "  [OK] Generated Zero-Reload Copilot user instructions (inlined via .agents): $userInstructionsFile" -ForegroundColor Green
 
         Write-Host "`nGitHub Copilot CLI Setup (~/.agents):" -ForegroundColor Cyan
@@ -335,7 +336,8 @@ Dependencies point strictly inward:
 - Living Feature Specifications: [docs/ROADMAP.md](docs/ROADMAP.md)
 - Module Architecture Specs: ``docs/architecture/modules/``
 "@
-            [System.IO.File]::WriteAllText($archFile, ($archContent -replace "`r?`n", "`n"), [System.Text.Encoding]::UTF8)
+            $nl = [System.Environment]::NewLine
+            [System.IO.File]::WriteAllText($archFile, ($archContent -replace "`r?`n", $nl), (New-Object System.Text.UTF8Encoding($false)))
             Write-Host "  [OK] Scaffolded ARCHITECTURE.md (Stack: $detectedStacks)" -ForegroundColor Green
         }
 
@@ -356,7 +358,8 @@ Dependencies point strictly inward:
 | Phase | Feature ID | Title | Status | Scope | Specification File | Target Release |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 "@
-            [System.IO.File]::WriteAllText($roadmapFile, ($roadmapContent -replace "`r?`n", "`n"), [System.Text.Encoding]::UTF8)
+            $nl = [System.Environment]::NewLine
+            [System.IO.File]::WriteAllText($roadmapFile, ($roadmapContent -replace "`r?`n", $nl), (New-Object System.Text.UTF8Encoding($false)))
             Write-Host "  [OK] Scaffolded docs/ROADMAP.md" -ForegroundColor Green
         }
     }

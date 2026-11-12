@@ -783,6 +783,15 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
     assert_condition 0 "prepare-commit scripts exist (.ps1 and .sh)" "prepare-commit scripts missing"
 
     TEMP_PREP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'prep')
+    printf 'plugins { id("com.diffplug.spotless") }\n' > "$TEMP_PREP_DIR/build.gradle.kts"
+    GRADLE_STACK=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$TEMP_PREP_DIR" --json 2>/dev/null || true)
+    if echo "$GRADLE_STACK" | grep -q '"stack":"gradle"' && echo "$GRADLE_STACK" | grep -q -- '-x spotlessCheck' && echo "$GRADLE_STACK" | grep -q '"lint_cmd":""' && echo "$GRADLE_STACK" | grep -q 'spotlessCheck'; then
+        assert_condition 0 "detect-tech-stack.sh excludes spotlessCheck from Gradle build/test and defers it exclusively to format_check_cmd" "detect-tech-stack.sh failed to isolate Gradle spotlessCheck"
+    else
+        assert_condition 1 "detect-tech-stack.sh excludes spotlessCheck from Gradle build/test and defers it exclusively to format_check_cmd" "detect-tech-stack.sh failed to isolate Gradle spotlessCheck"
+    fi
+    rm -f "$TEMP_PREP_DIR/build.gradle.kts"
+
     git -C "$TEMP_PREP_DIR" init -q 2>/dev/null || true
     git -C "$TEMP_PREP_DIR" config user.email "test@example.com"
     git -C "$TEMP_PREP_DIR" config user.name "Test User"

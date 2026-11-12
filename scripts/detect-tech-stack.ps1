@@ -127,6 +127,52 @@ elseif (Test-Path (Join-Path $ProjectRoot "go.mod")) {
     $detected.format_fix_cmd = "gofmt -w ."
     $detected.manifest_file = "go.mod"
 }
+# 6. Gradle (build.gradle.kts, build.gradle, settings.gradle.kts, settings.gradle)
+elseif ((Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) -or (Test-Path (Join-Path $ProjectRoot "build.gradle")) -or (Test-Path (Join-Path $ProjectRoot "settings.gradle.kts")) -or (Test-Path (Join-Path $ProjectRoot "settings.gradle"))) {
+    $isKts = (Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) -or (Test-Path (Join-Path $ProjectRoot "settings.gradle.kts"))
+    $isWin = ($env:OS -eq 'Windows_NT') -or ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+    $gradleCmd = if ($isWin -and (Test-Path (Join-Path $ProjectRoot "gradlew.bat"))) { ".\gradlew.bat" } elseif (Test-Path (Join-Path $ProjectRoot "gradlew")) { "./gradlew" } else { "gradle" }
+    $gradleRaw = ""
+    $gradleFiles = Get-ChildItem -Path $ProjectRoot -Include "*.gradle", "*.gradle.kts", "libs.versions.toml" -File -Depth 2 -ErrorAction SilentlyContinue
+    foreach ($gf in $gradleFiles) {
+        try { $gradleRaw += "`n" + (Get-Content -Path $gf.FullName -Raw -Encoding UTF8) } catch {}
+    }
+    $hasSpotless = ($gradleRaw -match '(?i)spotless')
+    $isKotlinLang = ($gradleRaw -match '(?i)kotlin') -or ((Get-ChildItem -Path $ProjectRoot -Filter "*.kt" -File -Depth 3 -ErrorAction SilentlyContinue).Count -gt 0)
+    $detected.stack = "gradle"
+    $detected.language = if ($isKotlinLang) { "kotlin" } else { "java" }
+    if ($hasSpotless) {
+        $detected.build_cmd = "$gradleCmd classes testClasses -x spotlessCheck -q"
+        $detected.test_cmd = "$gradleCmd test -x spotlessCheck -q"
+        $detected.test_filter_syntax = "$gradleCmd test --tests {filter} -x spotlessCheck -q"
+        $detected.format_check_cmd = "$gradleCmd spotlessCheck -q"
+        $detected.format_fix_cmd = "$gradleCmd spotlessApply -q"
+    } else {
+        $detected.build_cmd = "$gradleCmd classes testClasses -q"
+        $detected.test_cmd = "$gradleCmd test -q"
+        $detected.test_filter_syntax = "$gradleCmd test --tests {filter} -q"
+    }
+    $detected.lint_cmd = ""
+    $detected.manifest_file = if (Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) { "build.gradle.kts" } elseif (Test-Path (Join-Path $ProjectRoot "build.gradle")) { "build.gradle" } elseif ($isKts) { "settings.gradle.kts" } else { "settings.gradle" }
+}
+# 7. Maven (pom.xml)
+elseif (Test-Path (Join-Path $ProjectRoot "pom.xml")) {
+    $isWin = ($env:OS -eq 'Windows_NT') -or ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+    $mvnCmd = if ($isWin -and (Test-Path (Join-Path $ProjectRoot "mvnw.cmd"))) { ".\mvnw.cmd" } elseif (Test-Path (Join-Path $ProjectRoot "mvnw")) { "./mvnw" } else { "mvn" }
+    $pomRaw = try { Get-Content -Path (Join-Path $ProjectRoot "pom.xml") -Raw -Encoding UTF8 } catch { "" }
+    $hasSpotless = ($pomRaw -match '(?i)spotless')
+    $detected.stack = "maven"
+    $detected.language = "java"
+    $detected.build_cmd = "$mvnCmd test-compile -q"
+    $detected.test_cmd = "$mvnCmd test -q"
+    $detected.test_filter_syntax = "$mvnCmd test -q -Dtest={filter}"
+    $detected.lint_cmd = ""
+    if ($hasSpotless) {
+        $detected.format_check_cmd = "$mvnCmd spotless:check -q"
+        $detected.format_fix_cmd = "$mvnCmd spotless:apply -q"
+    }
+    $detected.manifest_file = "pom.xml"
+}
 
 $jsonStr = $detected | ConvertTo-Json -Compress
 

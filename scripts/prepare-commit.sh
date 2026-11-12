@@ -155,13 +155,18 @@ FORMAT_ERRORS=()
 HAS_EXEC=false
 for f in "${HOST_FILES[@]:-}"; do
   [[ -z "$f" ]] && continue
-  if [[ "$f" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$ ]]; then
+  if [[ "$f" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$ ]]; then
     HAS_EXEC=true
     break
   fi
 done
 
-if [[ "$HAS_EXEC" == "true" && -f "${SCRIPT_DIR}/detect-tech-stack.sh" ]]; then
+HAS_DECISION_ITEMS=false
+if [[ ${#WS_ONLY_FILES[@]} -gt 0 || ${#AMBIGUOUS_FILES[@]} -gt 0 || ${#CRLF_FILES[@]} -gt 0 ]]; then
+  HAS_DECISION_ITEMS=true
+fi
+
+if [[ "$HAS_EXEC" == "true" && "$HAS_DECISION_ITEMS" == "false" && ${#SUBMODULE_FILES[@]} -eq 0 && -f "${SCRIPT_DIR}/detect-tech-stack.sh" ]]; then
   STACK_JSON=$(bash "${SCRIPT_DIR}/detect-tech-stack.sh" "$REPO_ROOT" --json 2>/dev/null || echo '{}')
   if command -v python3 &>/dev/null; then
     {
@@ -196,8 +201,7 @@ EOF
       FORMAT_STATUS="pass"
     else
       if [[ "$FORMAT_FIX" == "true" && -n "$FORMAT_FIX_CMD" && ${#AMBIGUOUS_FILES[@]} -eq 0 ]]; then
-        (cd "$REPO_ROOT" && eval "$FORMAT_FIX_CMD") >/dev/null 2>&1 || true
-        if run_fmt_check; then
+        if (cd "$REPO_ROOT" && eval "$FORMAT_FIX_CMD") >/dev/null 2>&1; then
           FORMAT_STATUS="pass"
         else
           FORMAT_STATUS="fail"
@@ -321,10 +325,10 @@ MODE_NAME=$([[ "$DIRECT_MODE" == "true" ]] && echo "direct" || echo "prepare")
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
   escaped_commit=$(json_escape "$SUGGESTED_COMMIT")
-  echo "{\"status\":\"$STATUS\",\"mode\":\"$MODE_NAME\",\"next_step\":\"$NEXT_STEP\",\"host_files_count\":${#HOST_FILES[@]},\"reverted_whitespace_count\":${#REVERTED_WS_FILES[@]},\"normalized_count\":${#NORMALIZED_FILES[@]},\"whitespace_only_count\":${#WS_ONLY_FILES[@]},\"crlf_count\":${#CRLF_FILES[@]},\"ambiguous_count\":${#AMBIGUOUS_FILES[@]},\"submodule_count\":${#SUBMODULE_FILES[@]},\"format_status\":\"$FORMAT_STATUS\",\"guardrails_status\":\"$GUARDRAILS_STATUS\",\"arch_status\":\"$ARCH_STATUS\",\"suggested_commit_message\":\"$escaped_commit\"}"
+  echo "{\"status\":\"$STATUS\",\"mode\":\"$MODE_NAME\",\"target_eol\":\"LF\",\"next_step\":\"$NEXT_STEP\",\"host_files_count\":${#HOST_FILES[@]},\"reverted_whitespace_count\":${#REVERTED_WS_FILES[@]},\"normalized_count\":${#NORMALIZED_FILES[@]},\"whitespace_only_count\":${#WS_ONLY_FILES[@]},\"eol_count\":${#CRLF_FILES[@]},\"crlf_count\":${#CRLF_FILES[@]},\"ambiguous_count\":${#AMBIGUOUS_FILES[@]},\"submodule_count\":${#SUBMODULE_FILES[@]},\"format_status\":\"$FORMAT_STATUS\",\"guardrails_status\":\"$GUARDRAILS_STATUS\",\"arch_status\":\"$ARCH_STATUS\",\"suggested_commit_message\":\"$escaped_commit\"}"
 else
   echo "============================================="
-  echo "Commit Preparation ($([[ "$DIRECT_MODE" == "true" ]] && echo "DIRECT" || echo "PREPARE"))"
+  echo "Commit Preparation ($([[ "$DIRECT_MODE" == "true" ]] && echo "DIRECT" || echo "PREPARE")) [Target EOL: LF]"
   echo "============================================="
   echo "Status: $STATUS | Next Step: $NEXT_STEP"
   if [[ ${#REVERTED_WS_FILES[@]} -gt 0 ]]; then echo "Reverted whitespace-only files: $(join_csv "${REVERTED_WS_FILES[@]}")"; fi

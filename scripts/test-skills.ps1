@@ -162,20 +162,31 @@ foreach ($file in $markdownFiles) {
 Assert-Condition ($ghostMatchesFound.Count -eq 0) "Zero occurrences of retired V1 or ghost roles across all markdown files" "Found retired/ghost roles in: $($ghostMatchesFound -join ', ')"
 Assert-Condition ($orphanSkillRefs.Count -eq 0) "All 'ask-*' skill references across markdown files match active skills/ directories" "Found orphan skill references in: $($orphanSkillRefs -join ', ')"
 
-# 4. Check for CRLF line endings
-Write-Host "`n4. Checking line endings (must be LF)..." -ForegroundColor Yellow
-$crlfFiles = [System.Collections.Generic.List[string]]::new()
+# 4. Check for OS-native line endings (CRLF on Windows, LF on Linux/macOS)
+$isWindowsOs = ($env:OS -eq 'Windows_NT') -or ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+$expectedEol = if ($isWindowsOs) { "CRLF" } else { "LF" }
+Write-Host "`n4. Checking line endings (must be $expectedEol)..." -ForegroundColor Yellow
+$wrongEolFiles = [System.Collections.Generic.List[string]]::new()
 $trackedFiles = Get-ChildItem -Path $repoRoot -Recurse -File | Where-Object { $_.FullName -notmatch '\\\.git\\' }
 foreach ($file in $trackedFiles) {
     $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
-    for ($i = 0; $i -lt $bytes.Length - 1; $i++) {
-        if ($bytes[$i] -eq 13 -and $bytes[$i+1] -eq 10) {
-            $crlfFiles.Add($file.FullName.Replace($repoRoot + "\", ""))
-            break
+    if ($expectedEol -eq "CRLF") {
+        for ($i = 0; $i -lt $bytes.Length; $i++) {
+            if (($bytes[$i] -eq 10 -and ($i -eq 0 -or $bytes[$i - 1] -ne 13)) -or ($bytes[$i] -eq 13 -and (($i + 1) -ge $bytes.Length -or $bytes[$i + 1] -ne 10))) {
+                $wrongEolFiles.Add($file.FullName.Replace($repoRoot + "\", ""))
+                break
+            }
+        }
+    } else {
+        for ($i = 0; $i -lt $bytes.Length; $i++) {
+            if ($bytes[$i] -eq 13) {
+                $wrongEolFiles.Add($file.FullName.Replace($repoRoot + "\", ""))
+                break
+            }
         }
     }
 }
-Assert-Condition ($crlfFiles.Count -eq 0) "All repository files use LF line endings" "CRLF line endings detected in: $($crlfFiles -join ', ')"
+Assert-Condition ($wrongEolFiles.Count -eq 0) "All repository files use $expectedEol line endings" "Non-$expectedEol line endings detected in: $($wrongEolFiles -join ', ')"
 
 # 5. Validate model detection persistent caching functionality
 Write-Host "`n5. Testing detect-models.ps1 24h caching..." -ForegroundColor Yellow
@@ -890,7 +901,7 @@ New-Item -ItemType Directory -Path $tempRustDir | Out-Null
 try {
     git -C $tempRustDir init -q 2>$null
     $badRustFile = Join-Path $tempRustDir "lib.rs"
-    [System.IO.File]::WriteAllText($badRustFile, "#[unsafe(no_mangle)]`npub fn demo() { let _x = unsafe { 42 }; }`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($badRustFile, "#[unsafe(no_mangle)]`r`npub fn demo() { let _x = unsafe { 42 }; }`r`n", (New-Object System.Text.UTF8Encoding($false)))
     $wtGuardOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $tempRustDir -WorkingTree -JsonOutput | ConvertFrom-Json
     Assert-Condition ($wtGuardOut.status -eq "fail" -and $wtGuardOut.violations_count -ge 2) "scan-guardrails.ps1 -WorkingTree catches unstaged inline unsafe and Rust 2024 #[unsafe(...)]" "scan-guardrails.ps1 -WorkingTree missed unstaged unsafe Rust constructs"
 } finally {
@@ -949,16 +960,22 @@ Assert-Condition ($auditorSkillContent -match 'Rules A1' -and $auditorSkillConte
 $tempFmtDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $tempFmtDir | Out-Null
 try {
-    [System.IO.File]::WriteAllText((Join-Path $tempFmtDir "App.csproj"), "<Project Sdk=`"Microsoft.NET.Sdk`"></Project>`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $tempFmtDir "App.csproj"), "<Project Sdk=`"Microsoft.NET.Sdk`"></Project>`r`n", (New-Object System.Text.UTF8Encoding($false)))
     $dotnetStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -ProjectRoot $tempFmtDir -JsonOutput | ConvertFrom-Json
     Assert-Condition ([string]::IsNullOrEmpty($dotnetStack.lint_cmd) -and $dotnetStack.format_check_cmd -match 'dotnet format') "detect-tech-stack.ps1 separates dotnet format into format_check_cmd (fast inner-loop)" "detect-tech-stack.ps1 still couples dotnet format into lint_cmd"
+    Remove-Item (Join-Path $tempFmtDir "App.csproj") -Force
 
-    $crlfRust = Join-Path $tempFmtDir "sample.rs"
-    [System.IO.File]::WriteAllText($crlfRust, "pub fn ok() -> i32 { 1 }`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $tempFmtDir "build.gradle.kts"), "plugins { id(`"com.diffplug.spotless`") }`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $gradleStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -ProjectRoot $tempFmtDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($gradleStack.stack -eq "gradle" -and $gradleStack.build_cmd -match '-x spotlessCheck' -and $gradleStack.test_cmd -match '-x spotlessCheck' -and [string]::IsNullOrEmpty($gradleStack.lint_cmd) -and $gradleStack.format_check_cmd -match 'spotlessCheck') "detect-tech-stack.ps1 excludes spotlessCheck from Gradle build/test and defers it exclusively to format_check_cmd" "detect-tech-stack.ps1 failed to isolate Gradle spotlessCheck ($($gradleStack | ConvertTo-Json -Compress))"
+    Remove-Item (Join-Path $tempFmtDir "build.gradle.kts") -Force
+
+    $nonNativeRust = Join-Path $tempFmtDir "sample.rs"
+    [System.IO.File]::WriteAllText($nonNativeRust, "pub fn ok() -> i32 { 1 }`n", (New-Object System.Text.UTF8Encoding($false)))
     $skipEolOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $scanGuardPs1 -ScanPath $tempFmtDir -SkipLineEndings -JsonOutput | ConvertFrom-Json
-    Assert-Condition ($skipEolOut.status -eq "pass") "scan-guardrails.ps1 -SkipLineEndings defers CRLF check during inner-loop" "scan-guardrails.ps1 -SkipLineEndings failed on safe CRLF file"
+    Assert-Condition ($skipEolOut.status -eq "pass") "scan-guardrails.ps1 -SkipLineEndings defers line-ending check during inner-loop" "scan-guardrails.ps1 -SkipLineEndings failed on non-native EOL file"
 
-    # Git repo tests for prepare-commit.ps1
+    # Git repo tests for prepare-commit.ps1 (Windows target EOL = CRLF)
     $prepRepo = Join-Path $tempFmtDir "repo"
     New-Item -ItemType Directory -Path $prepRepo | Out-Null
     git -C $prepRepo init -q 2>$null
@@ -966,42 +983,44 @@ try {
     git -C $prepRepo config user.name "Test User"
     git -C $prepRepo config core.autocrlf false
 
-    $lfFile = Join-Path $prepRepo "notes.md"
-    $legacyCrlfFile = Join-Path $prepRepo "legacy.txt"
-    [System.IO.File]::WriteAllText($lfFile, "# Title`nLine 2`n", (New-Object System.Text.UTF8Encoding($false)))
-    [System.IO.File]::WriteAllText($legacyCrlfFile, "alpha`r`nbeta`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $nativeCrlfFile = Join-Path $prepRepo "notes.md"
+    $legacyLfFile = Join-Path $prepRepo "legacy.txt"
+    [System.IO.File]::WriteAllText($nativeCrlfFile, "# Title`r`nLine 2`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($legacyLfFile, "alpha`nbeta`n", (New-Object System.Text.UTF8Encoding($false)))
     git -C $prepRepo add notes.md legacy.txt
     git -C $prepRepo commit -q -m "chore: init"
 
-    # 46a. Whitespace-only (CRLF) change on LF file -> detected and reverted cleanly
-    [System.IO.File]::WriteAllText($lfFile, "# Title`r`nLine 2`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    # 46a. Whitespace-only (LF) change on CRLF file -> detected and reverted cleanly
+    [System.IO.File]::WriteAllText($nativeCrlfFile, "# Title`nLine 2`n", (New-Object System.Text.UTF8Encoding($false)))
     $wsDetect = $null
     try { $wsDetect = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -JsonOutput 2>$null | ConvertFrom-Json } catch {}
-    Assert-Condition ($null -ne $wsDetect -and $wsDetect.status -eq "needs_decision" -and ($wsDetect.whitespace_only_files -contains "notes.md") -and [string]::IsNullOrEmpty($wsDetect.suggested_commit_message)) "prepare-commit.ps1 detects whitespace/CRLF-only diff against HEAD and withholds commit message until clean" "prepare-commit.ps1 failed to detect whitespace-only diff or leaked draft message"
+    Assert-Condition ($null -ne $wsDetect -and $wsDetect.status -eq "needs_decision" -and ($wsDetect.whitespace_only_files -contains "notes.md") -and [string]::IsNullOrEmpty($wsDetect.suggested_commit_message)) "prepare-commit.ps1 detects whitespace/EOL-only diff against HEAD and withholds commit message until clean" "prepare-commit.ps1 failed to detect whitespace-only diff or leaked draft message"
 
     $wsRevert = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -RevertWhitespaceOnly -JsonOutput | ConvertFrom-Json
     Assert-Condition ($wsRevert.status -eq "clean" -and ($wsRevert.reverted_whitespace_files -contains "notes.md")) "prepare-commit.ps1 -RevertWhitespaceOnly reverts noise diffs to HEAD" "prepare-commit.ps1 failed to revert whitespace-only diff"
 
-    # 46b. Real edit + CRLF on LF file -> normalized automatically under -Direct
-    [System.IO.File]::WriteAllText($lfFile, "# Title`r`nLine 2`r`nLine 3`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    # 46b. Real edit + LF on CRLF file -> normalized automatically to CRLF on Windows under -Direct
+    [System.IO.File]::WriteAllText($nativeCrlfFile, "# Title`nLine 2`nLine 3`n", (New-Object System.Text.UTF8Encoding($false)))
     $directRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -Direct -JsonOutput | ConvertFrom-Json
-    Assert-Condition ($directRes.status -eq "ready" -and $directRes.next_step -eq "execute_commit" -and ($directRes.normalized_files -contains "notes.md")) "prepare-commit.ps1 -Direct normalizes unambiguous CRLF->LF and signals execute_commit" "prepare-commit.ps1 -Direct failed on unambiguous edit"
+    $notesAfterDirect = [System.IO.File]::ReadAllText($nativeCrlfFile, [System.Text.Encoding]::UTF8)
+    Assert-Condition ($directRes.status -eq "ready" -and $directRes.target_eol -eq "CRLF" -and $directRes.next_step -eq "execute_commit" -and ($directRes.normalized_files -contains "notes.md") -and $notesAfterDirect.Contains("`r`n") -and ($notesAfterDirect -notmatch '(?<!\r)\n')) "prepare-commit.ps1 -Direct normalizes unambiguous LF->CRLF on Windows and signals execute_commit" "prepare-commit.ps1 -Direct failed on unambiguous Windows CRLF normalization"
 
-    # 46c. Ambiguous legacy CRLF file -> pauses for user decision even with -Direct until -ForceNormalize
-    [System.IO.File]::WriteAllText($legacyCrlfFile, "alpha`r`nbeta`r`ngamma`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    # 46c. Ambiguous legacy LF file -> pauses for user decision even with -Direct until -ForceNormalize
+    [System.IO.File]::WriteAllText($legacyLfFile, "alpha`nbeta`ngamma`n", (New-Object System.Text.UTF8Encoding($false)))
     $ambigRes = $null
     try { $ambigRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -Direct -JsonOutput 2>$null | ConvertFrom-Json } catch {}
-    Assert-Condition ($null -ne $ambigRes -and $ambigRes.status -eq "needs_decision" -and ($ambigRes.ambiguous_files -contains "legacy.txt")) "prepare-commit.ps1 pauses for user decision on ambiguous legacy CRLF file" "prepare-commit.ps1 normalized ambiguous file without permission"
+    Assert-Condition ($null -ne $ambigRes -and $ambigRes.status -eq "needs_decision" -and ($ambigRes.ambiguous_files -contains "legacy.txt")) "prepare-commit.ps1 pauses for user decision on ambiguous legacy LF file on Windows" "prepare-commit.ps1 normalized ambiguous file without permission"
 
     $forceRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -Direct -ForceNormalize -JsonOutput | ConvertFrom-Json
-    Assert-Condition ($forceRes.status -eq "ready" -and ($forceRes.normalized_files -contains "legacy.txt")) "prepare-commit.ps1 -ForceNormalize normalizes legacy CRLF after confirmation" "prepare-commit.ps1 -ForceNormalize failed"
+    $legacyAfterForce = [System.IO.File]::ReadAllText($legacyLfFile, [System.Text.Encoding]::UTF8)
+    Assert-Condition ($forceRes.status -eq "ready" -and ($forceRes.normalized_files -contains "legacy.txt") -and $legacyAfterForce.Contains("`r`n") -and ($legacyAfterForce -notmatch '(?<!\r)\n')) "prepare-commit.ps1 -ForceNormalize normalizes legacy LF->CRLF on Windows after confirmation" "prepare-commit.ps1 -ForceNormalize failed"
 
     # 46d. Governance/tooling mixed commit heuristic -> chore(tooling) (not feat(tests))
     git -C $prepRepo add notes.md legacy.txt
     git -C $prepRepo commit -q -m "chore: sync"
     New-Item -ItemType Directory -Path (Join-Path $prepRepo "scripts") -Force | Out-Null
-    [System.IO.File]::WriteAllText((Join-Path $prepRepo "AGENTS.md"), "# Agents`n", (New-Object System.Text.UTF8Encoding($false)))
-    [System.IO.File]::WriteAllText((Join-Path $prepRepo "scripts\test-skills.ps1"), "Write-Host 'ok'`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo "AGENTS.md"), "# Agents`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo "scripts\test-skills.ps1"), "Write-Host 'ok'`r`n", (New-Object System.Text.UTF8Encoding($false)))
     $toolingRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -JsonOutput | ConvertFrom-Json
     Assert-Condition ($toolingRes.status -eq "ready" -and $toolingRes.suggested_commit_message -match '^chore\(tooling\):') "prepare-commit.ps1 classifies docs+scripts/test-skills as chore(tooling) ($($toolingRes.suggested_commit_message))" "prepare-commit.ps1 misclassified governance/tooling commit: $($toolingRes.suggested_commit_message)"
 } finally {

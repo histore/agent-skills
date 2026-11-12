@@ -1,27 +1,27 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Deterministic zero-token commit preparation: deferred format/CRLF checks, whitespace-only diff cleanup, and commit message drafting.
+    Deterministic zero-token commit preparation: deferred format/line-ending checks, whitespace-only diff cleanup, and commit message drafting.
 .DESCRIPTION
     Executes deferred pre-commit hygiene without LLM token overhead:
-    1. Detects and optionally reverts whitespace/CRLF-only diffs against HEAD (-RevertWhitespaceOnly).
-    2. Distinguishes unambiguous CRLF regressions from legacy CRLF files (ambiguous -> user decision).
-    3. Normalizes unambiguous CRLF -> LF deterministically (-FixLineEndings or -Direct).
+    1. Detects and optionally reverts whitespace/line-ending-only diffs against HEAD (-RevertWhitespaceOnly).
+    2. Distinguishes unambiguous line-ending regressions from legacy non-native files (ambiguous -> user decision).
+    3. Normalizes unambiguous line endings deterministically to the OS target (CRLF on Windows, LF on Linux/macOS) (-FixLineEndings or -Direct).
     4. Runs deferred tech-stack formatter check (format_check_cmd) and optional auto-format (-Format).
-    5. Runs final guardrails (Safe-Rust, Secrets, CRLF, Submodule isolation) & Clean Architecture check.
+    5. Runs final guardrails (Safe-Rust, Secrets, LineEndings, Submodule isolation) & Clean Architecture check.
     6. Outputs a suggested Conventional Commit message and clear next-step state.
 .PARAMETER RepoRoot
     Path to the host repository root. Defaults to current repository root.
 .PARAMETER RevertWhitespaceOnly
-    Automatically reverts tracked files whose diff against HEAD contains only whitespace/CRLF changes.
+    Automatically reverts tracked files whose diff against HEAD contains only whitespace/line-ending changes.
 .PARAMETER FixLineEndings
-    Normalizes unambiguous CRLF line endings to LF in modified/untracked files.
+    Normalizes unambiguous line endings to OS target (CRLF on Windows, LF on Linux/macOS) in modified/untracked files.
 .PARAMETER Format
     Runs the detected tech-stack formatter fix command if format checks fail.
 .PARAMETER ForceNormalize
-    Includes ambiguous legacy CRLF files in line-ending normalization (use only after user confirmation).
+    Includes ambiguous legacy files in line-ending normalization (use only after user confirmation).
 .PARAMETER Direct
-    Direct-commit mode: automatically performs safe whitespace-only reverts and unambiguous LF normalizations
+    Direct-commit mode: automatically performs safe whitespace-only reverts and unambiguous OS-native line-ending normalizations
     without pausing for commit-message confirmation, while still enforcing format checks and stopping on ambiguous files.
 .PARAMETER JsonOutput
     Outputs structured JSON result.
@@ -91,6 +91,8 @@ $psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
 
 $doRevertWs = $RevertWhitespaceOnly -or $Direct
 $doFixEol = $FixLineEndings -or $Direct
+$isWindowsOs = ($env:OS -eq 'Windows_NT') -or ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+$targetEol = if ($isWindowsOs) { "CRLF" } else { "LF" }
 
 function Restore-FileFromHead {
     param([string]$Root, [string]$RelPath)
@@ -118,12 +120,13 @@ function Restore-FileFromHead {
     return $false
 }
 
-function Normalize-FileToLf {
-    param([string]$FullPath)
+function Normalize-FileEol {
+    param([string]$FullPath, [string]$Target = $targetEol)
     try {
         $bytes = [System.IO.File]::ReadAllBytes($FullPath)
-        $text = [System.Text.Encoding]::UTF8.GetString($bytes)
-        $fixed = $text.Replace("`r`n", "`n")
+        $text = [System.Text.Encoding]::UTF8.GetString($bytes).TrimStart([char]0xFEFF)
+        $lfText = $text.Replace("`r`n", "`n").Replace("`r", "`n")
+        $fixed = if ($Target -eq "CRLF") { $lfText.Replace("`n", "`r`n") } else { $lfText }
         [System.IO.File]::WriteAllText($FullPath, $fixed, (New-Object System.Text.UTF8Encoding($false)))
         return $true
     } catch {
@@ -131,12 +134,25 @@ function Normalize-FileToLf {
     }
 }
 
-function Test-HasCrlfBytes {
-    param([string]$FullPath)
+function Test-NeedsEolNormalization {
+    param([string]$FullPath, [string]$Target = $targetEol)
     try {
         $bytes = [System.IO.File]::ReadAllBytes($FullPath)
-        for ($i = 0; $i -lt $bytes.Length - 1; $i++) {
-            if ($bytes[$i] -eq 13 -and $bytes[$i + 1] -eq 10) { return $true }
+        if ($bytes.Length -eq 0) { return $false }
+        if ($Target -eq "CRLF") {
+            for ($i = 0; $i -lt $bytes.Length; $i++) {
+                if ($bytes[$i] -eq 10) {
+                    if ($i -eq 0 -or $bytes[$i - 1] -ne 13) { return $true }
+                } elseif ($bytes[$i] -eq 13) {
+                    if (($i + 1) -ge $bytes.Length -or $bytes[$i + 1] -ne 10) { return $true }
+                }
+            }
+            return $false
+        } else {
+            for ($i = 0; $i -lt $bytes.Length; $i++) {
+                if ($bytes[$i] -eq 13) { return $true }
+            }
+            return $false
         }
     } catch {}
     return $false
@@ -182,8 +198,10 @@ $crlfFiles = [System.Collections.Generic.List[string]]::new()
 $ambiguousFiles = [System.Collections.Generic.List[string]]::new()
 $normalizedFiles = [System.Collections.Generic.List[string]]::new()
 
-$textExtensions = @(".rs", ".cs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".java", ".kt", ".c", ".cpp", ".h", ".hpp", ".json", ".md", ".yml", ".yaml", ".toml", ".ps1", ".sh", ".axaml", ".props", ".targets", ".xml", ".txt", ".csproj", ".sln", ".editorconfig", ".gitattributes", ".gitignore", ".manifest")
-$codeExtRegex = '\.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$'
+$textExtensions = @(".rs", ".cs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".java", ".kt", ".kts", ".gradle", ".c", ".cpp", ".h", ".hpp", ".json", ".md", ".yml", ".yaml", ".toml", ".ps1", ".sh", ".axaml", ".props", ".targets", ".xml", ".txt", ".csproj", ".sln", ".editorconfig", ".gitattributes", ".gitignore", ".manifest")
+$codeExtRegex = '\.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$'
+$autoCrlfCfg = (& git -C $RepoRoot config --get core.autocrlf 2>$null)
+$autoCrlf = if ($autoCrlfCfg) { $autoCrlfCfg.Trim().ToLowerInvariant() } else { "" }
 
 foreach ($entry in $candidates) {
     $rel = $entry.RelPath
@@ -199,7 +217,7 @@ foreach ($entry in $candidates) {
         continue
     }
 
-    # 1. Whitespace-only / CRLF-only diff check against HEAD
+    # 1. Whitespace-only / line-ending-only diff check against HEAD
     if (-not $entry.IsUntracked -and $hasHead) {
         $rawDiff = (& git -C $RepoRoot diff HEAD -- $rel 2>$null) -join "`n"
         $wsIgnoreDiff = (& git -C $RepoRoot diff -w HEAD -- $rel 2>$null) -join "`n"
@@ -215,22 +233,29 @@ foreach ($entry in $candidates) {
 
     $hostFiles.Add($rel)
 
-    # 2. CRLF check & ambiguity classification
+    # 2. Line-ending check & ambiguity classification (CRLF on Windows, LF on Linux/macOS)
     $ext = [System.IO.Path]::GetExtension($fullPath).ToLowerInvariant()
-    if ($textExtensions -contains $ext) {
-        if (Test-HasCrlfBytes -FullPath $fullPath) {
+    $leafName = [System.IO.Path]::GetFileName($fullPath)
+    if (($textExtensions -contains $ext) -or ($leafName -match '^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$')) {
+        if (Test-NeedsEolNormalization -FullPath $fullPath -Target $targetEol) {
             $isAmbiguous = $false
             if (-not $entry.IsUntracked) {
                 $eolInfo = (& git -C $RepoRoot ls-files --eol -- $rel 2>$null) -join " "
-                if ($eolInfo -match '\bi/crlf\b' -and $eolInfo -notmatch 'eol=lf') {
-                    $isAmbiguous = $true
+                if ($targetEol -eq "CRLF") {
+                    if ($eolInfo -match '\bi/lf\b' -and $eolInfo -notmatch 'eol=crlf' -and (($eolInfo -match 'eol=lf') -or ($autoCrlf -ne 'true' -and $eolInfo -notmatch 'text=auto'))) {
+                        $isAmbiguous = $true
+                    }
+                } else {
+                    if ($eolInfo -match '\bi/crlf\b' -and $eolInfo -notmatch 'eol=lf') {
+                        $isAmbiguous = $true
+                    }
                 }
             }
 
             if ($isAmbiguous -and -not $ForceNormalize) {
                 $ambiguousFiles.Add($rel)
             } elseif ($doFixEol -or ($isAmbiguous -and $ForceNormalize)) {
-                if (Normalize-FileToLf -FullPath $fullPath) {
+                if (Normalize-FileEol -FullPath $fullPath -Target $targetEol) {
                     $normalizedFiles.Add($rel)
                 } else {
                     $crlfFiles.Add($rel)
@@ -242,14 +267,15 @@ foreach ($entry in $candidates) {
     }
 }
 
-# 3. Deferred Format Check (when executable code is in hostFiles)
+# 3. Deferred Format Check (when executable code is in hostFiles and no pending normalization decisions block readiness)
 $formatStatus = "skipped"
 $formatCommand = ""
 $formatFixCommand = ""
 $formatErrors = [System.Collections.Generic.List[string]]::new()
 
+$hasDecisionItems = ($whitespaceOnlyFiles.Count -gt 0) -or ($ambiguousFiles.Count -gt 0) -or ($crlfFiles.Count -gt 0)
 $hasExecutableChanges = ($hostFiles | Where-Object { $_ -match $codeExtRegex }).Count -gt 0
-if ($hasExecutableChanges) {
+if ($hasExecutableChanges -and -not $hasDecisionItems -and $submoduleFiles.Count -eq 0) {
     $detectScript = Join-Path $scriptDir "detect-tech-stack.ps1"
     if (Test-Path $detectScript) {
         try {
@@ -276,8 +302,25 @@ if ($hasExecutableChanges) {
 
         $fmtRes = Invoke-FormatCmd $formatCommand
         if ($fmtRes.ExitCode -ne 0 -and $Format -and -not [string]::IsNullOrWhiteSpace($formatFixCommand) -and $ambiguousFiles.Count -eq 0) {
-            $null = Invoke-FormatCmd $formatFixCommand
-            $fmtRes = Invoke-FormatCmd $formatCommand
+            $fixRes = Invoke-FormatCmd $formatFixCommand
+            if ($fixRes.ExitCode -eq 0) {
+                foreach ($rel in $hostFiles) {
+                    if ($ambiguousFiles -contains $rel) { continue }
+                    $fullP = Join-Path $RepoRoot $rel
+                    if (Test-Path $fullP -PathType Leaf) {
+                        $ext = [System.IO.Path]::GetExtension($fullP).ToLowerInvariant()
+                        $leafName = [System.IO.Path]::GetFileName($fullP)
+                        if (($textExtensions -contains $ext) -or ($leafName -match '^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$')) {
+                            if (Test-NeedsEolNormalization -FullPath $fullP -Target $targetEol) {
+                                [void](Normalize-FileEol -FullPath $fullP -Target $targetEol)
+                            }
+                        }
+                    }
+                }
+                $fmtRes = [PSCustomObject]@{ ExitCode = 0; Output = "" }
+            } else {
+                $fmtRes = $fixRes
+            }
         }
 
         if ($fmtRes.ExitCode -eq 0) {
@@ -369,11 +412,13 @@ if ($overallStatus -eq "ready" -and $hostFiles.Count -gt 0) {
 $result = [ordered]@{
     status                    = $overallStatus
     mode                      = if ($Direct) { "direct" } else { "prepare" }
+    target_eol                = $targetEol
     next_step                 = $nextStep
     host_files                = $hostFiles.ToArray()
     reverted_whitespace_files = $revertedWhitespaceFiles.ToArray()
     normalized_files          = $normalizedFiles.ToArray()
     whitespace_only_files     = $whitespaceOnlyFiles.ToArray()
+    eol_files                 = $crlfFiles.ToArray()
     crlf_files                = $crlfFiles.ToArray()
     ambiguous_files           = $ambiguousFiles.ToArray()
     submodule_files           = $submoduleFiles.ToArray()
@@ -392,15 +437,17 @@ $result = [ordered]@{
 if ($JsonOutput) {
     $result | ConvertTo-Json -Depth 5 -Compress
 } else {
+    $eolDirLabel = if ($targetEol -eq "CRLF") { "LF -> CRLF" } else { "CRLF -> LF" }
+    $wrongEolLabel = if ($targetEol -eq "CRLF") { "LF" } else { "CRLF" }
     Write-Host "=============================================" -ForegroundColor Cyan
-    Write-Host "Commit Preparation ($($result.mode.ToUpper()))" -ForegroundColor Cyan
+    Write-Host "Commit Preparation ($($result.mode.ToUpper())) [Target EOL: $targetEol]" -ForegroundColor Cyan
     Write-Host "=============================================" -ForegroundColor Cyan
     Write-Host "Status: $overallStatus | Next Step: $nextStep" -ForegroundColor $(if ($overallStatus -in @("ready", "clean")) { "Green" } elseif ($overallStatus -eq "needs_decision") { "Yellow" } else { "Red" })
     if ($revertedWhitespaceFiles.Count -gt 0) { Write-Host "Reverted whitespace-only files: $($revertedWhitespaceFiles -join ', ')" -ForegroundColor DarkGray }
-    if ($normalizedFiles.Count -gt 0) { Write-Host "Normalized CRLF -> LF: $($normalizedFiles -join ', ')" -ForegroundColor DarkGray }
+    if ($normalizedFiles.Count -gt 0) { Write-Host "Normalized ${eolDirLabel}: $($normalizedFiles -join ', ')" -ForegroundColor DarkGray }
     if ($whitespaceOnlyFiles.Count -gt 0) { Write-Host "Whitespace-only diffs awaiting revert (-RevertWhitespaceOnly): $($whitespaceOnlyFiles -join ', ')" -ForegroundColor Yellow }
-    if ($crlfFiles.Count -gt 0) { Write-Host "Unambiguous CRLF files (-FixLineEndings): $($crlfFiles -join ', ')" -ForegroundColor Yellow }
-    if ($ambiguousFiles.Count -gt 0) { Write-Host "Ambiguous legacy CRLF files (user decision required, -ForceNormalize): $($ambiguousFiles -join ', ')" -ForegroundColor Yellow }
+    if ($crlfFiles.Count -gt 0) { Write-Host "Unambiguous $wrongEolLabel files needing $targetEol normalization (-FixLineEndings): $($crlfFiles -join ', ')" -ForegroundColor Yellow }
+    if ($ambiguousFiles.Count -gt 0) { Write-Host "Ambiguous legacy $wrongEolLabel files (user decision required, -ForceNormalize): $($ambiguousFiles -join ', ')" -ForegroundColor Yellow }
     if ($submoduleFiles.Count -gt 0) { Write-Host "Submodule changes detected (must not be committed in host repo): $($submoduleFiles -join ', ')" -ForegroundColor Red }
     if ($formatStatus -eq "fail") { Write-Host "Format check failed ($formatCommand): $($formatErrors -join ' | ')" -ForegroundColor Red }
     if ($guardrailErrors.Count -gt 0) { Write-Host "Errors: $($guardrailErrors -join ' | ')" -ForegroundColor Red }

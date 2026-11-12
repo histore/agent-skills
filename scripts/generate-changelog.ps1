@@ -177,6 +177,7 @@ $sectionMarkdown = $sb.ToString().TrimEnd()
 
 # 5. Handle OutputFile
 if ($OutputFile) {
+    $nl = [System.Environment]::NewLine
     $outPath = if ([System.IO.Path]::IsPathRooted($OutputFile)) { $OutputFile } else { Join-Path $RepoRoot $OutputFile }
     if ((Test-Path $outPath) -and $Prepend) {
         $existingContent = [System.IO.File]::ReadAllText($outPath, [System.Text.Encoding]::UTF8)
@@ -184,14 +185,14 @@ if ($OutputFile) {
         if ($existingContent -match '^#\s+Changelog[^\r\n]*') {
             $header = $Matches[0]
             $rest = $existingContent.Substring($header.Length).TrimStart("`r", "`n")
-            $newFull = "$header`n`n$sectionMarkdown`n`n$rest"
+            $newFull = "$header$nl$nl$sectionMarkdown$nl$nl$rest"
         } else {
-            $newFull = "$sectionMarkdown`n`n$existingContent"
+            $newFull = "$sectionMarkdown$nl$nl$existingContent"
         }
-        [System.IO.File]::WriteAllText($outPath, $newFull.Replace("`r`n", "`n"), [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText($outPath, ($newFull -replace "`r?`n", $nl), [System.Text.UTF8Encoding]::new($false))
     } else {
-        $fullDoc = "# Changelog`n`nAll notable changes to this project will be documented in this file.`n`n$sectionMarkdown`n"
-        [System.IO.File]::WriteAllText($outPath, $fullDoc.Replace("`r`n", "`n"), [System.Text.UTF8Encoding]::new($false))
+        $fullDoc = "# Changelog$nl`nAll notable changes to this project will be documented in this file.$nl`n$sectionMarkdown$nl"
+        [System.IO.File]::WriteAllText($outPath, ($fullDoc -replace "`r?`n", $nl), [System.Text.UTF8Encoding]::new($false))
     }
 }
 
