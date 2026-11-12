@@ -291,6 +291,9 @@ if [[ "$STATUS" == "ready" && ${#HOST_FILES[@]} -gt 0 ]]; then
   fi
   first_base=$(basename "${HOST_FILES[0]}")
   first_leaf="${first_base%.*}"
+  if [[ -z "$first_leaf" ]]; then
+    first_leaf="$first_base"
+  fi
   if [[ ${#HOST_FILES[@]} -eq 1 ]]; then
     SUGGESTED_COMMIT="${prefix}(${scope}): update ${first_leaf}"
   else

@@ -402,6 +402,9 @@ if ($overallStatus -eq "ready" -and $hostFiles.Count -gt 0) {
     $prefix = if ($allDocs) { "docs" } elseif ($allMetaOrTooling) { "chore" } elseif ($hasTests) { "test" } else { "feat" }
     $scope = if ($allDocs) { "docs" } elseif ($allMetaOrTooling) { "tooling" } elseif ($hasTests) { "tests" } else { "core" }
     $firstLeaf = [System.IO.Path]::GetFileNameWithoutExtension($hostFiles[0])
+    if ([string]::IsNullOrWhiteSpace($firstLeaf)) {
+        $firstLeaf = [System.IO.Path]::GetFileName($hostFiles[0])
+    }
     $suggestedCommit = if ($hostFiles.Count -eq 1) {
         "${prefix}(${scope}): update $firstLeaf"
     } else {

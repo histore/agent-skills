@@ -1019,10 +1019,11 @@ try {
     git -C $prepRepo add notes.md legacy.txt
     git -C $prepRepo commit -q -m "chore: sync"
     New-Item -ItemType Directory -Path (Join-Path $prepRepo "scripts") -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo ".gitattributes"), "* text=auto`r`n", (New-Object System.Text.UTF8Encoding($false)))
     [System.IO.File]::WriteAllText((Join-Path $prepRepo "AGENTS.md"), "# Agents`r`n", (New-Object System.Text.UTF8Encoding($false)))
     [System.IO.File]::WriteAllText((Join-Path $prepRepo "scripts\test-skills.ps1"), "Write-Host 'ok'`r`n", (New-Object System.Text.UTF8Encoding($false)))
     $toolingRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -JsonOutput | ConvertFrom-Json
-    Assert-Condition ($toolingRes.status -eq "ready" -and $toolingRes.suggested_commit_message -match '^chore\(tooling\):') "prepare-commit.ps1 classifies docs+scripts/test-skills as chore(tooling) ($($toolingRes.suggested_commit_message))" "prepare-commit.ps1 misclassified governance/tooling commit: $($toolingRes.suggested_commit_message)"
+    Assert-Condition ($toolingRes.status -eq "ready" -and $toolingRes.suggested_commit_message -match '^chore\(tooling\): update \.gitattributes and 2 additional file\(s\)$') "prepare-commit.ps1 classifies dotfile+docs+scripts as chore(tooling) without blank leaf ($($toolingRes.suggested_commit_message))" "prepare-commit.ps1 misclassified governance/tooling commit or leaked blank leaf: $($toolingRes.suggested_commit_message)"
 } finally {
     if (Test-Path $tempFmtDir) { Remove-Item -LiteralPath $tempFmtDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
