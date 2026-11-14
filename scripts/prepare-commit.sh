@@ -146,65 +146,64 @@ if [[ -n "$CANDIDATES_LIST" ]]; then
         LF)   EOL_LF_LIST+="${ov_rel}"$'\n' ;;
         CRLF) EOL_CRLF_LIST+="${ov_rel}"$'\n' ;;
       esac
-    done < <(printf '%s\n' "$CANDIDATES_LIST" | python3 - "${REPO_ROOT}/.editorconfig" << 'EOF' 2>/dev/null || true
+    done < <(printf '%s\n' "$CANDIDATES_LIST" | python3 -c '
 import re, sys
 
 ec_path = sys.argv[1]
 def glob_to_regex(pat):
-    has_slash = '/' in pat
-    p = pat.lstrip('/')
-    out = ['^' if has_slash else '(?:^|/)']
+    has_slash = "/" in pat
+    p = pat.lstrip("/")
+    out = ["^" if has_slash else "(?:^|/)"]
     i = 0
     while i < len(p):
-        if p.startswith('**/', i):
-            out.append('(?:.*/)?')
+        if p.startswith("**/", i):
+            out.append("(?:.*/)?")
             i += 3
             continue
         c = p[i]
-        if c == '*':
-            if i + 1 < len(p) and p[i + 1] == '*':
-                out.append('.*')
+        if c == "*":
+            if i + 1 < len(p) and p[i + 1] == "*":
+                out.append(".*")
                 i += 2
                 continue
-            out.append('[^/]*')
-        elif c == '?':
-            out.append('[^/]')
-        elif c == '{' and '}' in p[i+1:]:
-            close = p.index('}', i + 1)
-            alts = [re.escape(x) for x in p[i+1:close].split(',')]
-            out.append('(?:' + '|'.join(alts) + ')')
+            out.append("[^/]*")
+        elif c == "?":
+            out.append("[^/]")
+        elif c == "{" and "}" in p[i+1:]:
+            close = p.index("}", i + 1)
+            alts = [re.escape(x) for x in p[i+1:close].split(",")]
+            out.append("(?:" + "|".join(alts) + ")")
             i = close + 1
             continue
         else:
             out.append(re.escape(c))
         i += 1
-    out.append('$')
-    return re.compile(''.join(out))
+    out.append("$")
+    return re.compile("".join(out))
 
 ec_rules = []
 cur_rx = None
-with open(ec_path, 'r', encoding='utf-8', errors='ignore') as f:
+with open(ec_path, "r", encoding="utf-8", errors="ignore") as f:
     for raw in f:
         line = raw.strip()
-        if not line or line.startswith('#') or line.startswith(';'): continue
-        m = re.match(r'^\[(.+)\]$', line)
+        if not line or line.startswith("#") or line.startswith(";"): continue
+        m = re.match(r"^\[(.+)\]$", line)
         if m:
             cur_rx = glob_to_regex(m.group(1).strip())
         elif cur_rx is not None:
-            m2 = re.match(r'^end_of_line\s*=\s*(lf|crlf)\b', line, re.I)
+            m2 = re.match(r"^end_of_line\s*=\s*(lf|crlf)\b", line, re.I)
             if m2:
                 ec_rules.append((cur_rx, m2.group(1).upper()))
 
 for rel in sys.stdin:
-    rel = rel.rstrip('\r\n')
+    rel = rel.rstrip("\r\n")
     if not rel: continue
     res = None
     for rx, val in ec_rules:
         if rx.search(rel): res = val
     if res:
         print(f"{rel}\t{res}")
-EOF
-    )
+' "${REPO_ROOT}/.editorconfig" 2>/dev/null || true)
   fi
 fi
 
