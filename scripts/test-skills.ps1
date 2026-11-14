@@ -1024,6 +1024,27 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $prepRepo "scripts\test-skills.ps1"), "Write-Host 'ok'`r`n", (New-Object System.Text.UTF8Encoding($false)))
     $toolingRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -JsonOutput | ConvertFrom-Json
     Assert-Condition ($toolingRes.status -eq "ready" -and $toolingRes.suggested_commit_message -match '^chore\(tooling\): update \.gitattributes and 2 additional file\(s\)$') "prepare-commit.ps1 classifies dotfile+docs+scripts as chore(tooling) without blank leaf ($($toolingRes.suggested_commit_message))" "prepare-commit.ps1 misclassified governance/tooling commit or leaked blank leaf: $($toolingRes.suggested_commit_message)"
+
+    # 46e. Project config overrides (.gitattributes eol=lf and .editorconfig end_of_line=lf) take precedence over OS-native CRLF on Windows
+    Assert-Condition ($agentsContent -match 'OS-Native Line Endings Invariant') "AGENTS.md enforces OS-Native Line Endings Invariant" "AGENTS.md missing OS-Native Line Endings Invariant"
+    $prepShRaw = Get-Content -Path $prepCommitSh -Raw -Encoding UTF8
+    Assert-Condition ($prepShRaw -match 'command -v file') "prepare-commit.sh includes command -v file fallback allowlist" "prepare-commit.sh missing command -v file fallback"
+
+    git -C $prepRepo add .gitattributes AGENTS.md scripts/test-skills.ps1
+    git -C $prepRepo commit -q -m "chore: baseline"
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo ".gitattributes"), "* text=auto`r`n*.sh text eol=lf`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo ".editorconfig"), "root = true`r`n[*.md]`r`nend_of_line = lf`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo "scripts\build.sh"), "#!/usr/bin/env bash`necho ok`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo "README.md"), "# Readme`r`nLine 2`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $prepRepo "default.txt"), "hello`nworld`n", (New-Object System.Text.UTF8Encoding($false)))
+    $ovRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $prepRepo -Direct -JsonOutput | ConvertFrom-Json
+    $shBytes = [System.IO.File]::ReadAllBytes((Join-Path $prepRepo "scripts\build.sh"))
+    $mdBytes = [System.IO.File]::ReadAllBytes((Join-Path $prepRepo "README.md"))
+    $defText = [System.IO.File]::ReadAllText((Join-Path $prepRepo "default.txt"), [System.Text.Encoding]::UTF8)
+    $shIsLf = -not ($shBytes -contains 13)
+    $mdIsLf = -not ($mdBytes -contains 13)
+    $defIsCrlf = $defText.Contains("`r`n") -and ($defText -notmatch '(?<!\r)\n')
+    Assert-Condition ($ovRes.status -eq "ready" -and $shIsLf -and $mdIsLf -and $defIsCrlf) "prepare-commit.ps1 and scan-guardrails.ps1 honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native CRLF" "Project EOL override or OS-native default failed (status=$($ovRes.status), shLf=$shIsLf, mdLf=$mdIsLf, defCrlf=$defIsCrlf)"
 } finally {
     if (Test-Path $tempFmtDir) { Remove-Item -LiteralPath $tempFmtDir -Recurse -Force -ErrorAction SilentlyContinue }
 }

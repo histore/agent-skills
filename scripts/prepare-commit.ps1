@@ -185,11 +185,123 @@ function Get-WorkingTreeFiles {
     return $candidates
 }
 
+function Convert-GlobToRegex([string]$Pattern) {
+    $hasSlash = $Pattern.Contains('/')
+    $p = $Pattern.TrimStart('/')
+    $sb = [System.Text.StringBuilder]::new()
+    if ($hasSlash) { [void]$sb.Append('^') } else { [void]$sb.Append('(?:^|/)') }
+    $i = 0
+    while ($i -lt $p.Length) {
+        if (($i + 2) -lt $p.Length -and $p.Substring($i, 3) -eq '**/') {
+            [void]$sb.Append('(?:.*/)?')
+            $i += 3
+            continue
+        }
+        $c = $p[$i]
+        if ($c -eq '*') {
+            if (($i + 1) -lt $p.Length -and $p[$i + 1] -eq '*') {
+                [void]$sb.Append('.*')
+                $i += 2
+                continue
+            }
+            [void]$sb.Append('[^/]*')
+        } elseif ($c -eq '?') {
+            [void]$sb.Append('[^/]')
+        } elseif ($c -eq '{') {
+            $close = $p.IndexOf('}', $i + 1)
+            if ($close -gt $i) {
+                $inner = $p.Substring($i + 1, $close - $i - 1)
+                $alts = ($inner -split ',') | ForEach-Object { [regex]::Escape($_) }
+                [void]$sb.Append('(?:' + ($alts -join '|') + ')')
+                $i = $close + 1
+                continue
+            }
+            [void]$sb.Append('\{')
+        } else {
+            [void]$sb.Append([regex]::Escape([string]$c))
+        }
+        $i++
+    }
+    [void]$sb.Append('$')
+    return $sb.ToString()
+}
+
+function Get-ProjectEolContext([string]$Root, [string[]]$RelPaths) {
+    $gitOverrides = @{}
+    $ecRules = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    $ecPath = Join-Path $Root ".editorconfig"
+    if (Test-Path $ecPath -PathType Leaf) {
+        $curRegex = $null
+        foreach ($rawLine in [System.IO.File]::ReadAllLines($ecPath)) {
+            $line = $rawLine.Trim()
+            if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#') -or $line.StartsWith(';')) { continue }
+            if ($line -match '^\[(.+)\]$') {
+                $curRegex = Convert-GlobToRegex $Matches[1].Trim()
+            } elseif ($curRegex -and $line -match '^end_of_line\s*=\s*(lf|crlf)\b') {
+                $ecRules.Add([PSCustomObject]@{ Regex = $curRegex; Eol = $Matches[1].ToUpperInvariant() })
+            }
+        }
+    }
+
+    if ($RelPaths.Count -gt 0 -and (Test-Path (Join-Path $Root ".gitattributes") -PathType Leaf)) {
+        try {
+            $psi = [System.Diagnostics.ProcessStartInfo]::new("git", "-C `"$Root`" check-attr --stdin -z text eol")
+            $psi.RedirectStandardInput = $true
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            $payload = ($RelPaths -join "`0") + "`0"
+            $inBytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
+            $proc.StandardInput.BaseStream.Write($inBytes, 0, $inBytes.Length)
+            $proc.StandardInput.Close()
+            $rawOut = $proc.StandardOutput.ReadToEnd()
+            $proc.WaitForExit()
+            if ($proc.ExitCode -eq 0 -and -not [string]::IsNullOrEmpty($rawOut)) {
+                $toks = $rawOut -split "`0"
+                for ($t = 0; ($t + 2) -lt $toks.Length; $t += 3) {
+                    $p = $toks[$t].Replace('\', '/')
+                    $attr = $toks[$t + 1]
+                    $val = $toks[$t + 2]
+                    if ($attr -eq "text" -and $val -eq "unset") {
+                        $gitOverrides[$p] = "SKIP"
+                    } elseif ($attr -eq "eol" -and $gitOverrides[$p] -ne "SKIP") {
+                        if ($val -eq "lf") { $gitOverrides[$p] = "LF" }
+                        elseif ($val -eq "crlf") { $gitOverrides[$p] = "CRLF" }
+                    }
+                }
+            }
+        } catch {}
+    }
+
+    return [PSCustomObject]@{
+        GitOverrides = $gitOverrides
+        EcRules      = $ecRules
+    }
+}
+
+function Resolve-TargetEol([string]$RelUnix, $Ctx, [string]$DefaultEol) {
+    if ($Ctx.GitOverrides.ContainsKey($RelUnix)) {
+        return [PSCustomObject]@{ Eol = $Ctx.GitOverrides[$RelUnix]; HasOverride = $true }
+    }
+    $ecEol = $null
+    foreach ($r in $Ctx.EcRules) {
+        if ($RelUnix -cmatch $r.Regex) { $ecEol = $r.Eol }
+    }
+    if ($ecEol) {
+        return [PSCustomObject]@{ Eol = $ecEol; HasOverride = $true }
+    }
+    return [PSCustomObject]@{ Eol = $DefaultEol; HasOverride = $false }
+}
+
 $hasHead = $false
 & git -C $RepoRoot rev-parse --verify HEAD 2>$null | Out-Null
 if ($LASTEXITCODE -eq 0) { $hasHead = $true }
 
 $candidates = Get-WorkingTreeFiles -Root $RepoRoot
+$eolContext = Get-ProjectEolContext -Root $RepoRoot -RelPaths @($candidates | ForEach-Object { $_.RelPath })
 $submoduleFiles = [System.Collections.Generic.List[string]]::new()
 $hostFiles = [System.Collections.Generic.List[string]]::new()
 $whitespaceOnlyFiles = [System.Collections.Generic.List[string]]::new()
@@ -233,15 +345,18 @@ foreach ($entry in $candidates) {
 
     $hostFiles.Add($rel)
 
-    # 2. Line-ending check & ambiguity classification (CRLF on Windows, LF on Linux/macOS)
+    # 2. Line-ending check & ambiguity classification (OS-native CRLF on Windows, LF on Linux/macOS unless overridden by .gitattributes/.editorconfig)
     $ext = [System.IO.Path]::GetExtension($fullPath).ToLowerInvariant()
     $leafName = [System.IO.Path]::GetFileName($fullPath)
     if (($textExtensions -contains $ext) -or ($leafName -match '^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$')) {
-        if (Test-NeedsEolNormalization -FullPath $fullPath -Target $targetEol) {
+        $resolvedEol = Resolve-TargetEol -RelUnix $rel -Ctx $eolContext -DefaultEol $targetEol
+        $effectiveTargetEol = $resolvedEol.Eol
+        $hasProjectOverride = $resolvedEol.HasOverride
+        if ($effectiveTargetEol -ne "SKIP" -and (Test-NeedsEolNormalization -FullPath $fullPath -Target $effectiveTargetEol)) {
             $isAmbiguous = $false
-            if (-not $entry.IsUntracked) {
+            if (-not $hasProjectOverride -and -not $entry.IsUntracked) {
                 $eolInfo = (& git -C $RepoRoot ls-files --eol -- $rel 2>$null) -join " "
-                if ($targetEol -eq "CRLF") {
+                if ($effectiveTargetEol -eq "CRLF") {
                     if ($eolInfo -match '\bi/lf\b' -and $eolInfo -notmatch 'eol=crlf' -and (($eolInfo -match 'eol=lf') -or ($autoCrlf -ne 'true' -and $eolInfo -notmatch 'text=auto'))) {
                         $isAmbiguous = $true
                     }
@@ -255,7 +370,7 @@ foreach ($entry in $candidates) {
             if ($isAmbiguous -and -not $ForceNormalize) {
                 $ambiguousFiles.Add($rel)
             } elseif ($doFixEol -or ($isAmbiguous -and $ForceNormalize)) {
-                if (Normalize-FileEol -FullPath $fullPath -Target $targetEol) {
+                if (Normalize-FileEol -FullPath $fullPath -Target $effectiveTargetEol) {
                     $normalizedFiles.Add($rel)
                 } else {
                     $crlfFiles.Add($rel)
@@ -311,8 +426,9 @@ if ($hasExecutableChanges -and -not $hasDecisionItems -and $submoduleFiles.Count
                         $ext = [System.IO.Path]::GetExtension($fullP).ToLowerInvariant()
                         $leafName = [System.IO.Path]::GetFileName($fullP)
                         if (($textExtensions -contains $ext) -or ($leafName -match '^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$')) {
-                            if (Test-NeedsEolNormalization -FullPath $fullP -Target $targetEol) {
-                                [void](Normalize-FileEol -FullPath $fullP -Target $targetEol)
+                            $resolvedAfterFmt = Resolve-TargetEol -RelUnix $rel -Ctx $eolContext -DefaultEol $targetEol
+                            if ($resolvedAfterFmt.Eol -ne "SKIP" -and (Test-NeedsEolNormalization -FullPath $fullP -Target $resolvedAfterFmt.Eol)) {
+                                [void](Normalize-FileEol -FullPath $fullP -Target $resolvedAfterFmt.Eol)
                             }
                         }
                     }
@@ -345,7 +461,7 @@ if ((Test-Path $scanScript) -and $hostFiles.Count -gt 0) {
         if ($scanOut.status -eq "fail") {
             $guardrailsStatus = "fail"
             foreach ($v in $scanOut.violations) {
-                $relV = [string]$v.File
+                $relV = ([string]$v.File).Replace('\', '/')
                 $isHandledEol = ($v.Rule -eq "LineEndings") -and (($ambiguousFiles -contains $relV) -or ($crlfFiles -contains $relV) -or ($whitespaceOnlyFiles -contains $relV))
                 if ($isHandledEol) { continue }
                 $guardrailErrors.Add("[$($v.Rule)] $($v.File): $($v.Message)")

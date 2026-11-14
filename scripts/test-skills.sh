@@ -843,6 +843,41 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
         assert_condition 1 "prepare-commit.sh --force-normalize normalizes legacy CRLF after confirmation" "prepare-commit.sh --force-normalize failed"
     fi
 
+    # 46d. Governance/tooling mixed commit heuristic -> chore(tooling) without blank leaf
+    git -C "$TEMP_PREP_DIR" add notes.md legacy.txt
+    git -C "$TEMP_PREP_DIR" commit -q -m "chore: sync"
+    mkdir -p "$TEMP_PREP_DIR/scripts"
+    printf '* text=auto\n' > "$TEMP_PREP_DIR/.gitattributes"
+    printf '# Agents\n' > "$TEMP_PREP_DIR/AGENTS.md"
+    printf 'echo ok\n' > "$TEMP_PREP_DIR/scripts/test-skills.sh"
+    TOOLING_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --json 2>/dev/null || true)
+    if echo "$TOOLING_RES" | grep -q '"status":"ready"' && echo "$TOOLING_RES" | grep -q '"suggested_commit_message":"chore(tooling): update \.gitattributes and 2 additional file(s)"'; then
+        assert_condition 0 "prepare-commit.sh classifies dotfile+docs+scripts as chore(tooling) without blank leaf" "prepare-commit.sh misclassified governance/tooling commit"
+    else
+        assert_condition 1 "prepare-commit.sh classifies dotfile+docs+scripts as chore(tooling) without blank leaf" "prepare-commit.sh misclassified governance/tooling commit: $TOOLING_RES"
+    fi
+
+    # 46e. Project config overrides (.gitattributes eol=crlf and .editorconfig end_of_line=crlf) + command -v file fallback
+    if grep -q 'OS-Native Line Endings Invariant' "$REPO_ROOT/AGENTS.md" && grep -q 'command -v file' "$REPO_ROOT/scripts/prepare-commit.sh"; then
+        assert_condition 0 "AGENTS.md enforces OS-Native Line Endings Invariant and prepare-commit.sh includes file fallback" "Missing invariant or file fallback"
+    else
+        assert_condition 1 "AGENTS.md enforces OS-Native Line Endings Invariant and prepare-commit.sh includes file fallback" "Missing invariant or file fallback"
+    fi
+
+    git -C "$TEMP_PREP_DIR" add .gitattributes AGENTS.md scripts/test-skills.sh
+    git -C "$TEMP_PREP_DIR" commit -q -m "chore: baseline"
+    printf '* text=auto\n*.bat text eol=crlf\n' > "$TEMP_PREP_DIR/.gitattributes"
+    printf 'root = true\n[*.ps1]\nend_of_line = crlf\n' > "$TEMP_PREP_DIR/.editorconfig"
+    printf '@echo off\r\necho ok\r\n' > "$TEMP_PREP_DIR/scripts/build.bat"
+    printf 'Write-Host ok\n' > "$TEMP_PREP_DIR/scripts/check.ps1"
+    printf 'hello\r\nworld\r\n' > "$TEMP_PREP_DIR/default.txt"
+    OV_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
+    if echo "$OV_RES" | grep -q '"status":"ready"' && grep -q $'\r' "$TEMP_PREP_DIR/scripts/build.bat" && grep -q $'\r' "$TEMP_PREP_DIR/scripts/check.ps1" && ! grep -q $'\r' "$TEMP_PREP_DIR/default.txt"; then
+        assert_condition 0 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native LF" "Project EOL override or OS-native default failed: $OV_RES"
+    else
+        assert_condition 1 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native LF" "Project EOL override or OS-native default failed: $OV_RES"
+    fi
+
     rm -rf "$TEMP_PREP_DIR"
 else
     assert_condition 1 "prepare-commit scripts exist (.ps1 and .sh)" "prepare-commit scripts missing"

@@ -5,7 +5,7 @@
     Scans project files or staged git changes for governance violations without LLM tokens:
     - Safe-Rust: detects 'unsafe' blocks, functions, or implementations in Rust (*.rs)
     - Secrets: detects accidental AWS/GitHub tokens, private keys, or passwords
-    - CRLF: asserts standard LF line endings
+    - LineEndings: asserts OS-native line endings (CRLF on Windows, LF on Linux/macOS) unless overridden by .gitattributes or .editorconfig
     - Submodule leakage: detects attempts to commit files inside _agents or .agents submodules
 .PARAMETER ScanPath
     Root path to scan. Defaults to current directory.
@@ -45,6 +45,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 if (-not $ScanPath) {
     $ScanPath = (Get-Location).Path
 }
+$ScanPath = (Resolve-Path $ScanPath).Path.TrimEnd('\', '/')
 
 $filesToScan = [System.Collections.Generic.List[string]]::new()
 
@@ -102,6 +103,155 @@ if ($StagedOnly) {
 $violations = [System.Collections.Generic.List[PSCustomObject]]::new()
 $fixedViolations = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+$isWindowsOs = ($env:OS -eq 'Windows_NT') -or ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+$defaultTargetEol = if ($isWindowsOs) { "CRLF" } else { "LF" }
+
+function Convert-GlobToRegex([string]$Pattern) {
+    $hasSlash = $Pattern.Contains('/')
+    $p = $Pattern.TrimStart('/')
+    $sb = [System.Text.StringBuilder]::new()
+    if ($hasSlash) { [void]$sb.Append('^') } else { [void]$sb.Append('(?:^|/)') }
+    $i = 0
+    while ($i -lt $p.Length) {
+        if (($i + 2) -lt $p.Length -and $p.Substring($i, 3) -eq '**/') {
+            [void]$sb.Append('(?:.*/)?')
+            $i += 3
+            continue
+        }
+        $c = $p[$i]
+        if ($c -eq '*') {
+            if (($i + 1) -lt $p.Length -and $p[$i + 1] -eq '*') {
+                [void]$sb.Append('.*')
+                $i += 2
+                continue
+            }
+            [void]$sb.Append('[^/]*')
+        } elseif ($c -eq '?') {
+            [void]$sb.Append('[^/]')
+        } elseif ($c -eq '{') {
+            $close = $p.IndexOf('}', $i + 1)
+            if ($close -gt $i) {
+                $inner = $p.Substring($i + 1, $close - $i - 1)
+                $alts = ($inner -split ',') | ForEach-Object { [regex]::Escape($_) }
+                [void]$sb.Append('(?:' + ($alts -join '|') + ')')
+                $i = $close + 1
+                continue
+            }
+            [void]$sb.Append('\{')
+        } else {
+            [void]$sb.Append([regex]::Escape([string]$c))
+        }
+        $i++
+    }
+    [void]$sb.Append('$')
+    return $sb.ToString()
+}
+
+function Get-ProjectEolContext([string]$Root, [string[]]$RelPaths) {
+    $gitOverrides = @{}
+    $ecRules = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $gaFallbackRules = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    $gitTop = (& git -C $Root rev-parse --show-toplevel 2>$null)
+    $inGit = ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($gitTop))
+    $gitRootPath = if ($inGit) { $gitTop.Trim() } else { $Root }
+
+    $ecPath = Join-Path $Root ".editorconfig"
+    if (-not (Test-Path $ecPath -PathType Leaf) -and $inGit) {
+        $ecPath = Join-Path $gitRootPath ".editorconfig"
+    }
+    if (Test-Path $ecPath -PathType Leaf) {
+        $curRegex = $null
+        foreach ($rawLine in [System.IO.File]::ReadAllLines($ecPath)) {
+            $line = $rawLine.Trim()
+            if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#') -or $line.StartsWith(';')) { continue }
+            if ($line -match '^\[(.+)\]$') {
+                $curRegex = Convert-GlobToRegex $Matches[1].Trim()
+            } elseif ($curRegex -and $line -match '^end_of_line\s*=\s*(lf|crlf)\b') {
+                $ecRules.Add([PSCustomObject]@{ Regex = $curRegex; Eol = $Matches[1].ToUpperInvariant() })
+            }
+        }
+    }
+
+    $hasGitAttr = (Test-Path (Join-Path $Root ".gitattributes") -PathType Leaf) -or ($inGit -and (Test-Path (Join-Path $gitRootPath ".gitattributes") -PathType Leaf))
+    if ($hasGitAttr -and $inGit -and $RelPaths.Count -gt 0) {
+        try {
+            $psi = [System.Diagnostics.ProcessStartInfo]::new("git", "-C `"$Root`" check-attr --stdin -z text eol")
+            $psi.RedirectStandardInput = $true
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            $payload = ($RelPaths -join "`0") + "`0"
+            $inBytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
+            $proc.StandardInput.BaseStream.Write($inBytes, 0, $inBytes.Length)
+            $proc.StandardInput.Close()
+            $rawOut = $proc.StandardOutput.ReadToEnd()
+            $proc.WaitForExit()
+            if ($proc.ExitCode -eq 0 -and -not [string]::IsNullOrEmpty($rawOut)) {
+                $toks = $rawOut -split "`0"
+                for ($t = 0; ($t + 2) -lt $toks.Length; $t += 3) {
+                    $p = $toks[$t].Replace('\', '/')
+                    $attr = $toks[$t + 1]
+                    $val = $toks[$t + 2]
+                    if ($attr -eq "text" -and $val -eq "unset") {
+                        $gitOverrides[$p] = "SKIP"
+                    } elseif ($attr -eq "eol" -and $gitOverrides[$p] -ne "SKIP") {
+                        if ($val -eq "lf") { $gitOverrides[$p] = "LF" }
+                        elseif ($val -eq "crlf") { $gitOverrides[$p] = "CRLF" }
+                    }
+                }
+            }
+        } catch {}
+    } elseif ($hasGitAttr -and -not $inGit) {
+        $gaPath = Join-Path $Root ".gitattributes"
+        if (Test-Path $gaPath -PathType Leaf) {
+            foreach ($rawLine in [System.IO.File]::ReadAllLines($gaPath)) {
+                $line = $rawLine.Trim()
+                if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#')) { continue }
+                $parts = $line -split '\s+'
+                if ($parts.Length -lt 2) { continue }
+                $patRegex = Convert-GlobToRegex $parts[0]
+                $attrs = $parts[1..($parts.Length - 1)]
+                if ($attrs -contains '-text' -or $attrs -contains 'binary') {
+                    $gaFallbackRules.Add([PSCustomObject]@{ Regex = $patRegex; Eol = "SKIP" })
+                } elseif ($attrs -contains 'eol=lf') {
+                    $gaFallbackRules.Add([PSCustomObject]@{ Regex = $patRegex; Eol = "LF" })
+                } elseif ($attrs -contains 'eol=crlf') {
+                    $gaFallbackRules.Add([PSCustomObject]@{ Regex = $patRegex; Eol = "CRLF" })
+                }
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        GitOverrides = $gitOverrides
+        GaFallback   = $gaFallbackRules
+        EcRules      = $ecRules
+    }
+}
+
+function Resolve-TargetEol([string]$RelUnix, $Ctx, [string]$DefaultEol) {
+    if ($Ctx.GitOverrides.ContainsKey($RelUnix)) {
+        return $Ctx.GitOverrides[$RelUnix]
+    }
+    $gaEol = $null
+    foreach ($r in $Ctx.GaFallback) {
+        if ($RelUnix -cmatch $r.Regex) { $gaEol = $r.Eol }
+    }
+    if ($gaEol) { return $gaEol }
+    $ecEol = $null
+    foreach ($r in $Ctx.EcRules) {
+        if ($RelUnix -cmatch $r.Regex) { $ecEol = $r.Eol }
+    }
+    if ($ecEol) { return $ecEol }
+    return $DefaultEol
+}
+
+$relCandidates = @($filesToScan | ForEach-Object { $_.Replace($ScanPath + "\", "").Replace($ScanPath + "/", "").Replace('\', '/') })
+$eolContext = if (-not $SkipLineEndings) { Get-ProjectEolContext -Root $ScanPath -RelPaths $relCandidates } else { $null }
+
 # Secret detection regex patterns
 $secretPatterns = @(
     @{ Name = "Private Key"; Regex = '-----BEGIN (RSA|EC|DSA|OPENSSH)?\s*PRIVATE KEY-----' },
@@ -137,10 +287,10 @@ foreach ($filePath in $filesToScan) {
         $bytes = [System.IO.File]::ReadAllBytes($filePath)
         if ($bytes.Length -eq 0) { continue }
 
-        # 3. OS-Specific Line Ending Check (CRLF on Windows, LF on Linux/macOS; can be deferred via -SkipLineEndings)
-        if (-not $SkipLineEndings) {
-            $isWindowsOs = ($env:OS -eq 'Windows_NT') -or ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
-            $targetEol = if ($isWindowsOs) { "CRLF" } else { "LF" }
+        # 3. Line Ending Check: OS-native (CRLF on Windows, LF on Linux/macOS) unless overridden by project config (.gitattributes/.editorconfig); deferrable via -SkipLineEndings
+        $relUnix = $relPath.Replace('\', '/')
+        $targetEol = if (-not $SkipLineEndings) { Resolve-TargetEol -RelUnix $relUnix -Ctx $eolContext -DefaultEol $defaultTargetEol } else { $defaultTargetEol }
+        if (-not $SkipLineEndings -and $targetEol -ne "SKIP") {
             $hasWrongEol = $false
 
             if ($targetEol -eq "CRLF") {
@@ -190,7 +340,7 @@ foreach ($filePath in $filesToScan) {
                         Rule = "LineEndings"
                         File = $relPath
                         Line = 0
-                        Message = if ($targetEol -eq "CRLF") { "LF line endings detected on Windows (must be CRLF)" } else { "CRLF line endings detected (must be LF)" }
+                        Message = if ($targetEol -eq "CRLF") { "LF line endings detected (expected CRLF)" } else { "CRLF line endings detected (expected LF)" }
                     })
                 }
             }

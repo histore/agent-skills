@@ -296,7 +296,7 @@ pwsh -NoProfile -File ./.agents/scripts/get-arch-diff.ps1
 
 ## 9. Atomic Git Commit, Prepare-Commit & Remote Push Governance
 
-Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prerequisite commit checks. Pure format and OS-native line-ending checks (`CRLF` on Windows, `LF` on Linux/macOS) run in `prepare-commit` directly before committing (not during intermediate coding steps).
+Strictly atomic: `commit` never auto-pushes; `push` automatically initiates prerequisite commit checks. Pure format and OS-native line-ending checks (`CRLF` on Windows, `LF` on Linux/macOS unless `.gitattributes`/`.editorconfig` requires otherwise) run in `prepare-commit` directly before committing (not during intermediate coding steps).
 
 ### Prepare Commit vs. Direct Commit
 * **Prepare Commit (Review Flow)**:
