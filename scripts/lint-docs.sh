@@ -70,7 +70,7 @@ for file_path in md_files:
                 if re.match(r'^(https?://|mailto:|#)', target):
                     continue
                 if target.startswith('file://') or re.match(r'^[A-Za-z]:[\\/]', target) or (target.startswith('/') and not target.startswith('//')):
-                    absolute_violations.append({'file': rel_source, 'line': idx, 'target': target})
+                    absolute_violations.append({'SourceFile': rel_source, 'Line': idx, 'Target': target})
                     continue
                 target_path = target.split('#')[0].split('?')[0]
                 if not target_path:
@@ -78,7 +78,7 @@ for file_path in md_files:
                 total_checked += 1
                 resolved = os.path.normpath(os.path.join(file_dir, target_path))
                 if not os.path.exists(resolved):
-                    broken_links.append({'file': rel_source, 'line': idx, 'target': target})
+                    broken_links.append({'SourceFile': rel_source, 'Line': idx, 'Target': target, 'Resolved': resolved})
 
 parity_mismatches = []
 if check_parity:
@@ -115,9 +115,9 @@ else:
     else:
         print(f'Documentation Status: FAIL ({len(broken_links)} broken links, {len(absolute_violations)} absolute path violations, {len(parity_mismatches)} parity gaps)')
         for av in absolute_violations:
-            print(f"  [Absolute Path Violation] {av['file']}:{av['line']} -> {av['target']} (must use relative path)")
+            print(f"  [Absolute Path Violation] {av['SourceFile']}:{av['Line']} -> {av['Target']} (must use relative path)")
         for bl in broken_links:
-            print(f"  [Broken Link] {bl['file']}:{bl['line']} -> {bl['target']}")
+            print(f"  [Broken Link] {bl['SourceFile']}:{bl['Line']} -> {bl['Target']}")
         for pm in parity_mismatches:
             print(f"  [Parity Gap] {pm}")
     print('=============================================')

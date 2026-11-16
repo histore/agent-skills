@@ -263,6 +263,70 @@
           "single_prepare_commit_on_confirm"
         ]
       }
+    },
+    {
+      "id": "EVAL-EFF-003",
+      "name": "Zero-Reload Core Invariant & Zero-Probe Detection",
+      "category": "efficiency",
+      "description": "Core lifecycle tasks execute from embedded rules without loading SKILL.md files or running detect-models.ps1 proactively.",
+      "input": "Behebe den Tippfehler in einer Fehlermeldung von OrderService.",
+      "expected": {
+        "primary_role": "Control",
+        "prohibited_actions": [
+          "detect-models.ps1",
+          "detect-models.sh"
+        ],
+        "required_invariants": [
+          "zero_reload_core",
+          "zero_probe_detection"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-DOC-001",
+      "name": "Concept Lifecycle & Zero-Test Concept Guardrail",
+      "category": "documentation",
+      "description": "Concept drafts follow CONCEPT_TEMPLATE.md schema in docs/concepts/drafts/ with zero test or formatter execution.",
+      "input": "Erstelle einen Konzeptentwurf CONCEPT-AUTH-001 für OAuth2 PKCE Login.",
+      "expected": {
+        "primary_role": "ContractSpecialist",
+        "prohibited_actions": [
+          "dotnet test",
+          "cargo test",
+          "run-fast-gate"
+        ],
+        "required_invariants": [
+          "concept_template_schema",
+          "zero_test_on_concept"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-DOC-002",
+      "name": "Four-Step Codebase Analysis & AST Code Outline",
+      "category": "efficiency",
+      "description": "Agent checks ARCHITECTURE.md and uses get-code-outline before reading large implementation files.",
+      "input": "Analysiere die Schnittstellen des Billing-Moduls vor der Erweiterung.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "four_step_analysis",
+          "code_outline_before_read"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-MCP-001",
+      "name": "MCP & External Tool Governance (Local-First Priority)",
+      "category": "governance",
+      "description": "Deterministic local scripts take precedence over external MCP tools for repository, build, lint, and Git operations.",
+      "input": "Prüfe die Clean-Architecture-Grenzen und offene Lint-Fehler im Repository.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "mcp_local_first"
+        ]
+      }
     }
   ]
 }

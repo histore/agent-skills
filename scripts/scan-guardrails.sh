@@ -54,6 +54,32 @@ if [[ "$SCAN_PATH" != "/" ]]; then
 fi
 
 VIOLATIONS=()
+VIOLATION_JSON_ITEMS=()
+FIXED_JSON_ITEMS=()
+FIXED_TEXT_ITEMS=()
+
+guard_json_esc() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\t'/\\t}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\n'/\\n}"
+  printf '%s' "$s"
+}
+
+add_violation() {
+  local rule="$1"
+  local file="$2"
+  local line_num="$3"
+  local msg="$4"
+  local loc=""
+  if [[ "$line_num" -gt 0 ]]; then
+    loc=":${line_num}"
+  fi
+  VIOLATIONS+=("[${rule}] ${file}${loc}: ${msg}")
+  VIOLATION_JSON_ITEMS+=("{\"Rule\":\"$(guard_json_esc "$rule")\",\"File\":\"$(guard_json_esc "$file")\",\"Line\":${line_num},\"Message\":\"$(guard_json_esc "$msg")\"}")
+}
 
 OS_UNAME="$(uname -s 2>/dev/null || echo "")"
 case "$OS_UNAME" in
@@ -241,9 +267,64 @@ for rel in sys.stdin:
             if rx.search(rel): res = val
     if res:
         print(f"{rel}\t{res}")
-' "$EC_PATH" "${SCAN_PATH}/.gitattributes" "$HAS_GITATTR" "$GIT_TOP" 2>/dev/null || true)
+' "$EC_PATH" "${SCAN_PATH}/.gitattributes" "$HAS_GITATTR" "$GIT_TOP" 2>/dev/null | tr -d '\r' || true)
   fi
 fi
+
+has_wrong_eol() {
+  local target_file="$1"
+  local expected="$2"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$target_file" "$expected" << 'PYEOF'
+import sys
+fp, exp = sys.argv[1], sys.argv[2]
+data = open(fp, 'rb').read()
+if not data:
+    sys.exit(1)
+if exp == 'CRLF':
+    bad = False
+    n = len(data)
+    for i, b in enumerate(data):
+        if b == 10 and (i == 0 or data[i - 1] != 13):
+            bad = True; break
+        if b == 13 and (i + 1 >= n or data[i + 1] != 10):
+            bad = True; break
+    sys.exit(0 if bad else 1)
+else:
+    sys.exit(0 if b'\r' in data else 1)
+PYEOF
+    return $?
+  fi
+  if [[ "$expected" == "CRLF" ]]; then
+    awk -v BINMODE=3 '{ if (/\r[^\r]/ || !/\r$/) { found=1; exit } } END { exit !found }' "$target_file" 2>/dev/null
+  else
+    [ "$(LC_ALL=C tr -cd '\r' < "$target_file" 2>/dev/null | wc -c)" -gt 0 ]
+  fi
+}
+
+fix_file_eol() {
+  local target_file="$1"
+  local expected="$2"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$target_file" "$expected" << 'PYEOF'
+import sys
+fp, exp = sys.argv[1], sys.argv[2]
+data = open(fp, 'rb').read()
+if data.startswith(b'\xef\xbb\xbf'):
+    data = data[3:]
+lf = data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+out = lf.replace(b'\n', b'\r\n') if exp == 'CRLF' else lf
+with open(fp, 'wb') as f:
+    f.write(out)
+PYEOF
+    return $?
+  fi
+  if [[ "$expected" == "CRLF" ]]; then
+    awk -v BINMODE=3 'BEGIN{ORS=""} { sub(/\r$/, ""); printf "%s\r\n", $0 }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+  else
+    tr -d '\r' < "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+  fi
+}
 
 # 2. Scan files
 for file in "${FILES[@]}"; do
@@ -251,7 +332,7 @@ for file in "${FILES[@]}"; do
 
   # Submodule leakage check
   if [[ "$STAGED_ONLY" == "true" && ("$rel_path" =~ ^\.agents/ || "$rel_path" =~ ^_agents/) ]]; then
-    VIOLATIONS+=("[SubmoduleIsolation] ${rel_path}: Staged change originates inside submodule path")
+    add_violation "SubmoduleIsolation" "$rel_path" 0 "Staged change originates inside submodule path '$rel_path'"
   fi
 
   # Text file check (extension/name allowlist + MIME fallback, skipping 0-byte files)
@@ -281,31 +362,28 @@ for file in "${FILES[@]}"; do
 
     if [[ "$SKIP_LINE_ENDINGS" != "true" && "$EFF_EOL" != "SKIP" ]]; then
       HAS_WRONG_EOL=false
-      if [[ "$EFF_EOL" == "CRLF" ]]; then
-        if awk '{ if (/\r[^\r]/ || !/\r$/) { found=1; exit } } END { exit !found }' "$file" 2>/dev/null; then
-          HAS_WRONG_EOL=true
-        fi
-      else
-        if grep -q $'\r' "$file" 2>/dev/null; then
-          HAS_WRONG_EOL=true
-        fi
+      if has_wrong_eol "$file" "$EFF_EOL"; then
+        HAS_WRONG_EOL=true
       fi
 
       if [[ "$HAS_WRONG_EOL" == "true" ]]; then
         if [[ "$FIX" == "true" ]]; then
+          fix_file_eol "$file" "$EFF_EOL"
           if [[ "$EFF_EOL" == "CRLF" ]]; then
-            awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+            ACTION_MSG="Normalized LF to CRLF"
           else
-            tr -d '\r' < "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+            ACTION_MSG="Normalized CRLF to LF"
           fi
           if [[ "$STAGED_ONLY" == "true" ]]; then
             git -C "$SCAN_PATH" add "$file" 2>/dev/null || true
           fi
+          FIXED_TEXT_ITEMS+=("[LineEndings] ${rel_path}: ${ACTION_MSG}")
+          FIXED_JSON_ITEMS+=("{\"Rule\":\"LineEndings\",\"File\":\"$(guard_json_esc "$rel_path")\",\"Action\":\"${ACTION_MSG}\"}")
         else
           if [[ "$EFF_EOL" == "CRLF" ]]; then
-            VIOLATIONS+=("[LineEndings] ${rel_path}: LF line endings detected (expected CRLF)")
+            add_violation "LineEndings" "$rel_path" 0 "LF line endings detected (expected CRLF)"
           else
-            VIOLATIONS+=("[LineEndings] ${rel_path}: CRLF line endings detected (expected LF)")
+            add_violation "LineEndings" "$rel_path" 0 "CRLF line endings detected (expected LF)"
           fi
         fi
       fi
@@ -313,39 +391,44 @@ for file in "${FILES[@]}"; do
 
     # Safe-Rust check (blocks, pub/async unsafe fn, unsafe impl/trait/extern, Rust 2024 #[unsafe(...)])
     if [[ "$file" == *.rs ]]; then
-      if sed -E 's#//.*$##; s#"((\\.)|[^"\\])*"#""#g' "$file" | grep -nE '((^|[^[:alnum:]_])unsafe[[:space:]]*(\{|fn([^[:alnum:]_]|$)|impl([^[:alnum:]_]|$)|trait([^[:alnum:]_]|$)|extern([^[:alnum:]_]|$))|#\[[[:space:]]*unsafe[[:space:]]*\()' >/dev/null 2>&1; then
-        VIOLATIONS+=("[SafeRust] ${rel_path}: Forbidden unsafe construct detected in safe-Rust codebase")
+      UNSAFE_LINE=$(sed -E 's#//.*$##; s#"((\\.)|[^"\\])*"#""#g' "$file" | grep -nE '((^|[^[:alnum:]_])unsafe[[:space:]]*(\{|fn([^[:alnum:]_]|$)|impl([^[:alnum:]_]|$)|trait([^[:alnum:]_]|$)|extern([^[:alnum:]_]|$))|#\[[[:space:]]*unsafe[[:space:]]*\()' | head -n 1 | cut -d: -f1 || true)
+      if [[ -n "$UNSAFE_LINE" ]]; then
+        add_violation "SafeRust" "$rel_path" "$UNSAFE_LINE" "Forbidden 'unsafe' construct detected in safe-Rust codebase"
       fi
     fi
 
     # Secret patterns
     if grep -nE -- '-----BEGIN (RSA|EC|DSA|OPENSSH)?\s*PRIVATE KEY-----' "$file" >/dev/null 2>&1; then
-      VIOLATIONS+=("[SecretDetection] ${rel_path}: Potential private key detected")
+      add_violation "SecretDetection" "$rel_path" 0 "Potential secret detected (Private Key)"
     fi
     if grep -nE -- '(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}' "$file" >/dev/null 2>&1; then
-      VIOLATIONS+=("[SecretDetection] ${rel_path}: Potential AWS access key detected")
+      add_violation "SecretDetection" "$rel_path" 0 "Potential secret detected (AWS Access Key)"
     fi
     if grep -nE -- 'gh[pousr]_[A-Za-z0-9_]{36,255}' "$file" >/dev/null 2>&1; then
-      VIOLATIONS+=("[SecretDetection] ${rel_path}: Potential GitHub Personal Token detected")
+      add_violation "SecretDetection" "$rel_path" 0 "Potential secret detected (GitHub Personal Token)"
     fi
   fi
 done
 
 TOTAL_VIOLATIONS=${#VIOLATIONS[@]}
+TOTAL_FIXED=${#FIXED_JSON_ITEMS[@]}
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-  if [[ $TOTAL_VIOLATIONS -eq 0 ]]; then
-    echo "{\"status\":\"pass\",\"scanned_files_count\":${#FILES[@]},\"violations_count\":0,\"violations\":[]}"
-  else
-    VIOLATIONS_JSON=""
-    for v in "${VIOLATIONS[@]}"; do
-      esc_v="${v//\\/\\\\}"
-      esc_v="${esc_v//\"/\\\"}"
-      if [[ -n "$VIOLATIONS_JSON" ]]; then VIOLATIONS_JSON+=","; fi
-      VIOLATIONS_JSON+="\"$esc_v\""
-    done
-    echo "{\"status\":\"fail\",\"scanned_files_count\":${#FILES[@]},\"violations_count\":$TOTAL_VIOLATIONS,\"violations\":[$VIOLATIONS_JSON]}"
-  fi
+  VIOLATIONS_JSON=""
+  for v in "${VIOLATION_JSON_ITEMS[@]:-}"; do
+    [[ -z "$v" ]] && continue
+    [[ -n "$VIOLATIONS_JSON" ]] && VIOLATIONS_JSON+=","
+    VIOLATIONS_JSON+="$v"
+  done
+  FIXED_JSON=""
+  for fx in "${FIXED_JSON_ITEMS[@]:-}"; do
+    [[ -z "$fx" ]] && continue
+    [[ -n "$FIXED_JSON" ]] && FIXED_JSON+=","
+    FIXED_JSON+="$fx"
+  done
+  STATUS="pass"
+  [[ $TOTAL_VIOLATIONS -gt 0 ]] && STATUS="fail"
+  echo "{\"status\":\"${STATUS}\",\"scanned_files_count\":${#FILES[@]},\"violations_count\":${TOTAL_VIOLATIONS},\"fixed_count\":${TOTAL_FIXED},\"fixed\":[${FIXED_JSON}],\"violations\":[${VIOLATIONS_JSON}]}"
 else
   echo "============================================="
   echo "Deterministic Guardrails Scanner"

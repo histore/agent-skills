@@ -144,8 +144,8 @@ if ($isAntigravityEnv) {
     }
 
     if ($modelList -and $modelList.Count -gt 0) {
-        $flagshipHigh = ($modelList | Where-Object { $_.id -match '(opus|gemini-4|argon|pro|gpt-[56]|astra).*(high|extended)' -or $_.id -match 'opus|gemini-4.*pro|gpt-6.*astra' } | Select-Object -First 1).id
-        $analyticalHigh = ($modelList | Where-Object { $_.id -match '(sonnet|gemini-4|argon|gpt-[56]|sol).*(high|medium)|gpt-6\.1-sol' } | Select-Object -First 1).id
+        $flagshipHigh = ($modelList | Where-Object { $_.id -match '(opus|gemini-4|hydrogen|argon|pro|gpt-[56]|astra).*(high|extended)' -or $_.id -match 'opus|gemini-4.*pro|gpt-6.*astra' } | Select-Object -First 1).id
+        $analyticalHigh = ($modelList | Where-Object { $_.id -match '(sonnet|gemini-4|hydrogen|argon|gpt-[56]|sol).*(high|medium)|gpt-6\.1-sol' } | Select-Object -First 1).id
         $flashHigh = ($modelList | Where-Object { $_.id -match '(flash|haiku|mini|luna).*high' } | Select-Object -First 1).id
         $flashMed = ($modelList | Where-Object { $_.id -match '(flash|argon|sonnet|gpt-6|sol).*medium|gpt-6\.1-sol' } | Select-Object -First 1).id
         $flashLow = ($modelList | Where-Object { $_.id -match '(flash|haiku|mini|luna).*low|gpt-6.*(mini|luna)' } | Select-Object -First 1).id

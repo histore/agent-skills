@@ -8,6 +8,7 @@ REPO_ROOT="$(pwd)"
 JSON_OUTPUT=false
 CHECK_SYNC=false
 EXECUTE=false
+VERSION_OVERRIDE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -19,6 +20,14 @@ while [[ $# -gt 0 ]]; do
       REPO_ROOT="${1#*=}"
       shift
       ;;
+    --version-override)
+      VERSION_OVERRIDE="$2"
+      shift 2
+      ;;
+    --version-override=*)
+      VERSION_OVERRIDE="${1#*=}"
+      shift
+      ;;
     --json|-j)
       JSON_OUTPUT=true
       shift
@@ -27,7 +36,7 @@ while [[ $# -gt 0 ]]; do
       CHECK_SYNC=true
       shift
       ;;
-    --execute)
+    --execute|--execute-tag-and-push)
       EXECUTE=true
       shift
       ;;
@@ -41,7 +50,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-CURRENT_BRANCH=$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || echo "HEAD")
+CURRENT_BRANCH=$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || true)
+[[ -z "$CURRENT_BRANCH" ]] && CURRENT_BRANCH="HEAD"
 LATEST_TAG=$(git -C "$REPO_ROOT" tag -l "v[0-9]*" --sort=-v:refname 2>/dev/null | head -n 1 || echo "")
 [[ -z "$LATEST_TAG" ]] && LATEST_TAG="v0.0.0"
 
@@ -53,11 +63,14 @@ fi
 
 BEHIND_COUNT=0
 AHEAD_COUNT=0
-UPSTREAM=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo "")
-if [[ -n "$UPSTREAM" ]]; then
-  COUNTS=$(git -C "$REPO_ROOT" rev-list --left-right --count "$UPSTREAM...HEAD" 2>/dev/null || echo "0	0")
-  BEHIND_COUNT=$(echo "$COUNTS" | awk '{print $1}')
-  AHEAD_COUNT=$(echo "$COUNTS" | awk '{print $2}')
+if [[ "$CHECK_SYNC" == "true" || "$EXECUTE" == "true" ]]; then
+  git -C "$REPO_ROOT" fetch origin main >/dev/null 2>&1 || true
+  COUNTS=$(git -C "$REPO_ROOT" rev-list --left-right --count "main...origin/main" 2>/dev/null || true)
+  if [[ -n "$COUNTS" ]]; then
+    read -r AHEAD_COUNT BEHIND_COUNT <<< "$COUNTS" || true
+    AHEAD_COUNT="${AHEAD_COUNT:-0}"
+    BEHIND_COUNT="${BEHIND_COUNT:-0}"
+  fi
 fi
 
 if [[ "$LATEST_TAG" == "v0.0.0" ]]; then
@@ -108,7 +121,36 @@ elif [[ "$BUMP" == "patch" ]]; then
   PATCH=$((PATCH + 1))
 fi
 
-NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+if [[ -n "$VERSION_OVERRIDE" ]]; then
+  if [[ "$VERSION_OVERRIDE" == v* ]]; then
+    NEXT_TAG="$VERSION_OVERRIDE"
+  else
+    NEXT_TAG="v${VERSION_OVERRIDE}"
+  fi
+else
+  NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+fi
+
+COMMITS_ANALYZED=$(( ${#BREAKING[@]} + ${#FEATURES[@]} + ${#FIXES[@]} + ${#OTHERS[@]} ))
+
+NOTES="## Release ${NEXT_TAG}"$'\n'
+if [[ ${#BREAKING[@]} -gt 0 ]]; then
+  NOTES+="### Breaking Changes"$'\n'
+  for b in "${BREAKING[@]}"; do NOTES+="- ${b}"$'\n'; done
+fi
+if [[ ${#FEATURES[@]} -gt 0 ]]; then
+  NOTES+="### Features"$'\n'
+  for f in "${FEATURES[@]}"; do NOTES+="- ${f}"$'\n'; done
+fi
+if [[ ${#FIXES[@]} -gt 0 ]]; then
+  NOTES+="### Bug Fixes"$'\n'
+  for fx in "${FIXES[@]}"; do NOTES+="- ${fx}"$'\n'; done
+fi
+if [[ ${#OTHERS[@]} -gt 0 ]]; then
+  NOTES+="### Maintenance & Documentation"$'\n'
+  for o in "${OTHERS[@]}"; do NOTES+="- ${o}"$'\n'; done
+fi
+NOTES="${NOTES%$'\n'}"
 
 TAG_PUSHED=false
 if [[ "$EXECUTE" == "true" ]]; then
@@ -130,8 +172,32 @@ if [[ "$EXECUTE" == "true" ]]; then
   TAG_PUSHED=true
 fi
 
+sv_json_esc() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\t'/\\t}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\n'/\\n}"
+  printf '%s' "$s"
+}
+
+sv_json_arr() {
+  local out="" item
+  for item in "$@"; do
+    [[ -z "$item" ]] && continue
+    [[ -n "$out" ]] && out+=","
+    out+="\"$(sv_json_esc "$item")\""
+  done
+  printf '[%s]' "$out"
+}
+
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-  echo "{\"current_branch\":\"$CURRENT_BRANCH\",\"is_main\":$([[ "$CURRENT_BRANCH" == "main" ]] && echo true || echo false),\"is_clean\":$IS_CLEAN,\"behind_origin\":$BEHIND_COUNT,\"ahead_origin\":$AHEAD_COUNT,\"current_version\":\"$LATEST_TAG\",\"next_version\":\"$NEXT_TAG\",\"bump_type\":\"$BUMP\",\"tag_pushed\":$TAG_PUSHED}"
+  BRK_JSON=$(sv_json_arr "${BREAKING[@]:-}")
+  FEAT_JSON=$(sv_json_arr "${FEATURES[@]:-}")
+  FIX_JSON=$(sv_json_arr "${FIXES[@]:-}")
+  NOTES_JSON=$(sv_json_esc "$NOTES")
+  echo "{\"current_branch\":\"$(sv_json_esc "$CURRENT_BRANCH")\",\"is_main\":$([[ "$CURRENT_BRANCH" == "main" ]] && echo true || echo false),\"is_clean\":$IS_CLEAN,\"behind_origin\":$BEHIND_COUNT,\"ahead_origin\":$AHEAD_COUNT,\"current_version\":\"$LATEST_TAG\",\"next_version\":\"$NEXT_TAG\",\"bump_type\":\"$BUMP\",\"commits_analyzed\":$COMMITS_ANALYZED,\"breaking_changes\":$BRK_JSON,\"features\":$FEAT_JSON,\"fixes\":$FIX_JSON,\"release_notes\":\"$NOTES_JSON\",\"tag_pushed\":$TAG_PUSHED}"
 else
   if [[ "$TAG_PUSHED" == "true" ]]; then
     echo "Release Tag: SUCCESS $NEXT_TAG created and pushed on main"

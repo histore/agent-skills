@@ -175,9 +175,9 @@
   "platform_preferences": {
     "antigravity": {
       "customization_root": "_agents",
-      "tier_1": ["gemini-4-argon-high", "gemini-3.8-flash-high", "claude-opus-5-5-high", "gemini-4-pro-high"],
-      "tier_1_exception": ["claude-opus-5-5-high", "gemini-4-pro-high"],
-      "tier_2": ["gemini-4-argon-medium", "gemini-3.8-flash-high", "claude-sonnet-5-5-high"],
+      "tier_1": ["gemini-4-hydrogen-high", "gemini-4-argon-high", "gemini-3.8-flash-high", "claude-opus-5-5-high", "gemini-4-pro-high"],
+      "tier_1_exception": ["claude-opus-5-5-high", "gemini-4-pro-high", "gemini-4-hydrogen-high"],
+      "tier_2": ["gemini-4-hydrogen-medium", "gemini-4-argon-medium", "gemini-3.8-flash-high", "claude-sonnet-5-5-high"],
       "tier_3": ["gemini-4-argon-medium", "gemini-3.8-flash-medium", "claude-sonnet-5-5-medium"],
       "tier_4": ["gemini-3.8-flash-low", "gemini-4-flash-low"]
     },

@@ -33,8 +33,13 @@ MIGRATION_FILES=()
 for dir in "migrations" "db/migrations" "sql/migrations" "src" "prisma/migrations"; do
     if [ -d "$REPO_ROOT/$dir" ]; then
         while IFS= read -r f; do
-            [ -n "$f" ] && MIGRATION_FILES+=("$f")
-        done < <(find "$REPO_ROOT/$dir" -type f \( -name "*.sql" -o -name "*.cs" -o -name "*.py" \) -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/bin/*" -not -path "*/obj/*" -not -path "*/target/*" -not -path "*/node_modules/*" 2>/dev/null | grep -E 'migration|\bup\b|\bdown\b|^[0-9]{3,}_|^V[0-9]+__' || true)
+            [ -z "$f" ] && continue
+            bname=$(basename "$f")
+            dname=$(dirname "$f")
+            if echo "$dname" | grep -iqE 'migration|/(up|down)(/|$)' || [[ "$bname" =~ ^[0-9]{3,}_|^V[0-9]+__|\.up\.sql$|\.down\.sql$ ]]; then
+                MIGRATION_FILES+=("$f")
+            fi
+        done < <(find "$REPO_ROOT/$dir" -type f \( -name "*.sql" -o -name "*.cs" -o -name "*.py" \) -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/bin/*" -not -path "*/obj/*" -not -path "*/target/*" -not -path "*/node_modules/*" 2>/dev/null || true)
     fi
 done
 
@@ -85,8 +90,36 @@ elif [ ${#WARNINGS[@]} -gt 0 ]; then
     STATUS="warning"
 fi
 
+db_json_esc() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\t'/\\t}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\n'/\\n}"
+    printf '%s' "$s"
+}
+
+db_json_arr() {
+    local out="" item
+    for item in "$@"; do
+        [ -z "$item" ] && continue
+        [ -n "$out" ] && out+=","
+        out+="\"$(db_json_esc "$item")\""
+    done
+    printf '[%s]' "$out"
+}
+
+if [ ${#MIGRATION_FILES[@]} -eq 0 ]; then
+    MSG="No database migration files detected in workspace."
+else
+    MSG="Linted ${#MIGRATION_FILES[@]} migration files with ${#ERRORS[@]} errors and ${#WARNINGS[@]} warnings."
+fi
+
 if [ "$JSON_OUTPUT" = true ]; then
-    echo "{\"status\":\"$STATUS\",\"migrations_count\":${#MIGRATION_FILES[@]},\"errors_count\":${#ERRORS[@]},\"warnings_count\":${#WARNINGS[@]}}"
+    ERR_JSON=$(db_json_arr "${ERRORS[@]:-}")
+    WARN_JSON=$(db_json_arr "${WARNINGS[@]:-}")
+    echo "{\"status\":\"$STATUS\",\"migrations_count\":${#MIGRATION_FILES[@]},\"errors_count\":${#ERRORS[@]},\"warnings_count\":${#WARNINGS[@]},\"errors\":$ERR_JSON,\"warnings\":$WARN_JSON,\"message\":\"$(db_json_esc "$MSG")\"}"
 else
     echo "Database Migration Lint Summary"
     echo "Status: $STATUS"

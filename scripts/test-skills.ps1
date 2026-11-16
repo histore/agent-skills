@@ -1072,9 +1072,20 @@ try {
     $singleReqOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $lintReqPs1 -RequirementsPath $tempSingleDir -JsonOutput 2>$null
     $singleReqObj = if ($singleReqOut) { $singleReqOut | ConvertFrom-Json } else { $null }
     Assert-Condition ($null -ne $singleReqObj -and $singleReqObj.status -eq "pass" -and $singleReqObj.defined_count -eq 1) "lint-requirements.ps1 handles 1-line requirement files safely (array-wrapped Get-Content)" "lint-requirements.ps1 failed on 1-line requirements file ($singleReqOut)"
+
+    $unknownEvalFile = Join-Path $tempSingleDir "eval-unknown.json"
+    [System.IO.File]::WriteAllText($unknownEvalFile, '{"eval_cases":[{"id":"EVAL-UNK-001","name":"Unknown Check","category":"governance","input":"test","expected":{"required_invariants":["nonexistent_invariant_xyz"]}}]}', (New-Object System.Text.UTF8Encoding($false)))
+    $unkEvalRaw = $null
+    try { $unkEvalRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File $runEvalsPs1 -EvalFile $unknownEvalFile -JsonOutput 2>$null } catch {}
+    $unkEvalObj = if ($unkEvalRaw) { $unkEvalRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $unkEvalObj -and $unkEvalObj.failed -eq 1) "run-evals.ps1 rejects unknown/unhandled required_invariants" "run-evals.ps1 silently passed an unknown required_invariant"
 } finally {
     if (Test-Path $tempSingleDir) { Remove-Item -LiteralPath $tempSingleDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
+
+$readmeRaw = Get-Content -Path (Join-Path $repoRoot "README.md") -Raw -Encoding UTF8
+Assert-Condition ($readmeRaw -match '5 consolidated specialist capability packs' -and $readmeRaw -notmatch '4 consolidated specialist capability packs') "README.md accurately lists 5 specialist capability packs" "README.md has stale specialist pack count"
+Assert-Condition ($gitTroubleContent -match 'safety-snapshot-\*') "ask-git-troubleshooter documents safety-snapshot-* branch verification matching diagnose-git-state" "ask-git-troubleshooter snapshot verification mismatches diagnose-git-state"
 
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan

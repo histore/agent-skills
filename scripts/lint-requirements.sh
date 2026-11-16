@@ -70,7 +70,7 @@ for f in files:
             if def_m:
                 full_id = def_m.group(1).upper()
                 if full_id in defined_ids:
-                    duplicates.append({'id': full_id, 'first': defined_ids[full_id], 'second': loc})
+                    duplicates.append({'Id': full_id, 'FirstFile': defined_ids[full_id], 'SecondFile': loc})
                 else:
                     defined_ids[full_id] = loc
 
@@ -88,10 +88,11 @@ if next_id:
     if not target_scope:
         print('Error: --scope is required with --next-id', file=sys.stderr)
         sys.exit(1)
-    nxt = scope_max.get(target_scope, 0) + 1
+    cur_max = scope_max.get(target_scope, 0)
+    nxt = cur_max + 1
     new_id = f'REQ-{target_scope}-{nxt:03d}'
     if json_out:
-        print(json.dumps({'scope': target_scope, 'next_id': new_id}))
+        print(json.dumps({'scope': target_scope, 'next_id': new_id, 'current_max': cur_max}))
     else:
         print(new_id)
     sys.exit(0)
@@ -104,6 +105,7 @@ if json_out:
         'scanned_files': len(files),
         'total_requirements_found': total_reqs,
         'defined_count': len(defined_ids),
+        'scopes_tracked': len(scope_max),
         'duplicates_count': len(duplicates),
         'duplicates': duplicates
     }))
@@ -113,7 +115,7 @@ else:
     else:
         print(f'Requirements Linter: FAIL ({len(duplicates)} duplicate IDs detected in {len(files)} files)')
         for d in duplicates:
-            print(f"  Collision on {d['id']}: first in {d['first']}, second in {d['second']}")
+            print(f"  Collision on {d['Id']}: first in {d['FirstFile']}, second in {d['SecondFile']}")
 
 if not is_pass:
     sys.exit(1)

@@ -130,13 +130,26 @@ else
     assert_condition 1 "Zero occurrences of retired V1 or ghost roles across all markdown files" "Found retired/ghost roles in: ${FOUND_GHOSTS[*]}"
 fi
 
-# 4. Check for CRLF line endings
-echo -e "\n\033[33m4. Checking line endings (must be LF)...\033[0m"
-CRLF_COUNT=$(find "$REPO_ROOT" -type f -not -path '*/.*' -exec file {} + 2>/dev/null | grep "CRLF" | wc -l || true)
-if [ "$CRLF_COUNT" -eq 0 ]; then
-    assert_condition 0 "All repository files use LF line endings" "CRLF line endings detected"
+# 4. Check OS-native line endings (CRLF on Windows/MINGW, LF on Linux/macOS)
+OS_UNAME_TEST="$(uname -s 2>/dev/null || echo "")"
+case "$OS_UNAME_TEST" in
+    MINGW*|MSYS*|CYGWIN*) EXPECTED_OS_EOL="CRLF" ;;
+    *) EXPECTED_OS_EOL="LF" ;;
+esac
+echo -e "\n\033[33m4. Checking line endings (must be ${EXPECTED_OS_EOL})...\033[0m"
+if [ "$EXPECTED_OS_EOL" = "LF" ]; then
+    CRLF_COUNT=$(find "$REPO_ROOT" -type f -not -path '*/.*' -exec file {} + 2>/dev/null | grep "CRLF" | wc -l || true)
+    if [ "$CRLF_COUNT" -eq 0 ]; then
+        assert_condition 0 "All repository files use LF line endings" "CRLF line endings detected"
+    else
+        assert_condition 1 "All repository files use LF line endings" "CRLF line endings detected in $CRLF_COUNT files"
+    fi
 else
-    assert_condition 1 "All repository files use LF line endings" "CRLF line endings detected in $CRLF_COUNT files"
+    if bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "$REPO_ROOT" >/dev/null 2>&1; then
+        assert_condition 0 "All repository files use OS-native CRLF line endings" "Line ending violations detected"
+    else
+        assert_condition 1 "All repository files use OS-native CRLF line endings" "Line ending violations detected"
+    fi
 fi
 
 # 5. Validate model detection persistent caching functionality
@@ -498,6 +511,12 @@ fi
 echo -e "\n\033[33m26. Validating SemVer calculator scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/calculate-semver.ps1" ] && [ -f "$REPO_ROOT/scripts/calculate-semver.sh" ]; then
     assert_condition 0 "calculate-semver scripts exist (.ps1 and .sh)" "calculate-semver scripts missing"
+    SV_SH_OUT=$(bash "$REPO_ROOT/scripts/calculate-semver.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$SV_SH_OUT" | grep -q '"next_version":' && echo "$SV_SH_OUT" | grep -q '"commits_analyzed":' && echo "$SV_SH_OUT" | grep -q '"release_notes":'; then
+        assert_condition 0 "calculate-semver.sh outputs .ps1-compatible JSON schema" "calculate-semver.sh JSON schema mismatch: $SV_SH_OUT"
+    else
+        assert_condition 1 "calculate-semver.sh outputs .ps1-compatible JSON schema" "calculate-semver.sh JSON schema mismatch: $SV_SH_OUT"
+    fi
 else
     assert_condition 1 "calculate-semver scripts exist (.ps1 and .sh)" "calculate-semver scripts missing"
 fi
@@ -514,6 +533,12 @@ fi
 echo -e "\n\033[33m28. Validating PR summary generator scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/generate-pr-summary.ps1" ] && [ -f "$REPO_ROOT/scripts/generate-pr-summary.sh" ]; then
     assert_condition 0 "generate-pr-summary scripts exist (.ps1 and .sh)" "generate-pr-summary scripts missing"
+    PR_SH_OUT=$(bash "$REPO_ROOT/scripts/generate-pr-summary.sh" --base main --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$PR_SH_OUT" | grep -q '"referenced_reqs":' && echo "$PR_SH_OUT" | grep -q '"pr_body_markdown":'; then
+        assert_condition 0 "generate-pr-summary.sh outputs .ps1-compatible JSON schema" "generate-pr-summary.sh JSON schema mismatch: $PR_SH_OUT"
+    else
+        assert_condition 1 "generate-pr-summary.sh outputs .ps1-compatible JSON schema" "generate-pr-summary.sh JSON schema mismatch: $PR_SH_OUT"
+    fi
 else
     assert_condition 1 "generate-pr-summary scripts exist (.ps1 and .sh)" "generate-pr-summary scripts missing"
 fi
@@ -522,6 +547,12 @@ fi
 echo -e "\n\033[33m29. Validating Git state diagnostic scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/diagnose-git-state.ps1" ] && [ -f "$REPO_ROOT/scripts/diagnose-git-state.sh" ]; then
     assert_condition 0 "diagnose-git-state scripts exist (.ps1 and .sh)" "diagnose-git-state scripts missing"
+    DIAG_SH_OUT=$(bash "$REPO_ROOT/scripts/diagnose-git-state.sh" "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$DIAG_SH_OUT" | grep -q '"state":' && echo "$DIAG_SH_OUT" | grep -q '"created_snapshot_branch":' && echo "$DIAG_SH_OUT" | grep -q '"is_cherry_pick_in_progress":'; then
+        assert_condition 0 "diagnose-git-state.sh outputs full .ps1-compatible JSON schema" "diagnose-git-state.sh JSON schema mismatch: $DIAG_SH_OUT"
+    else
+        assert_condition 1 "diagnose-git-state.sh outputs full .ps1-compatible JSON schema" "diagnose-git-state.sh JSON schema mismatch: $DIAG_SH_OUT"
+    fi
 else
     assert_condition 1 "diagnose-git-state scripts exist (.ps1 and .sh)" "diagnose-git-state scripts missing"
 fi
@@ -561,6 +592,12 @@ fi
 echo -e "\n\033[33m32. Validating changelog generator scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/generate-changelog.ps1" ] && [ -f "$REPO_ROOT/scripts/generate-changelog.sh" ]; then
     assert_condition 0 "generate-changelog scripts exist (.ps1 and .sh)" "generate-changelog scripts missing"
+    CL_SH_OUT=$(bash "$REPO_ROOT/scripts/generate-changelog.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$CL_SH_OUT" | grep -q '"markdown":'; then
+        assert_condition 0 "generate-changelog.sh outputs markdown JSON field" "generate-changelog.sh missing markdown JSON field: $CL_SH_OUT"
+    else
+        assert_condition 1 "generate-changelog.sh outputs markdown JSON field" "generate-changelog.sh missing markdown JSON field: $CL_SH_OUT"
+    fi
 else
     assert_condition 1 "generate-changelog scripts exist (.ps1 and .sh)" "generate-changelog scripts missing"
 fi
@@ -569,6 +606,12 @@ fi
 echo -e "\n\033[33m33. Validating security audit scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/run-security-audit.ps1" ] && [ -f "$REPO_ROOT/scripts/run-security-audit.sh" ]; then
     assert_condition 0 "run-security-audit scripts exist (.ps1 and .sh)" "run-security-audit scripts missing"
+    SEC_SH_OUT=$(bash "$REPO_ROOT/scripts/run-security-audit.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$SEC_SH_OUT" | grep -q '"ecosystem_audits":'; then
+        assert_condition 0 "run-security-audit.sh outputs ecosystem_audits JSON field" "run-security-audit.sh missing ecosystem_audits: $SEC_SH_OUT"
+    else
+        assert_condition 1 "run-security-audit.sh outputs ecosystem_audits JSON field" "run-security-audit.sh missing ecosystem_audits: $SEC_SH_OUT"
+    fi
 else
     assert_condition 1 "run-security-audit scripts exist (.ps1 and .sh)" "run-security-audit scripts missing"
 fi
@@ -576,6 +619,16 @@ fi
 echo -e "\n\033[33m34. Validating test coverage parser scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/check-test-coverage.ps1" ] && [ -f "$REPO_ROOT/scripts/check-test-coverage.sh" ]; then
     assert_condition 0 "check-test-coverage scripts exist (.ps1 and .sh)" "check-test-coverage scripts missing"
+    TEMP_COV_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'cov')
+    mkdir -p "$TEMP_COV_DIR/coverage"
+    printf '{"total":{"lines":{"pct":85.5},"branches":{"pct":72.0}}}\n' > "$TEMP_COV_DIR/coverage/coverage-summary.json"
+    COV_SH_OUT=$(bash "$REPO_ROOT/scripts/check-test-coverage.sh" --repo-root "$TEMP_COV_DIR" --threshold 80 --json 2>/dev/null || true)
+    rm -rf "$TEMP_COV_DIR"
+    if echo "$COV_SH_OUT" | grep -q '"coverage_found":true' && echo "$COV_SH_OUT" | grep -q '"report_file":' && echo "$COV_SH_OUT" | grep -q '"branch_coverage_pct":'; then
+        assert_condition 0 "check-test-coverage.sh discovers nested coverage/coverage-summary.json with full JSON schema" "check-test-coverage.sh failed nested discovery or JSON parity: $COV_SH_OUT"
+    else
+        assert_condition 1 "check-test-coverage.sh discovers nested coverage/coverage-summary.json with full JSON schema" "check-test-coverage.sh failed nested discovery or JSON parity: $COV_SH_OUT"
+    fi
 else
     assert_condition 1 "check-test-coverage scripts exist (.ps1 and .sh)" "check-test-coverage scripts missing"
 fi
@@ -583,6 +636,17 @@ fi
 echo -e "\n\033[33m35. Validating database migration linter scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/lint-db-migrations.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-db-migrations.sh" ]; then
     assert_condition 0 "lint-db-migrations scripts exist (.ps1 and .sh)" "lint-db-migrations scripts missing"
+    TEMP_DB_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'db')
+    mkdir -p "$TEMP_DB_DIR/src/db"
+    printf 'CREATE TABLE users(id INT);\n' > "$TEMP_DB_DIR/src/db/0001_init.sql"
+    printf 'DROP TABLE users;\n' > "$TEMP_DB_DIR/src/db/0001_dup.sql"
+    DB_SH_OUT=$(bash "$REPO_ROOT/scripts/lint-db-migrations.sh" --repo-root "$TEMP_DB_DIR" --json 2>/dev/null || true)
+    rm -rf "$TEMP_DB_DIR"
+    if echo "$DB_SH_OUT" | grep -q '"migrations_count":2' && echo "$DB_SH_OUT" | grep -q '"errors_count":1' && echo "$DB_SH_OUT" | grep -q '"errors":\['; then
+        assert_condition 0 "lint-db-migrations.sh matches filename prefixes under src/ and outputs full JSON" "lint-db-migrations.sh failed filename matching or JSON schema: $DB_SH_OUT"
+    else
+        assert_condition 1 "lint-db-migrations.sh matches filename prefixes under src/ and outputs full JSON" "lint-db-migrations.sh failed filename matching or JSON schema: $DB_SH_OUT"
+    fi
 else
     assert_condition 1 "lint-db-migrations scripts exist (.ps1 and .sh)" "lint-db-migrations scripts missing"
 fi
@@ -591,6 +655,12 @@ fi
 echo -e "\n\033[33m36. Validating API contract linter scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/lint-api-contracts.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-api-contracts.sh" ]; then
     assert_condition 0 "lint-api-contracts scripts exist (.ps1 and .sh)" "lint-api-contracts scripts missing"
+    API_SH_OUT=$(bash "$REPO_ROOT/scripts/lint-api-contracts.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$API_SH_OUT" | grep -q '"errors":\[' && echo "$API_SH_OUT" | grep -q '"message":'; then
+        assert_condition 0 "lint-api-contracts.sh outputs .ps1-compatible JSON schema" "lint-api-contracts.sh JSON schema mismatch: $API_SH_OUT"
+    else
+        assert_condition 1 "lint-api-contracts.sh outputs .ps1-compatible JSON schema" "lint-api-contracts.sh JSON schema mismatch: $API_SH_OUT"
+    fi
 else
     assert_condition 1 "lint-api-contracts scripts exist (.ps1 and .sh)" "lint-api-contracts scripts missing"
 fi
@@ -598,6 +668,12 @@ fi
 echo -e "\n\033[33m37. Validating orphaned assets detector scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/find-orphaned-assets.ps1" ] && [ -f "$REPO_ROOT/scripts/find-orphaned-assets.sh" ]; then
     assert_condition 0 "find-orphaned-assets scripts exist (.ps1 and .sh)" "find-orphaned-assets scripts missing"
+    OA_SH_OUT=$(bash "$REPO_ROOT/scripts/find-orphaned-assets.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$OA_SH_OUT" | grep -q '"orphaned_assets":\[' && echo "$OA_SH_OUT" | grep -q '"orphaned_docs":\[' && echo "$OA_SH_OUT" | grep -q '"message":'; then
+        assert_condition 0 "find-orphaned-assets.sh outputs .ps1-compatible JSON schema" "find-orphaned-assets.sh JSON schema mismatch: $OA_SH_OUT"
+    else
+        assert_condition 1 "find-orphaned-assets.sh outputs .ps1-compatible JSON schema" "find-orphaned-assets.sh JSON schema mismatch: $OA_SH_OUT"
+    fi
 else
     assert_condition 1 "find-orphaned-assets scripts exist (.ps1 and .sh)" "find-orphaned-assets scripts missing"
 fi
@@ -614,6 +690,12 @@ fi
 echo -e "\n\033[33m39. Validating unified quality gates orchestrator scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/run-all-gates.ps1" ] && [ -f "$REPO_ROOT/scripts/run-all-gates.sh" ]; then
     assert_condition 0 "run-all-gates scripts exist (.ps1 and .sh)" "run-all-gates scripts missing"
+    GATES_SH_OUT=$(bash "$REPO_ROOT/scripts/run-all-gates.sh" "$REPO_ROOT" --fast --json 2>/dev/null || true)
+    if echo "$GATES_SH_OUT" | grep -q '"status":"pass"' && echo "$GATES_SH_OUT" | grep -q '"passed_gates":' && echo "$GATES_SH_OUT" | grep -q '"failed_gates":0'; then
+        assert_condition 0 "run-all-gates.sh --fast --json executes cleanly with .ps1-compatible schema" "run-all-gates.sh failed or mismatched JSON schema: $GATES_SH_OUT"
+    else
+        assert_condition 1 "run-all-gates.sh --fast --json executes cleanly with .ps1-compatible schema" "run-all-gates.sh failed or mismatched JSON schema: $GATES_SH_OUT"
+    fi
 else
     assert_condition 1 "run-all-gates scripts exist (.ps1 and .sh)" "run-all-gates scripts missing"
 fi
@@ -638,6 +720,33 @@ fi
 echo -e "\n\033[33m42. Validating feature specification inspector scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/inspect-feature-specs.ps1" ] && [ -f "$REPO_ROOT/scripts/inspect-feature-specs.sh" ]; then
     assert_condition 0 "inspect-feature-specs scripts exist (.ps1 and .sh)" "inspect-feature-specs scripts missing"
+    TEMP_SPEC_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'specs')
+    NEW_FEAT_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --new --id "FEAT-CORE-001" --title "Domain / Auth & Core" --phase 1 --scope "CORE" --json 2>/dev/null || true)
+    if echo "$NEW_FEAT_SH" | grep -q '"status":"created"' && echo "$NEW_FEAT_SH" | grep -q '"roadmap_updated":false' && [ -f "$TEMP_SPEC_DIR/docs/features/FEAT-CORE-001-domain-auth-core.md" ]; then
+        assert_condition 0 "inspect-feature-specs.sh --new scaffolds feature safely (slashes in title, boolean JSON)" "inspect-feature-specs.sh --new failed: $NEW_FEAT_SH"
+    else
+        assert_condition 1 "inspect-feature-specs.sh --new scaffolds feature safely (slashes in title, boolean JSON)" "inspect-feature-specs.sh --new failed: $NEW_FEAT_SH"
+    fi
+    NEW_CONCEPT_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --new-concept --concept-id "CONCEPT-AUTH-001" --title "OAuth2 / PKCE & Login" --scope "AUTH" --json 2>/dev/null || true)
+    if echo "$NEW_CONCEPT_SH" | grep -q '"id":"CONCEPT-AUTH-001"' && [ -f "$TEMP_SPEC_DIR/docs/concepts/drafts/CONCEPT-AUTH-001-oauth2-pkce-login.md" ]; then
+        assert_condition 0 "inspect-feature-specs.sh --new-concept --concept-id honors explicit ConceptId and special chars" "inspect-feature-specs.sh --new-concept failed: $NEW_CONCEPT_SH"
+    else
+        assert_condition 1 "inspect-feature-specs.sh --new-concept --concept-id honors explicit ConceptId and special chars" "inspect-feature-specs.sh --new-concept failed: $NEW_CONCEPT_SH"
+    fi
+    ARCH_CONCEPT_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --archive-concept "CONCEPT-AUTH-001" --json 2>/dev/null || true)
+    if echo "$ARCH_CONCEPT_SH" | grep -q '"status":"archived"' && [ -f "$TEMP_SPEC_DIR/docs/concepts/archive/CONCEPT-AUTH-001-oauth2-pkce-login.md" ]; then
+        assert_condition 0 "inspect-feature-specs.sh --archive-concept archives draft" "inspect-feature-specs.sh --archive-concept failed: $ARCH_CONCEPT_SH"
+    else
+        assert_condition 1 "inspect-feature-specs.sh --archive-concept archives draft" "inspect-feature-specs.sh --archive-concept failed: $ARCH_CONCEPT_SH"
+    fi
+    DRIFT_UPD_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --check-drift --update-state --json 2>/dev/null || true)
+    DRIFT_SYNC_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --check-drift --json 2>/dev/null || true)
+    if echo "$DRIFT_UPD_SH" | grep -q '"status":"drift_detected"' && echo "$DRIFT_SYNC_SH" | grep -q '"status":"synchronized"'; then
+        assert_condition 0 "inspect-feature-specs.sh --check-drift and --update-state track spec hashes" "inspect-feature-specs.sh --check-drift failed: $DRIFT_UPD_SH | $DRIFT_SYNC_SH"
+    else
+        assert_condition 1 "inspect-feature-specs.sh --check-drift and --update-state track spec hashes" "inspect-feature-specs.sh --check-drift failed: $DRIFT_UPD_SH | $DRIFT_SYNC_SH"
+    fi
+    rm -rf "$TEMP_SPEC_DIR"
 else
     assert_condition 1 "inspect-feature-specs scripts exist (.ps1 and .sh)" "inspect-feature-specs scripts missing"
 fi
@@ -797,18 +906,24 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
     git -C "$TEMP_PREP_DIR" config user.name "Test User"
     git -C "$TEMP_PREP_DIR" config core.autocrlf false
 
-    printf '# Title\nLine 2\n' > "$TEMP_PREP_DIR/notes.md"
-    printf 'alpha\r\nbeta\r\n' > "$TEMP_PREP_DIR/legacy.txt"
+    if [ "$EXPECTED_OS_EOL" = "CRLF" ]; then
+        NAT_NL=$'\r\n'; ALT_NL=$'\n'; OVR_ATTR="eol=lf"; OVR_EC="lf"
+    else
+        NAT_NL=$'\n'; ALT_NL=$'\r\n'; OVR_ATTR="eol=crlf"; OVR_EC="crlf"
+    fi
+
+    printf '# Title%sLine 2%s' "$NAT_NL" "$NAT_NL" > "$TEMP_PREP_DIR/notes.md"
+    printf 'alpha%sbeta%s' "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/legacy.txt"
     git -C "$TEMP_PREP_DIR" add notes.md legacy.txt
     git -C "$TEMP_PREP_DIR" commit -q -m "chore: init"
 
-    # 46a. Whitespace-only (CRLF) diff -> needs_decision without draft message, then --revert-whitespace-only -> clean
-    printf '# Title\r\nLine 2\r\n' > "$TEMP_PREP_DIR/notes.md"
+    # 46a. Whitespace-only (EOL) diff -> needs_decision without draft message, then --revert-whitespace-only -> clean
+    printf '# Title%sLine 2%s' "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/notes.md"
     WS_DETECT=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --json 2>/dev/null || true)
     if echo "$WS_DETECT" | grep -q '"status":"needs_decision"' && echo "$WS_DETECT" | grep -q '"suggested_commit_message":""'; then
-        assert_condition 0 "prepare-commit.sh detects whitespace/CRLF-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
+        assert_condition 0 "prepare-commit.sh detects whitespace/EOL-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
     else
-        assert_condition 1 "prepare-commit.sh detects whitespace/CRLF-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
+        assert_condition 1 "prepare-commit.sh detects whitespace/EOL-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
     fi
 
     WS_REVERT=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --revert-whitespace-only --json 2>/dev/null || true)
@@ -818,38 +933,38 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
         assert_condition 1 "prepare-commit.sh --revert-whitespace-only reverts noise diffs to HEAD" "prepare-commit.sh failed to revert whitespace-only diff"
     fi
 
-    # 46b. Real edit + CRLF on LF file -> normalized under --direct
-    printf '# Title\r\nLine 2\r\nLine 3\r\n' > "$TEMP_PREP_DIR/notes.md"
+    # 46b. Real edit + non-native EOL on native file -> normalized under --direct
+    printf '# Title%sLine 2%sLine 3%s' "$ALT_NL" "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/notes.md"
     DIRECT_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
     if echo "$DIRECT_RES" | grep -q '"status":"ready"' && echo "$DIRECT_RES" | grep -q '"next_step":"execute_commit"' && echo "$DIRECT_RES" | grep -q '"normalized_count":1'; then
-        assert_condition 0 "prepare-commit.sh --direct normalizes unambiguous CRLF->LF and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit"
+        assert_condition 0 "prepare-commit.sh --direct normalizes unambiguous non-native EOL and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit: $DIRECT_RES"
     else
-        assert_condition 1 "prepare-commit.sh --direct normalizes unambiguous CRLF->LF and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit"
+        assert_condition 1 "prepare-commit.sh --direct normalizes unambiguous non-native EOL and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit: $DIRECT_RES"
     fi
 
-    # 46c. Ambiguous legacy CRLF file -> pauses under --direct until --force-normalize
-    printf 'alpha\r\nbeta\r\ngamma\r\n' > "$TEMP_PREP_DIR/legacy.txt"
+    # 46c. Ambiguous legacy non-native EOL file -> pauses under --direct until --force-normalize
+    printf 'alpha%sbeta%sgamma%s' "$ALT_NL" "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/legacy.txt"
     AMBIG_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
     if echo "$AMBIG_RES" | grep -q '"status":"needs_decision"' && echo "$AMBIG_RES" | grep -q '"ambiguous_count":1'; then
-        assert_condition 0 "prepare-commit.sh pauses for user decision on ambiguous legacy CRLF file" "prepare-commit.sh normalized ambiguous file without permission"
+        assert_condition 0 "prepare-commit.sh pauses for user decision on ambiguous legacy EOL file" "prepare-commit.sh normalized ambiguous file without permission"
     else
-        assert_condition 1 "prepare-commit.sh pauses for user decision on ambiguous legacy CRLF file" "prepare-commit.sh normalized ambiguous file without permission"
+        assert_condition 1 "prepare-commit.sh pauses for user decision on ambiguous legacy EOL file" "prepare-commit.sh normalized ambiguous file without permission"
     fi
 
     FORCE_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --force-normalize --json 2>/dev/null || true)
     if echo "$FORCE_RES" | grep -q '"status":"ready"' && echo "$FORCE_RES" | grep -q '"normalized_count":1'; then
-        assert_condition 0 "prepare-commit.sh --force-normalize normalizes legacy CRLF after confirmation" "prepare-commit.sh --force-normalize failed"
+        assert_condition 0 "prepare-commit.sh --force-normalize normalizes legacy EOL after confirmation" "prepare-commit.sh --force-normalize failed: $FORCE_RES"
     else
-        assert_condition 1 "prepare-commit.sh --force-normalize normalizes legacy CRLF after confirmation" "prepare-commit.sh --force-normalize failed"
+        assert_condition 1 "prepare-commit.sh --force-normalize normalizes legacy EOL after confirmation" "prepare-commit.sh --force-normalize failed: $FORCE_RES"
     fi
 
     # 46d. Governance/tooling mixed commit heuristic -> chore(tooling) without blank leaf
     git -C "$TEMP_PREP_DIR" add notes.md legacy.txt
     git -C "$TEMP_PREP_DIR" commit -q -m "chore: sync"
     mkdir -p "$TEMP_PREP_DIR/scripts"
-    printf '* text=auto\n' > "$TEMP_PREP_DIR/.gitattributes"
-    printf '# Agents\n' > "$TEMP_PREP_DIR/AGENTS.md"
-    printf 'echo ok\n' > "$TEMP_PREP_DIR/scripts/test-skills.sh"
+    printf '* text=auto%s' "$NAT_NL" > "$TEMP_PREP_DIR/.gitattributes"
+    printf '# Agents%s' "$NAT_NL" > "$TEMP_PREP_DIR/AGENTS.md"
+    printf 'echo ok%s' "$NAT_NL" > "$TEMP_PREP_DIR/scripts/test-skills.sh"
     TOOLING_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --json 2>/dev/null || true)
     if echo "$TOOLING_RES" | grep -q '"status":"ready"' && echo "$TOOLING_RES" | grep -q '"suggested_commit_message":"chore(tooling): update \.gitattributes and 2 additional file(s)"'; then
         assert_condition 0 "prepare-commit.sh classifies dotfile+docs+scripts as chore(tooling) without blank leaf" "prepare-commit.sh misclassified governance/tooling commit"
@@ -857,7 +972,7 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
         assert_condition 1 "prepare-commit.sh classifies dotfile+docs+scripts as chore(tooling) without blank leaf" "prepare-commit.sh misclassified governance/tooling commit: $TOOLING_RES"
     fi
 
-    # 46e. Project config overrides (.gitattributes eol=crlf and .editorconfig end_of_line=crlf) + command -v file fallback
+    # 46e. Project config overrides (.gitattributes and .editorconfig) + command -v file fallback
     if grep -q 'OS-Native Line Endings Invariant' "$REPO_ROOT/AGENTS.md" && grep -q 'command -v file' "$REPO_ROOT/scripts/prepare-commit.sh"; then
         assert_condition 0 "AGENTS.md enforces OS-Native Line Endings Invariant and prepare-commit.sh includes file fallback" "Missing invariant or file fallback"
     else
@@ -866,16 +981,22 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
 
     git -C "$TEMP_PREP_DIR" add .gitattributes AGENTS.md scripts/test-skills.sh
     git -C "$TEMP_PREP_DIR" commit -q -m "chore: baseline"
-    printf '* text=auto\n*.bat text eol=crlf\n' > "$TEMP_PREP_DIR/.gitattributes"
-    printf 'root = true\n[*.ps1]\nend_of_line = crlf\n' > "$TEMP_PREP_DIR/.editorconfig"
-    printf '@echo off\r\necho ok\r\n' > "$TEMP_PREP_DIR/scripts/build.bat"
-    printf 'Write-Host ok\n' > "$TEMP_PREP_DIR/scripts/check.ps1"
-    printf 'hello\r\nworld\r\n' > "$TEMP_PREP_DIR/default.txt"
+    printf '* text=auto%s*.bat text %s%s' "$NAT_NL" "$OVR_ATTR" "$NAT_NL" > "$TEMP_PREP_DIR/.gitattributes"
+    printf 'root = true%s[*.ps1]%send_of_line = %s%s' "$NAT_NL" "$NAT_NL" "$OVR_EC" "$NAT_NL" > "$TEMP_PREP_DIR/.editorconfig"
+    printf '@echo off%secho ok%s' "$NAT_NL" "$NAT_NL" > "$TEMP_PREP_DIR/scripts/build.bat"
+    printf 'Write-Host ok%s' "$NAT_NL" > "$TEMP_PREP_DIR/scripts/check.ps1"
+    printf 'hello%sworld%s' "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/default.txt"
     OV_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
-    if echo "$OV_RES" | grep -q '"status":"ready"' && grep -q $'\r' "$TEMP_PREP_DIR/scripts/build.bat" && grep -q $'\r' "$TEMP_PREP_DIR/scripts/check.ps1" && ! grep -q $'\r' "$TEMP_PREP_DIR/default.txt"; then
-        assert_condition 0 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native LF" "Project EOL override or OS-native default failed: $OV_RES"
+    has_cr() { [ "$(LC_ALL=C tr -cd '\r' < "$1" 2>/dev/null | wc -c)" -gt 0 ]; }
+    if [ "$EXPECTED_OS_EOL" = "CRLF" ]; then
+        OV_OK=$(! has_cr "$TEMP_PREP_DIR/scripts/build.bat" && ! has_cr "$TEMP_PREP_DIR/scripts/check.ps1" && has_cr "$TEMP_PREP_DIR/default.txt" && echo 1 || echo 0)
     else
-        assert_condition 1 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native LF" "Project EOL override or OS-native default failed: $OV_RES"
+        OV_OK=$(has_cr "$TEMP_PREP_DIR/scripts/build.bat" && has_cr "$TEMP_PREP_DIR/scripts/check.ps1" && ! has_cr "$TEMP_PREP_DIR/default.txt" && echo 1 || echo 0)
+    fi
+    if echo "$OV_RES" | grep -q '"status":"ready"' && [ "$OV_OK" -eq 1 ]; then
+        assert_condition 0 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native ${EXPECTED_OS_EOL}" "Project EOL override or OS-native default failed: $OV_RES"
+    else
+        assert_condition 1 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native ${EXPECTED_OS_EOL}" "Project EOL override or OS-native default failed: $OV_RES"
     fi
 
     rm -rf "$TEMP_PREP_DIR"
@@ -928,17 +1049,17 @@ else
 fi
 
 ARCH_SH_JSON=$(bash "$REPO_ROOT/scripts/lint-clean-architecture.sh" "$TEMP_PARITY_DIR" --json 2>/dev/null || true)
-if echo "$ARCH_SH_JSON" | grep -q '"status": "fail"' && echo "$ARCH_SH_JSON" | grep -q 'LayerBoundaryViolation'; then
-    assert_condition 0 "lint-clean-architecture.sh scans object_mapper/domain without substring skip" "lint-clean-architecture.sh skipped object_mapper dir: $ARCH_SH_JSON"
+if echo "$ARCH_SH_JSON" | grep -q '"status": "fail"' && echo "$ARCH_SH_JSON" | grep -q '"Type": "LayerBoundaryViolation"'; then
+    assert_condition 0 "lint-clean-architecture.sh scans object_mapper/domain with PascalCase JSON parity" "lint-clean-architecture.sh skipped object_mapper dir or mismatched schema: $ARCH_SH_JSON"
 else
-    assert_condition 1 "lint-clean-architecture.sh scans object_mapper/domain without substring skip" "lint-clean-architecture.sh skipped object_mapper dir: $ARCH_SH_JSON"
+    assert_condition 1 "lint-clean-architecture.sh scans object_mapper/domain with PascalCase JSON parity" "lint-clean-architecture.sh skipped object_mapper dir or mismatched schema: $ARCH_SH_JSON"
 fi
 
 GUARD_SH_JSON=$(bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "${TEMP_PARITY_DIR}/" --skip-line-endings --json 2>/dev/null || true)
-if echo "$GUARD_SH_JSON" | grep -q '"status":"fail"' && echo "$GUARD_SH_JSON" | grep -q 'secret.json'; then
-    assert_condition 0 "scan-guardrails.sh handles trailing slash and scans .json files for secrets" "scan-guardrails.sh missed .json secret or trailing slash: $GUARD_SH_JSON"
+if echo "$GUARD_SH_JSON" | grep -q '"status":"fail"' && echo "$GUARD_SH_JSON" | grep -q '"Rule":"SecretDetection"' && echo "$GUARD_SH_JSON" | grep -q 'secret.json'; then
+    assert_condition 0 "scan-guardrails.sh handles trailing slash, .json secrets, and structured JSON parity" "scan-guardrails.sh missed .json secret or schema parity: $GUARD_SH_JSON"
 else
-    assert_condition 1 "scan-guardrails.sh handles trailing slash and scans .json files for secrets" "scan-guardrails.sh missed .json secret or trailing slash: $GUARD_SH_JSON"
+    assert_condition 1 "scan-guardrails.sh handles trailing slash, .json secrets, and structured JSON parity" "scan-guardrails.sh missed .json secret or schema parity: $GUARD_SH_JSON"
 fi
 
 STACK_DOTNET_SH=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$TEMP_PARITY_DIR" --json 2>/dev/null || true)
@@ -949,10 +1070,30 @@ else
 fi
 
 FAIL_SH_JSON=$(bash "$REPO_ROOT/scripts/collect-test-failures.sh" --log-text "FAIL UserMapperTests" --json 2>/dev/null || true)
-if echo "$FAIL_SH_JSON" | grep -q '"failed_count": 1' && echo "$FAIL_SH_JSON" | grep -q 'UserMapperTests'; then
-    assert_condition 0 "collect-test-failures.sh --log-text extracts failed test diagnostics" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
+if echo "$FAIL_SH_JSON" | grep -q '"failed_count": 1' && echo "$FAIL_SH_JSON" | grep -q '"TestName": "UserMapperTests"'; then
+    assert_condition 0 "collect-test-failures.sh --log-text extracts failed test diagnostics with PascalCase parity" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
 else
-    assert_condition 1 "collect-test-failures.sh --log-text extracts failed test diagnostics" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
+    assert_condition 1 "collect-test-failures.sh --log-text extracts failed test diagnostics with PascalCase parity" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
+fi
+
+printf '{"eval_cases":[{"id":"EVAL-UNK-001","name":"Unknown","category":"governance","input":"test","expected":{"required_invariants":["nonexistent_invariant_xyz"]}}]}\n' > "$TEMP_PARITY_DIR/eval-unk.json"
+UNK_EVAL_SH=$(bash "$REPO_ROOT/scripts/run-evals.sh" --eval-file "$TEMP_PARITY_DIR/eval-unk.json" --json 2>/dev/null || true)
+if echo "$UNK_EVAL_SH" | grep -Eq '"failed":[[:space:]]*1'; then
+    assert_condition 0 "run-evals.sh rejects unknown/unhandled required_invariants" "run-evals.sh silently passed an unknown required_invariant: $UNK_EVAL_SH"
+else
+    assert_condition 1 "run-evals.sh rejects unknown/unhandled required_invariants" "run-evals.sh silently passed an unknown required_invariant: $UNK_EVAL_SH"
+fi
+
+if grep -q '5 consolidated specialist capability packs' "$REPO_ROOT/README.md" && ! grep -q '4 consolidated specialist capability packs' "$REPO_ROOT/README.md"; then
+    assert_condition 0 "README.md accurately lists 5 specialist capability packs" "README.md has stale specialist pack count"
+else
+    assert_condition 1 "README.md accurately lists 5 specialist capability packs" "README.md has stale specialist pack count"
+fi
+
+if grep -q 'safety-snapshot-\*' "$REPO_ROOT/skills/ask-git-troubleshooter/SKILL.md"; then
+    assert_condition 0 "ask-git-troubleshooter documents safety-snapshot-* verification" "ask-git-troubleshooter snapshot verification mismatches diagnose-git-state"
+else
+    assert_condition 1 "ask-git-troubleshooter documents safety-snapshot-* verification" "ask-git-troubleshooter snapshot verification mismatches diagnose-git-state"
 fi
 
 rm -rf "$TEMP_PARITY_DIR"

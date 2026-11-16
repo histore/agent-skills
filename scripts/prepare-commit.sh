@@ -203,9 +203,64 @@ for rel in sys.stdin:
         if rx.search(rel): res = val
     if res:
         print(f"{rel}\t{res}")
-' "${REPO_ROOT}/.editorconfig" 2>/dev/null || true)
+' "${REPO_ROOT}/.editorconfig" 2>/dev/null | tr -d '\r' || true)
   fi
 fi
+
+needs_eol_norm() {
+  local target_file="$1"
+  local expected="$2"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$target_file" "$expected" << 'PYEOF'
+import sys
+fp, exp = sys.argv[1], sys.argv[2]
+data = open(fp, 'rb').read()
+if not data:
+    sys.exit(1)
+if exp == 'CRLF':
+    bad = False
+    n = len(data)
+    for i, b in enumerate(data):
+        if b == 10 and (i == 0 or data[i - 1] != 13):
+            bad = True; break
+        if b == 13 and (i + 1 >= n or data[i + 1] != 10):
+            bad = True; break
+    sys.exit(0 if bad else 1)
+else:
+    sys.exit(0 if b'\r' in data else 1)
+PYEOF
+    return $?
+  fi
+  if [[ "$expected" == "CRLF" ]]; then
+    awk -v BINMODE=3 '{ if (/\r[^\r]/ || !/\r$/) { found=1; exit } } END { exit !found }' "$target_file" 2>/dev/null
+  else
+    [ "$(LC_ALL=C tr -cd '\r' < "$target_file" 2>/dev/null | wc -c)" -gt 0 ]
+  fi
+}
+
+normalize_eol_file() {
+  local target_file="$1"
+  local expected="$2"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$target_file" "$expected" << 'PYEOF'
+import sys
+fp, exp = sys.argv[1], sys.argv[2]
+data = open(fp, 'rb').read()
+if data.startswith(b'\xef\xbb\xbf'):
+    data = data[3:]
+lf = data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+out = lf.replace(b'\n', b'\r\n') if exp == 'CRLF' else lf
+with open(fp, 'wb') as f:
+    f.write(out)
+PYEOF
+    return $?
+  fi
+  if [[ "$expected" == "CRLF" ]]; then
+    awk -v BINMODE=3 'BEGIN{ORS=""} { sub(/\r$/, ""); printf "%s\r\n", $0 }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+  else
+    tr -d '\r' < "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+  fi
+}
 
 while IFS= read -r rel; do
   [[ -z "$rel" ]] && continue
@@ -269,12 +324,8 @@ while IFS= read -r rel; do
     fi
 
     needs_norm=false
-    if [[ "$eff_eol" == "CRLF" ]]; then
-      if awk '{ if (/\r[^\r]/ || !/\r$/) { found=1; exit } } END { exit !found }' "$full" 2>/dev/null; then
-        needs_norm=true
-      fi
-    elif [[ "$eff_eol" == "LF" ]]; then
-      if grep -q $'\r' "$full" 2>/dev/null; then
+    if [[ "$eff_eol" == "CRLF" || "$eff_eol" == "LF" ]]; then
+      if needs_eol_norm "$full" "$eff_eol"; then
         needs_norm=true
       fi
     fi
@@ -297,11 +348,7 @@ while IFS= read -r rel; do
       if [[ "$is_ambiguous" == "true" && "$FORCE_NORMALIZE" != "true" ]]; then
         AMBIGUOUS_FILES+=("$rel")
       elif [[ "$DO_FIX_EOL" == "true" || ( "$is_ambiguous" == "true" && "$FORCE_NORMALIZE" == "true" ) ]]; then
-        if [[ "$eff_eol" == "CRLF" ]]; then
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' "$full" > "${full}.tmp" && mv "${full}.tmp" "$full"
-        else
-          tr -d '\r' < "$full" > "${full}.tmp" && mv "${full}.tmp" "$full"
-        fi
+        normalize_eol_file "$full" "$eff_eol"
         NORMALIZED_FILES+=("$rel")
       else
         CRLF_FILES+=("$rel")
@@ -334,7 +381,7 @@ if [[ "$HAS_EXEC" == "true" && "$HAS_DECISION_ITEMS" == "false" && ${#SUBMODULE_
     {
       IFS= read -r FORMAT_CMD || true
       IFS= read -r FORMAT_FIX_CMD || true
-    } < <(python3 - "$STACK_JSON" << 'EOF' 2>/dev/null || true
+    } < <(python3 - "$STACK_JSON" << 'EOF' 2>/dev/null | tr -d '\r' || true
 import json, sys
 d = json.loads(sys.argv[1])
 print(d.get('format_check_cmd', ''))
@@ -373,10 +420,10 @@ EOF
             elif [[ $'\n'"$EOL_LF_LIST"$'\n' == *$'\n'"$rel_fmt"$'\n'* ]]; then eff_fmt="LF"
             elif [[ $'\n'"$EOL_CRLF_LIST"$'\n' == *$'\n'"$rel_fmt"$'\n'* ]]; then eff_fmt="CRLF"
             fi
-            if [[ "$eff_fmt" == "CRLF" ]] && awk '{ if (/\r[^\r]/ || !/\r$/) { found=1; exit } } END { exit !found }' "$full_fmt" 2>/dev/null; then
-              awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' "$full_fmt" > "${full_fmt}.tmp" && mv "${full_fmt}.tmp" "$full_fmt"
-            elif [[ "$eff_fmt" == "LF" ]] && grep -q $'\r' "$full_fmt" 2>/dev/null; then
-              tr -d '\r' < "$full_fmt" > "${full_fmt}.tmp" && mv "${full_fmt}.tmp" "$full_fmt"
+            if [[ "$eff_fmt" == "CRLF" || "$eff_fmt" == "LF" ]]; then
+              if needs_eol_norm "$full_fmt" "$eff_fmt"; then
+                normalize_eol_file "$full_fmt" "$eff_fmt"
+              fi
             fi
           done
           FORMAT_STATUS="pass"

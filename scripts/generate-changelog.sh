@@ -180,7 +180,13 @@ if [ -n "$OUTPUT_FILE" ]; then
 fi
 
 if [ "$JSON_OUTPUT" = true ]; then
-    echo "{\"version\":\"$VERSION\",\"release_date\":\"$RELEASE_DATE\",\"commits_analyzed\":$COUNT,\"breaking_count\":${#BREAKING[@]},\"features_count\":${#FEATURES[@]},\"fixes_count\":${#FIXES[@]}}"
+    MD_RENDERED=$(printf '%b' "$MD")
+    MD_ESC="${MD_RENDERED//\\/\\\\}"
+    MD_ESC="${MD_ESC//\"/\\\"}"
+    MD_ESC="${MD_ESC//$'\t'/\\t}"
+    MD_ESC="${MD_ESC//$'\r'/}"
+    MD_ESC="${MD_ESC//$'\n'/\\n}"
+    echo "{\"version\":\"$VERSION\",\"release_date\":\"$RELEASE_DATE\",\"commits_analyzed\":$COUNT,\"breaking_count\":${#BREAKING[@]},\"features_count\":${#FEATURES[@]},\"fixes_count\":${#FIXES[@]},\"markdown\":\"$MD_ESC\"}"
 else
     echo -e "$MD"
 fi
