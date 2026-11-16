@@ -240,6 +240,20 @@ else
     echo "Bootstrapping Living Modular Documentation in Target Project..."
     PROJECT_NAME="$(basename "$TARGET_DIR")"
     DATE_STR="$(date +%Y-%m-%d)"
+    DETECTED_STACKS="Auto-detected"
+    DETECT_SCRIPT="${SCRIPT_DIR}/detect-tech-stack.sh"
+    if [[ -f "$DETECT_SCRIPT" ]]; then
+      STACK_JSON=$(bash "$DETECT_SCRIPT" "$TARGET_DIR" --json 2>/dev/null || echo '{}')
+      if command -v python3 >/dev/null 2>&1; then
+        DETECTED_STACKS=$(python3 - "$STACK_JSON" << 'PYEOF' 2>/dev/null || echo "Auto-detected"
+import json, sys
+d = json.loads(sys.argv[1])
+st, lg = d.get("stack", "unknown"), d.get("language", "unknown")
+print(f"{st} ({lg})" if st and st != "unknown" else "Auto-detected")
+PYEOF
+        )
+      fi
+    fi
     mkdir -p "${TARGET_DIR}/docs/features" "${TARGET_DIR}/docs/concepts/drafts" "${TARGET_DIR}/docs/concepts/archive" "${TARGET_DIR}/docs/architecture/modules"
 
     ARCH_FILE="${TARGET_DIR}/ARCHITECTURE.md"
@@ -251,6 +265,7 @@ else
 
 > **Status**: APPROVED  
 > **Last Synchronized**: ${DATE_STR}  
+> **Detected Tech Stack**: ${DETECTED_STACKS}  
 
 ## 1. Clean Architecture & Layer Boundaries
 

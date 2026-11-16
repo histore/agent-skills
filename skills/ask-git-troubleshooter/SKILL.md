@@ -35,7 +35,7 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
      if (-not $branch) { $branch = "detached-head" }
      git branch "backup/${branch}-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
      ```
-   - Confirm the snapshot exists in `git branch --list "backup/*"` before proceeding.
+   - Confirm the snapshot exists in `git branch --list "safety-snapshot-*" "backup/*"` before proceeding.
 2. **Strict Prohibition of Blind Force-Pushes**:
    - Running `git push --force` (`-f`) is strictly forbidden.
    - If history rewriting was explicitly requested and approved by the user, only `git push --force-with-lease` may be proposed, accompanied by an explicit interactive confirmation gate.

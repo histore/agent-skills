@@ -190,7 +190,7 @@ if [[ "$OVERALL_PASS" == "true" && "$SKIP_GUARDRAILS" == "false" ]]; then
 import json, sys
 try:
     d = json.loads(sys.argv[1])
-    lines = [f"[{v.get('type','Error')}] {v.get('file','')}:{v.get('line',0)} - {v.get('message','')}" for v in d.get('violations', []) if v.get('severity') == 'Error']
+    lines = [f"[{v.get('Type', v.get('type', 'Error'))}] {v.get('File', v.get('file', ''))}:{v.get('Line', v.get('line', 0))} - {v.get('Message', v.get('message', ''))}" for v in d.get('violations', []) if v.get('Severity', v.get('severity')) == 'Error']
     print('\n'.join(lines) if lines else sys.argv[1])
 except Exception:
     print(sys.argv[1])
@@ -211,7 +211,12 @@ EOF
 import json, sys
 try:
     d = json.loads(sys.argv[1])
-    lines = [str(v) for v in d.get('violations', [])]
+    lines = []
+    for v in d.get('violations', []):
+        if isinstance(v, dict):
+            lines.append(f"[{v.get('Rule', 'Guardrail')}] {v.get('File', '')}:{v.get('Line', 0)} - {v.get('Message', '')}")
+        else:
+            lines.append(str(v))
     print('\n'.join(lines) if lines else sys.argv[1])
 except Exception:
     print(sys.argv[1])

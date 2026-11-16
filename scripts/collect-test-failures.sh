@@ -150,10 +150,12 @@ for f in files:
             fail = tc.find('failure')
             if fail is not None:
                 failures.append({
-                    'test_name': f"{tc.attrib.get('classname', '')}.{tc.attrib.get('name', '')}",
-                    'error_message': fail.attrib.get('message', fail.text or '').strip(),
-                    'stack_trace': clean_stack_trace(fail.text or ''),
-                    'report_file': os.path.basename(f)
+                    'TestName': f"{tc.attrib.get('classname', '')}.{tc.attrib.get('name', '')}",
+                    'Outcome': 'Failed',
+                    'Duration': tc.attrib.get('time', '0s'),
+                    'ErrorMessage': fail.attrib.get('message', fail.text or '').strip(),
+                    'StackTrace': clean_stack_trace(fail.text or ''),
+                    'ReportFile': os.path.basename(f)
                 })
             else:
                 total_passed += 1
@@ -175,10 +177,12 @@ for f in files:
                     if st is not None and st.text:
                         stack = clean_stack_trace(st.text)
                 failures.append({
-                    'test_name': utr.attrib.get('testName', ''),
-                    'error_message': err_msg,
-                    'stack_trace': stack,
-                    'report_file': os.path.basename(f)
+                    'TestName': utr.attrib.get('testName', ''),
+                    'Outcome': 'Failed',
+                    'Duration': utr.attrib.get('duration', '0s'),
+                    'ErrorMessage': err_msg,
+                    'StackTrace': stack,
+                    'ReportFile': os.path.basename(f)
                 })
     except Exception:
         pass
@@ -207,10 +211,12 @@ if raw_log:
                     break
             total_tests += 1
             failures.append({
-                'test_name': test_name,
-                'error_message': err_msg,
-                'stack_trace': '',
-                'report_file': os.path.basename(log_file) if log_file else 'log-stream'
+                'TestName': test_name,
+                'Outcome': 'Failed',
+                'Duration': '0s',
+                'ErrorMessage': err_msg,
+                'StackTrace': '',
+                'ReportFile': os.path.basename(log_file) if log_file else 'log-stream'
             })
 
 is_pass = len(failures) == 0
@@ -234,9 +240,9 @@ else:
     else:
         print(f'Diagnostics Status: FAIL ({len(failures)} test failures detected)')
         for fail in failures:
-            print(f"  [FAILED] {fail['test_name']}: {fail['error_message']}")
-            if fail.get('stack_trace'):
-                for sl in fail['stack_trace'].splitlines():
+            print(f"  [FAILED] {fail['TestName']}: {fail['ErrorMessage']}")
+            if fail.get('StackTrace'):
+                for sl in fail['StackTrace'].splitlines():
                     print(f"    {sl}")
     print('=============================================')
 

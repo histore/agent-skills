@@ -522,6 +522,12 @@ fi
 echo -e "\n\033[33m29. Validating Git state diagnostic scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/diagnose-git-state.ps1" ] && [ -f "$REPO_ROOT/scripts/diagnose-git-state.sh" ]; then
     assert_condition 0 "diagnose-git-state scripts exist (.ps1 and .sh)" "diagnose-git-state scripts missing"
+    DIAG_SH_OUT=$(bash "$REPO_ROOT/scripts/diagnose-git-state.sh" "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$DIAG_SH_OUT" | grep -q '"state":' && echo "$DIAG_SH_OUT" | grep -q '"created_snapshot_branch":' && echo "$DIAG_SH_OUT" | grep -q '"is_cherry_pick_in_progress":'; then
+        assert_condition 0 "diagnose-git-state.sh outputs full .ps1-compatible JSON schema" "diagnose-git-state.sh JSON schema mismatch: $DIAG_SH_OUT"
+    else
+        assert_condition 1 "diagnose-git-state.sh outputs full .ps1-compatible JSON schema" "diagnose-git-state.sh JSON schema mismatch: $DIAG_SH_OUT"
+    fi
 else
     assert_condition 1 "diagnose-git-state scripts exist (.ps1 and .sh)" "diagnose-git-state scripts missing"
 fi
@@ -614,6 +620,12 @@ fi
 echo -e "\n\033[33m39. Validating unified quality gates orchestrator scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/run-all-gates.ps1" ] && [ -f "$REPO_ROOT/scripts/run-all-gates.sh" ]; then
     assert_condition 0 "run-all-gates scripts exist (.ps1 and .sh)" "run-all-gates scripts missing"
+    GATES_SH_OUT=$(bash "$REPO_ROOT/scripts/run-all-gates.sh" "$REPO_ROOT" --fast --json 2>/dev/null || true)
+    if echo "$GATES_SH_OUT" | grep -q '"status":"pass"' && echo "$GATES_SH_OUT" | grep -q '"passed_gates":' && echo "$GATES_SH_OUT" | grep -q '"failed_gates":0'; then
+        assert_condition 0 "run-all-gates.sh --fast --json executes cleanly with .ps1-compatible schema" "run-all-gates.sh failed or mismatched JSON schema: $GATES_SH_OUT"
+    else
+        assert_condition 1 "run-all-gates.sh --fast --json executes cleanly with .ps1-compatible schema" "run-all-gates.sh failed or mismatched JSON schema: $GATES_SH_OUT"
+    fi
 else
     assert_condition 1 "run-all-gates scripts exist (.ps1 and .sh)" "run-all-gates scripts missing"
 fi
@@ -638,6 +650,33 @@ fi
 echo -e "\n\033[33m42. Validating feature specification inspector scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/inspect-feature-specs.ps1" ] && [ -f "$REPO_ROOT/scripts/inspect-feature-specs.sh" ]; then
     assert_condition 0 "inspect-feature-specs scripts exist (.ps1 and .sh)" "inspect-feature-specs scripts missing"
+    TEMP_SPEC_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'specs')
+    NEW_FEAT_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --new --id "FEAT-CORE-001" --title "Domain / Auth & Core" --phase 1 --scope "CORE" --json 2>/dev/null || true)
+    if echo "$NEW_FEAT_SH" | grep -q '"status":"created"' && echo "$NEW_FEAT_SH" | grep -q '"roadmap_updated":false' && [ -f "$TEMP_SPEC_DIR/docs/features/FEAT-CORE-001-domain-auth-core.md" ]; then
+        assert_condition 0 "inspect-feature-specs.sh --new scaffolds feature safely (slashes in title, boolean JSON)" "inspect-feature-specs.sh --new failed: $NEW_FEAT_SH"
+    else
+        assert_condition 1 "inspect-feature-specs.sh --new scaffolds feature safely (slashes in title, boolean JSON)" "inspect-feature-specs.sh --new failed: $NEW_FEAT_SH"
+    fi
+    NEW_CONCEPT_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --new-concept --concept-id "CONCEPT-AUTH-001" --title "OAuth2 / PKCE & Login" --scope "AUTH" --json 2>/dev/null || true)
+    if echo "$NEW_CONCEPT_SH" | grep -q '"id":"CONCEPT-AUTH-001"' && [ -f "$TEMP_SPEC_DIR/docs/concepts/drafts/CONCEPT-AUTH-001-oauth2-pkce-login.md" ]; then
+        assert_condition 0 "inspect-feature-specs.sh --new-concept --concept-id honors explicit ConceptId and special chars" "inspect-feature-specs.sh --new-concept failed: $NEW_CONCEPT_SH"
+    else
+        assert_condition 1 "inspect-feature-specs.sh --new-concept --concept-id honors explicit ConceptId and special chars" "inspect-feature-specs.sh --new-concept failed: $NEW_CONCEPT_SH"
+    fi
+    ARCH_CONCEPT_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --archive-concept "CONCEPT-AUTH-001" --json 2>/dev/null || true)
+    if echo "$ARCH_CONCEPT_SH" | grep -q '"status":"archived"' && [ -f "$TEMP_SPEC_DIR/docs/concepts/archive/CONCEPT-AUTH-001-oauth2-pkce-login.md" ]; then
+        assert_condition 0 "inspect-feature-specs.sh --archive-concept archives draft" "inspect-feature-specs.sh --archive-concept failed: $ARCH_CONCEPT_SH"
+    else
+        assert_condition 1 "inspect-feature-specs.sh --archive-concept archives draft" "inspect-feature-specs.sh --archive-concept failed: $ARCH_CONCEPT_SH"
+    fi
+    DRIFT_UPD_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --check-drift --update-state --json 2>/dev/null || true)
+    DRIFT_SYNC_SH=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$TEMP_SPEC_DIR" --check-drift --json 2>/dev/null || true)
+    if echo "$DRIFT_UPD_SH" | grep -q '"status":"drift_detected"' && echo "$DRIFT_SYNC_SH" | grep -q '"status":"synchronized"'; then
+        assert_condition 0 "inspect-feature-specs.sh --check-drift and --update-state track spec hashes" "inspect-feature-specs.sh --check-drift failed: $DRIFT_UPD_SH | $DRIFT_SYNC_SH"
+    else
+        assert_condition 1 "inspect-feature-specs.sh --check-drift and --update-state track spec hashes" "inspect-feature-specs.sh --check-drift failed: $DRIFT_UPD_SH | $DRIFT_SYNC_SH"
+    fi
+    rm -rf "$TEMP_SPEC_DIR"
 else
     assert_condition 1 "inspect-feature-specs scripts exist (.ps1 and .sh)" "inspect-feature-specs scripts missing"
 fi
@@ -928,17 +967,17 @@ else
 fi
 
 ARCH_SH_JSON=$(bash "$REPO_ROOT/scripts/lint-clean-architecture.sh" "$TEMP_PARITY_DIR" --json 2>/dev/null || true)
-if echo "$ARCH_SH_JSON" | grep -q '"status": "fail"' && echo "$ARCH_SH_JSON" | grep -q 'LayerBoundaryViolation'; then
-    assert_condition 0 "lint-clean-architecture.sh scans object_mapper/domain without substring skip" "lint-clean-architecture.sh skipped object_mapper dir: $ARCH_SH_JSON"
+if echo "$ARCH_SH_JSON" | grep -q '"status": "fail"' && echo "$ARCH_SH_JSON" | grep -q '"Type": "LayerBoundaryViolation"'; then
+    assert_condition 0 "lint-clean-architecture.sh scans object_mapper/domain with PascalCase JSON parity" "lint-clean-architecture.sh skipped object_mapper dir or mismatched schema: $ARCH_SH_JSON"
 else
-    assert_condition 1 "lint-clean-architecture.sh scans object_mapper/domain without substring skip" "lint-clean-architecture.sh skipped object_mapper dir: $ARCH_SH_JSON"
+    assert_condition 1 "lint-clean-architecture.sh scans object_mapper/domain with PascalCase JSON parity" "lint-clean-architecture.sh skipped object_mapper dir or mismatched schema: $ARCH_SH_JSON"
 fi
 
 GUARD_SH_JSON=$(bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "${TEMP_PARITY_DIR}/" --skip-line-endings --json 2>/dev/null || true)
-if echo "$GUARD_SH_JSON" | grep -q '"status":"fail"' && echo "$GUARD_SH_JSON" | grep -q 'secret.json'; then
-    assert_condition 0 "scan-guardrails.sh handles trailing slash and scans .json files for secrets" "scan-guardrails.sh missed .json secret or trailing slash: $GUARD_SH_JSON"
+if echo "$GUARD_SH_JSON" | grep -q '"status":"fail"' && echo "$GUARD_SH_JSON" | grep -q '"Rule":"SecretDetection"' && echo "$GUARD_SH_JSON" | grep -q 'secret.json'; then
+    assert_condition 0 "scan-guardrails.sh handles trailing slash, .json secrets, and structured JSON parity" "scan-guardrails.sh missed .json secret or schema parity: $GUARD_SH_JSON"
 else
-    assert_condition 1 "scan-guardrails.sh handles trailing slash and scans .json files for secrets" "scan-guardrails.sh missed .json secret or trailing slash: $GUARD_SH_JSON"
+    assert_condition 1 "scan-guardrails.sh handles trailing slash, .json secrets, and structured JSON parity" "scan-guardrails.sh missed .json secret or schema parity: $GUARD_SH_JSON"
 fi
 
 STACK_DOTNET_SH=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$TEMP_PARITY_DIR" --json 2>/dev/null || true)
@@ -949,10 +988,30 @@ else
 fi
 
 FAIL_SH_JSON=$(bash "$REPO_ROOT/scripts/collect-test-failures.sh" --log-text "FAIL UserMapperTests" --json 2>/dev/null || true)
-if echo "$FAIL_SH_JSON" | grep -q '"failed_count": 1' && echo "$FAIL_SH_JSON" | grep -q 'UserMapperTests'; then
-    assert_condition 0 "collect-test-failures.sh --log-text extracts failed test diagnostics" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
+if echo "$FAIL_SH_JSON" | grep -q '"failed_count": 1' && echo "$FAIL_SH_JSON" | grep -q '"TestName": "UserMapperTests"'; then
+    assert_condition 0 "collect-test-failures.sh --log-text extracts failed test diagnostics with PascalCase parity" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
 else
-    assert_condition 1 "collect-test-failures.sh --log-text extracts failed test diagnostics" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
+    assert_condition 1 "collect-test-failures.sh --log-text extracts failed test diagnostics with PascalCase parity" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
+fi
+
+printf '{"eval_cases":[{"id":"EVAL-UNK-001","name":"Unknown","category":"governance","input":"test","expected":{"required_invariants":["nonexistent_invariant_xyz"]}}]}\n' > "$TEMP_PARITY_DIR/eval-unk.json"
+UNK_EVAL_SH=$(bash "$REPO_ROOT/scripts/run-evals.sh" --eval-file "$TEMP_PARITY_DIR/eval-unk.json" --json 2>/dev/null || true)
+if echo "$UNK_EVAL_SH" | grep -Eq '"failed":[[:space:]]*1'; then
+    assert_condition 0 "run-evals.sh rejects unknown/unhandled required_invariants" "run-evals.sh silently passed an unknown required_invariant: $UNK_EVAL_SH"
+else
+    assert_condition 1 "run-evals.sh rejects unknown/unhandled required_invariants" "run-evals.sh silently passed an unknown required_invariant: $UNK_EVAL_SH"
+fi
+
+if grep -q '5 consolidated specialist capability packs' "$REPO_ROOT/README.md" && ! grep -q '4 consolidated specialist capability packs' "$REPO_ROOT/README.md"; then
+    assert_condition 0 "README.md accurately lists 5 specialist capability packs" "README.md has stale specialist pack count"
+else
+    assert_condition 1 "README.md accurately lists 5 specialist capability packs" "README.md has stale specialist pack count"
+fi
+
+if grep -q 'safety-snapshot-\*' "$REPO_ROOT/skills/ask-git-troubleshooter/SKILL.md"; then
+    assert_condition 0 "ask-git-troubleshooter documents safety-snapshot-* verification" "ask-git-troubleshooter snapshot verification mismatches diagnose-git-state"
+else
+    assert_condition 1 "ask-git-troubleshooter documents safety-snapshot-* verification" "ask-git-troubleshooter snapshot verification mismatches diagnose-git-state"
 fi
 
 rm -rf "$TEMP_PARITY_DIR"

@@ -152,11 +152,11 @@ for fp in files_to_scan:
 
     if len(lines) > max_file_lines:
         violations.append({
-            'type': 'FileSizeLimit',
-            'file': rel,
-            'line': len(lines),
-            'severity': 'Warning',
-            'message': f'File exceeds {max_file_lines} lines ({len(lines)} lines)'
+            'Type': 'FileSizeLimit',
+            'File': rel,
+            'Line': len(lines),
+            'Severity': 'Warning',
+            'Message': f'File exceeds {max_file_lines} lines ({len(lines)} lines); consider modular decomposition'
         })
 
     active_rules = [r for r in layer_boundaries if re.search(r.get('path_pattern', ''), rel, re.IGNORECASE)]
@@ -167,11 +167,11 @@ for fp in files_to_scan:
         if not is_test_file and func_pattern.match(line):
             if current_func_start > 0 and (idx - 1 - current_func_start) > max_func_lines:
                 violations.append({
-                    'type': 'FunctionSizeLimit',
-                    'file': rel,
-                    'line': current_func_start,
-                    'severity': 'Warning',
-                    'message': f'Function starting at line {current_func_start} spans {idx - 1 - current_func_start} lines (exceeds recommended limit of {max_func_lines})'
+                    'Type': 'FunctionSizeLimit',
+                    'File': rel,
+                    'Line': current_func_start,
+                    'Severity': 'Warning',
+                    'Message': f'Function starting at line {current_func_start} spans {idx - 1 - current_func_start} lines (exceeds recommended limit of {max_func_lines})'
                 })
             current_func_start = idx
 
@@ -180,11 +180,11 @@ for fp in files_to_scan:
             depth = leading_spaces // 4
             if depth > max_nesting:
                 violations.append({
-                    'type': 'DeepNesting',
-                    'file': rel,
-                    'line': idx,
-                    'severity': 'Warning',
-                    'message': f'Control block nesting depth of {depth} exceeds recommended limit of {max_nesting}'
+                    'Type': 'DeepNesting',
+                    'File': rel,
+                    'Line': idx,
+                    'Severity': 'Warning',
+                    'Message': f'Control block nesting depth of {depth} exceeds recommended limit of {max_nesting}'
                 })
 
         m = import_pattern.match(line)
@@ -194,24 +194,24 @@ for fp in files_to_scan:
                 for forbidden in r.get('forbidden_imports', []):
                     if re.search(r'\b' + forbidden + r'\b', import_target):
                         violations.append({
-                            'type': 'LayerBoundaryViolation',
-                            'file': rel,
-                            'line': idx,
-                            'severity': 'Error',
-                            'message': f"Layer '{r.get('layer')}' illegally imports '{forbidden}': {r.get('message')}"
+                            'Type': 'LayerBoundaryViolation',
+                            'File': rel,
+                            'Line': idx,
+                            'Severity': 'Error',
+                            'Message': f"Layer '{r.get('layer')}' illegally imports '{forbidden}': {r.get('message')}"
                         })
 
     if not is_test_file and current_func_start > 0 and (len(lines) - current_func_start) > max_func_lines:
         violations.append({
-            'type': 'FunctionSizeLimit',
-            'file': rel,
-            'line': current_func_start,
-            'severity': 'Warning',
-            'message': f'Function starting at line {current_func_start} spans {len(lines) - current_func_start} lines (exceeds recommended limit of {max_func_lines})'
+            'Type': 'FunctionSizeLimit',
+            'File': rel,
+            'Line': current_func_start,
+            'Severity': 'Warning',
+            'Message': f'Function starting at line {current_func_start} spans {len(lines) - current_func_start} lines (exceeds recommended limit of {max_func_lines})'
         })
 
-errors = [v for v in violations if v['severity'] == 'Error']
-warnings = [v for v in violations if v['severity'] == 'Warning']
+errors = [v for v in violations if v['Severity'] == 'Error']
+warnings = [v for v in violations if v['Severity'] == 'Warning']
 is_pass = len(errors) == 0
 
 if json_output:
@@ -233,7 +233,7 @@ else:
     else:
         print(f'Clean Architecture Status: FAIL ({len(errors)} errors, {len(warnings)} warnings)')
         for v in violations:
-            print(f"  [{v['severity']}: {v['type']}] {v['file']}:{v['line']} - {v['message']}")
+            print(f"  [{v['Severity']}: {v['Type']}] {v['File']}:{v['Line']} - {v['Message']}")
     print('=============================================')
 
 if not is_pass:

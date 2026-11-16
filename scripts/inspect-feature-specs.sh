@@ -6,6 +6,7 @@ REPO_ROOT=""
 ACTION="list"
 FILTER_PHASE=""
 FILTER_ID=""
+CONCEPT_ID=""
 NEW_TITLE=""
 NEW_SCOPE="CORE"
 NEW_RELEASE="v0.1.0"
@@ -30,6 +31,14 @@ while [[ $# -gt 0 ]]; do
         --id|-Id|-i)
             FILTER_ID="$2"
             shift 2
+            ;;
+        --concept-id|-ConceptId)
+            CONCEPT_ID="$2"
+            shift 2
+            ;;
+        --concept-id=*|-ConceptId=*)
+            CONCEPT_ID="${1#*=}"
+            shift
             ;;
         --new|-New|-n)
             ACTION="new"
@@ -113,9 +122,56 @@ fi
 CONCEPTS_DRAFT_DIR="$REPO_ROOT/docs/$CONCEPTS_DIR_NAME/drafts"
 CONCEPTS_ARCHIVE_DIR="$REPO_ROOT/docs/$CONCEPTS_DIR_NAME/archive"
 
+# Helper: safe literal template substitution (avoids sed '/' and '&' delimiter collisions)
+render_template() {
+    local tmpl="$1"
+    local dest="$2"
+    shift 2
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - "$tmpl" "$dest" "$@" << 'PYEOF'
+import sys
+tmpl_path, dest_path = sys.argv[1], sys.argv[2]
+pairs = sys.argv[3:]
+with open(tmpl_path, 'r', encoding='utf-8', errors='ignore') as f:
+    text = f.read()
+for i in range(0, len(pairs) - 1, 2):
+    text = text.replace(pairs[i], pairs[i + 1])
+with open(dest_path, 'w', encoding='utf-8', newline='\n') as f:
+    f.write(text)
+PYEOF
+    else
+        cp -f "$tmpl" "$dest"
+        while [[ $# -ge 2 ]]; do
+            local key="$1"
+            local val="$2"
+            shift 2
+            python_free_val=$(printf '%s' "$val" | sed 's/[&|\\]/\\&/g')
+            local esc_key
+            esc_key=$(printf '%s' "$key" | sed 's/[.[\*^$()+?{|]/\\&/g')
+            sed "s|${esc_key}|${python_free_val}|g" "$dest" > "${dest}.tmp" && mv "${dest}.tmp" "$dest"
+        done
+    fi
+}
+
+json_escape() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\t'/\\t}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\n'/\\n}"
+    printf '%s' "$s"
+}
+
 # Action: Scaffolding a new concept draft
 if [ "$ACTION" = "new-concept" ]; then
-    CID="${FILTER_ID:-CONCEPT-${NEW_SCOPE}-001}"
+    if [ -n "$CONCEPT_ID" ]; then
+        CID="$CONCEPT_ID"
+    elif [ -n "$FILTER_ID" ] && [[ "$FILTER_ID" =~ ^CONCEPT- ]]; then
+        CID="$FILTER_ID"
+    else
+        CID="CONCEPT-${NEW_SCOPE}-001"
+    fi
     if [ -z "$NEW_TITLE" ]; then
         NEW_TITLE="Concept $CID"
     fi
@@ -131,13 +187,14 @@ if [ "$ACTION" = "new-concept" ]; then
 
     TODAY=$(date +%Y-%m-%d)
     if [ -n "$CONCEPT_TEMPLATE_PATH" ] && [ -f "$CONCEPT_TEMPLATE_PATH" ]; then
-        sed -e "s/CONCEPT-<SCOPE>-XXX/$CID/g" \
-            -e "s/<CONCEPT-ID>/$CID/g" \
-            -e "s/<Concept Title>/$NEW_TITLE/g" \
-            -e "s/<SCOPE>/$NEW_SCOPE/g" \
-            -e "s/<YYYY-MM-DD>/$TODAY/g" \
-            -e "s/<Author>/User \/ Agent/g" \
-            -e "s/<slug>/$SLUG/g" "$CONCEPT_TEMPLATE_PATH" > "$TARGET_FILE"
+        render_template "$CONCEPT_TEMPLATE_PATH" "$TARGET_FILE" \
+            "CONCEPT-<SCOPE>-XXX" "$CID" \
+            "<CONCEPT-ID>" "$CID" \
+            "<Concept Title>" "$NEW_TITLE" \
+            "<SCOPE>" "$NEW_SCOPE" \
+            "<YYYY-MM-DD>" "$TODAY" \
+            "<Author>" "User / Agent" \
+            "<slug>" "$SLUG"
     else
         cat <<EOF > "$TARGET_FILE"
 # Concept & RFC Draft: $NEW_TITLE
@@ -178,7 +235,7 @@ EOF
     fi
 
     if [ "$JSON_OUTPUT" -eq 1 ]; then
-        echo "{\"status\":\"created\",\"id\":\"$CID\",\"title\":\"$NEW_TITLE\",\"file\":\"docs/$CONCEPTS_DIR_NAME/drafts/$FILE_NAME\"}"
+        echo "{\"status\":\"created\",\"id\":\"$(json_escape "$CID")\",\"title\":\"$(json_escape "$NEW_TITLE")\",\"file\":\"docs/$CONCEPTS_DIR_NAME/drafts/$(json_escape "$FILE_NAME")\"}"
     else
         echo "Created concept draft: docs/$CONCEPTS_DIR_NAME/drafts/$FILE_NAME"
     fi
@@ -191,7 +248,10 @@ if [ "$ACTION" = "archive-concept" ]; then
         echo "Error: Drafts directory does not exist: $CONCEPTS_DRAFT_DIR" >&2
         exit 1
     fi
-    MATCHING_FILE=$(find "$CONCEPTS_DRAFT_DIR" -maxdepth 1 -name "*${FILTER_ID}*.md" | head -n 1)
+    MATCHING_FILE=$(find "$CONCEPTS_DRAFT_DIR" -maxdepth 1 -name "*${FILTER_ID}*.md" | head -n 1 || true)
+    if [ -z "$MATCHING_FILE" ]; then
+        MATCHING_FILE=$(grep -rlE "id:[[:space:]]*['\"]?${FILTER_ID}['\"]?" "$CONCEPTS_DRAFT_DIR" 2>/dev/null | head -n 1 || true)
+    fi
     if [ -z "$MATCHING_FILE" ]; then
         echo "Error: No matching draft concept found for '$FILTER_ID' in $CONCEPTS_DRAFT_DIR" >&2
         exit 1
@@ -200,11 +260,11 @@ if [ "$ACTION" = "archive-concept" ]; then
     BASE_NAME=$(basename "$MATCHING_FILE")
     DEST_FILE="$CONCEPTS_ARCHIVE_DIR/$BASE_NAME"
 
-    sed -E 's/status:\s*(DRAFT|UNDER_REVIEW|APPROVED)/status: ARCHIVED/g' "$MATCHING_FILE" > "$DEST_FILE"
+    sed -E 's/status:[[:space:]]*["'\'']?(DRAFT|UNDER_REVIEW|APPROVED)["'\'']?/status: ARCHIVED/g' "$MATCHING_FILE" > "$DEST_FILE"
     rm -f "$MATCHING_FILE"
 
     if [ "$JSON_OUTPUT" -eq 1 ]; then
-        echo "{\"status\":\"archived\",\"id\":\"$FILTER_ID\",\"source\":\"docs/$CONCEPTS_DIR_NAME/drafts/$BASE_NAME\",\"destination\":\"docs/$CONCEPTS_DIR_NAME/archive/$BASE_NAME\"}"
+        echo "{\"status\":\"archived\",\"id\":\"$(json_escape "$FILTER_ID")\",\"source\":\"docs/$CONCEPTS_DIR_NAME/drafts/$(json_escape "$BASE_NAME")\",\"destination\":\"docs/$CONCEPTS_DIR_NAME/archive/$(json_escape "$BASE_NAME")\"}"
     else
         echo "Archived concept: docs/$CONCEPTS_DIR_NAME/archive/$BASE_NAME"
     fi
@@ -233,16 +293,17 @@ if [ "$ACTION" = "new" ]; then
     fi
 
     if [ -n "$TEMPLATE_PATH" ] && [ -f "$TEMPLATE_PATH" ]; then
-        sed -e "s/FEAT-<SCOPE>-XXX/$FILTER_ID/g" \
-            -e "s/<FEAT-ID>/$FILTER_ID/g" \
-            -e "s/<Feature Title>/$NEW_TITLE/g" \
-            -e "s/<SCOPE>/$NEW_SCOPE/g" \
-            -e "s/<PHASE>/$PHASE/g" \
-            -e "s/phase: 1/phase: $PHASE/g" \
-            -e "s/<TARGET_RELEASE>/$NEW_RELEASE/g" \
-            -e "s/<e.g. v0.1.0>/$NEW_RELEASE/g" \
-            -e "s/<slug>/$SLUG/g" \
-            -e "s/<FILE_NAME>/$FILE_NAME/g" "$TEMPLATE_PATH" > "$TARGET_FILE"
+        render_template "$TEMPLATE_PATH" "$TARGET_FILE" \
+            "FEAT-<SCOPE>-XXX" "$FILTER_ID" \
+            "<FEAT-ID>" "$FILTER_ID" \
+            "<Feature Title>" "$NEW_TITLE" \
+            "<SCOPE>" "$NEW_SCOPE" \
+            "<PHASE>" "$PHASE" \
+            "phase: 1" "phase: $PHASE" \
+            "<TARGET_RELEASE>" "$NEW_RELEASE" \
+            "<e.g. v0.1.0>" "$NEW_RELEASE" \
+            "<slug>" "$SLUG" \
+            "<FILE_NAME>" "$FILE_NAME"
     else
         cat <<EOF > "$TARGET_FILE"
 # Feature Specification: $NEW_TITLE
@@ -273,28 +334,106 @@ Specification for $NEW_TITLE.
 EOF
     fi
 
-    ROADMAP_UPDATED=0
-    if [ -f "$ROADMAP_FILE" ]; then
+    ROADMAP_UPDATED=false
+    if [ -f "$ROADMAP_FILE" ] && grep -q '| :--- | :--- |' "$ROADMAP_FILE" 2>/dev/null; then
         REL_PATH="docs/features/$FILE_NAME"
         ROW="| Phase $PHASE | \`$FILTER_ID\` | $NEW_TITLE | PROPOSED | \`$NEW_SCOPE\` | [$REL_PATH]($REL_PATH) | \`$NEW_RELEASE\` |"
         echo "$ROW" >> "$ROADMAP_FILE"
-        ROADMAP_UPDATED=1
+        ROADMAP_UPDATED=true
     fi
 
     if [ "$JSON_OUTPUT" -eq 1 ]; then
-        echo "{\"status\":\"created\",\"id\":\"$FILTER_ID\",\"title\":\"$NEW_TITLE\",\"phase\":\"$PHASE\",\"file\":\"docs/features/$FILE_NAME\",\"roadmap_updated\":$ROADMAP_UPDATED}"
+        echo "{\"status\":\"created\",\"id\":\"$(json_escape "$FILTER_ID")\",\"title\":\"$(json_escape "$NEW_TITLE")\",\"phase\":\"$(json_escape "$PHASE")\",\"file\":\"docs/features/$(json_escape "$FILE_NAME")\",\"roadmap_updated\":$ROADMAP_UPDATED}"
     else
         echo "Created feature specification: docs/features/$FILE_NAME"
-        if [ "$ROADMAP_UPDATED" -eq 1 ]; then
+        if [ "$ROADMAP_UPDATED" = true ]; then
             echo "Appended feature entry to: docs/ROADMAP.md"
         fi
     fi
     exit 0
 fi
 
+# Action: Check hash-based drift (--check-drift / --update-state)
+if [ "$CHECK_DRIFT" -eq 1 ]; then
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - "$REPO_ROOT" "$STATE_FILE" "$UPDATE_STATE" "$JSON_OUTPUT" << 'PYEOF'
+import hashlib, json, os, re, sys
+
+repo_root, state_file, update_str, json_str = sys.argv[1:5]
+update_state = update_str == "1"
+json_out = json_str == "1"
+
+spec_files = []
+for rel_dir in ("docs/features", "docs/requirements/modules"):
+    d = os.path.join(repo_root, rel_dir)
+    if os.path.isdir(d):
+        for fname in sorted(os.listdir(d)):
+            if fname.endswith(".md"):
+                spec_files.append((rel_dir + "/" + fname, os.path.join(d, fname)))
+
+current_state = {}
+for rel_path, full_path in spec_files:
+    with open(full_path, "rb") as f:
+        digest = hashlib.sha256(f.read()).hexdigest()
+    with open(full_path, "r", encoding="utf-8", errors="ignore") as tf:
+        txt = tf.read()
+    m_id = re.search(r'^\s*id:\s*["\']?([A-Za-z0-9_-]+)["\']?', txt, re.M)
+    feat_id = m_id.group(1) if m_id else os.path.splitext(os.path.basename(full_path))[0]
+    m_phase = re.search(r'^\s*phase:\s*["\']?(.*?)["\']?\s*$', txt, re.M)
+    feat_phase = m_phase.group(1).strip() if m_phase else "1"
+    m_status = re.search(r'^\s*status:\s*["\']?([A-Za-z_]+)["\']?', txt, re.M)
+    feat_status = m_status.group(1).strip() if m_status else "PROPOSED"
+    current_state[rel_path] = {
+        "id": feat_id,
+        "hash": digest,
+        "phase": feat_phase,
+        "status": feat_status,
+    }
+
+drift_detected = False
+changed_files = []
+if os.path.isfile(state_file):
+    try:
+        with open(state_file, "r", encoding="utf-8") as sf:
+            saved_state = json.load(sf)
+    except Exception:
+        saved_state = {}
+    for key, val in current_state.items():
+        prev = saved_state.get(key)
+        if not prev or prev.get("hash") != val["hash"]:
+            drift_detected = True
+            changed_files.append(key)
+else:
+    drift_detected = len(current_state) > 0
+    changed_files = list(current_state.keys())
+
+if update_state:
+    os.makedirs(os.path.dirname(state_file), exist_ok=True)
+    with open(state_file, "w", encoding="utf-8", newline="\n") as sf:
+        json.dump(current_state, sf, indent=2)
+
+res = {
+    "status": "drift_detected" if drift_detected else "synchronized",
+    "drift_count": len(changed_files),
+    "changed_files": changed_files,
+    "total_specs": len(current_state),
+}
+if json_out:
+    print(json.dumps(res, separators=(",", ":")))
+else:
+    print(f"Feature Spec State: {res['status']} ({res['drift_count']} modified, {res['total_specs']} total)")
+PYEOF
+        exit 0
+    else
+        echo '{"status":"synchronized","drift_count":0,"changed_files":[],"total_specs":0}'
+        exit 0
+    fi
+fi
+
 # Parsing existing specs
 SPECS_JSON="[]"
 FOUND_COUNT=0
+LAST_ITEM=""
 
 find_specs() {
     local dir="$1"
@@ -322,9 +461,13 @@ find_specs() {
             if [ -z "$feat_scope" ]; then
                 feat_scope="CORE"
             fi
+            local feat_release=$(grep -m1 -E '^[[:space:]]*target_release:' "$f" | sed -E 's/^[[:space:]]*target_release:[[:space:]]*["'\'']?(.*)["'\'']?[[:space:]]*$/\1/' || true)
+            if [ -z "$feat_release" ]; then
+                feat_release="v0.1.0"
+            fi
 
             # Filter logic
-            if [ -n "$FILTER_ID" ] && [ "$feat_id" != "$FILTER_ID" ]; then
+            if [ -n "$FILTER_ID" ] && [ "$feat_id" != "$FILTER_ID" ] && [[ "$rel_path" != *"$FILTER_ID"* ]]; then
                 continue
             fi
             if [ -n "$FILTER_PHASE" ] && [ "$feat_phase" != "$FILTER_PHASE" ]; then
@@ -332,8 +475,9 @@ find_specs() {
             fi
 
             FOUND_COUNT=$((FOUND_COUNT + 1))
+            local item="{\"Id\":\"$(json_escape "$feat_id")\",\"Title\":\"$(json_escape "$feat_title")\",\"Phase\":\"$(json_escape "$feat_phase")\",\"Status\":\"$(json_escape "$feat_status")\",\"Scope\":\"$(json_escape "$feat_scope")\",\"TargetRelease\":\"$(json_escape "$feat_release")\",\"FilePath\":\"$(json_escape "$rel_path")\"}"
+            LAST_ITEM="$item"
             if [ "$JSON_OUTPUT" -eq 1 ]; then
-                local item="{\"id\":\"$feat_id\",\"title\":\"$feat_title\",\"phase\":\"$feat_phase\",\"status\":\"$feat_status\",\"scope\":\"$feat_scope\",\"file\":\"$rel_path\"}"
                 if [ "$SPECS_JSON" = "[]" ]; then
                     SPECS_JSON="[$item"
                 else
@@ -346,10 +490,8 @@ find_specs() {
     fi
 }
 
-if [ "$JSON_OUTPUT" -eq 0 ]; then
-    if [ -n "$FILTER_ID" ]; then
-        echo "=== Query Feature: $FILTER_ID ==="
-    elif [ -n "$FILTER_PHASE" ]; then
+if [ "$JSON_OUTPUT" -eq 0 ] && [ -z "$FILTER_ID" ]; then
+    if [ -n "$FILTER_PHASE" ]; then
         echo "=== Features for Phase $FILTER_PHASE ==="
     else
         echo "=== Discovered Feature Specifications ==="
@@ -358,6 +500,21 @@ fi
 
 find_specs "$FEATURES_DIR"
 find_specs "$REPO_ROOT/docs/requirements/modules"
+
+if [ -n "$FILTER_ID" ]; then
+    if [ "$FOUND_COUNT" -eq 0 ]; then
+        if [ "$JSON_OUTPUT" -eq 1 ]; then
+            echo "{\"status\":\"not_found\",\"id\":\"$(json_escape "$FILTER_ID")\"}"
+        else
+            echo "Feature '$FILTER_ID' not found."
+        fi
+        exit 1
+    fi
+    if [ "$JSON_OUTPUT" -eq 1 ]; then
+        echo "$LAST_ITEM"
+    fi
+    exit 0
+fi
 
 if [ "$JSON_OUTPUT" -eq 1 ]; then
     if [ "$SPECS_JSON" != "[]" ]; then

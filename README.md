@@ -303,7 +303,7 @@ GitHub Copilot operates in **Sequential Persona Mode** (`Control` -> `Developer`
 
 > [!TIP]
 > **Copilot Efficiency & Zero-Reload Inlining**:
-> Unlike multi-agent platforms (Antigravity/AGY), Copilot executes in a single persistent context window. Core lifecycle engineering (`Control`, contracts, Inner-Loop TDD, verification, atomic commits) is embedded directly into `.github/copilot-instructions.md` (and inlined into `~/.copilot/instructions/agent-skills.instructions.md` on user level) so zero tool calls are spent loading core rules, while the 4 consolidated specialist capability packs are loaded strictly on demand from `.agents/skills/` (or `~/.agents/skills/`).
+> Unlike multi-agent platforms (Antigravity/AGY), Copilot executes in a single persistent context window. Core lifecycle engineering (`Control`, contracts, Inner-Loop TDD, verification, atomic commits) is embedded directly into `.github/copilot-instructions.md` (and inlined into `~/.copilot/instructions/agent-skills.instructions.md` on user level) so zero tool calls are spent loading core rules, while the 5 consolidated specialist capability packs are loaded strictly on demand from `.agents/skills/` (or `~/.agents/skills/`).
 
 #### A. User Level (Global Machine Scope via `~/.agents`)
 

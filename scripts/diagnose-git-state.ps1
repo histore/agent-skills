@@ -92,17 +92,18 @@ if ($CreateSnapshot) {
 }
 
 $result = [ordered]@{
-    state                   = $stateName
-    branch                  = if ($branch) { $branch } else { "DETACHED_HEAD" }
-    is_detached_head        = $isDetached
-    has_conflicts           = $hasConflicts
-    conflicted_files        = $conflictList
-    is_rebase_in_progress   = $isRebase
-    is_merge_in_progress    = $isMerge
-    uncommitted_changes     = $uncommittedCount
-    ahead_of_upstream       = $ahead
-    behind_upstream         = $behind
-    created_snapshot_branch = $snapshotBranch
+    state                      = $stateName
+    branch                     = if ($branch) { $branch } else { "DETACHED_HEAD" }
+    is_detached_head           = $isDetached
+    has_conflicts              = $hasConflicts
+    conflicted_files           = $conflictList
+    is_rebase_in_progress      = $isRebase
+    is_merge_in_progress       = $isMerge
+    is_cherry_pick_in_progress = $isCherryPick
+    uncommitted_changes        = $uncommittedCount
+    ahead_of_upstream          = $ahead
+    behind_upstream            = $behind
+    created_snapshot_branch    = $snapshotBranch
 }
 
 if ($JsonOutput) {
