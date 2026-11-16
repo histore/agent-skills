@@ -226,7 +226,7 @@ for fp in files_to_scan:
         results.append(parsed)
 
 if json_out:
-    print(json.dumps({"status": "pass", "total_files": len(results), "files": results}))
+    print(json.dumps({"status": "pass", "total_files": len(results), "files": results}, separators=(",", ":")))
 else:
     print("=============================================")
     print("Code Outline & Structural AST Inspector")
