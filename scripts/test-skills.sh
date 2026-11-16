@@ -498,6 +498,12 @@ fi
 echo -e "\n\033[33m26. Validating SemVer calculator scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/calculate-semver.ps1" ] && [ -f "$REPO_ROOT/scripts/calculate-semver.sh" ]; then
     assert_condition 0 "calculate-semver scripts exist (.ps1 and .sh)" "calculate-semver scripts missing"
+    SV_SH_OUT=$(bash "$REPO_ROOT/scripts/calculate-semver.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$SV_SH_OUT" | grep -q '"next_version":' && echo "$SV_SH_OUT" | grep -q '"commits_analyzed":' && echo "$SV_SH_OUT" | grep -q '"release_notes":'; then
+        assert_condition 0 "calculate-semver.sh outputs .ps1-compatible JSON schema" "calculate-semver.sh JSON schema mismatch: $SV_SH_OUT"
+    else
+        assert_condition 1 "calculate-semver.sh outputs .ps1-compatible JSON schema" "calculate-semver.sh JSON schema mismatch: $SV_SH_OUT"
+    fi
 else
     assert_condition 1 "calculate-semver scripts exist (.ps1 and .sh)" "calculate-semver scripts missing"
 fi
@@ -514,6 +520,12 @@ fi
 echo -e "\n\033[33m28. Validating PR summary generator scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/generate-pr-summary.ps1" ] && [ -f "$REPO_ROOT/scripts/generate-pr-summary.sh" ]; then
     assert_condition 0 "generate-pr-summary scripts exist (.ps1 and .sh)" "generate-pr-summary scripts missing"
+    PR_SH_OUT=$(bash "$REPO_ROOT/scripts/generate-pr-summary.sh" --base main --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$PR_SH_OUT" | grep -q '"referenced_reqs":' && echo "$PR_SH_OUT" | grep -q '"pr_body_markdown":'; then
+        assert_condition 0 "generate-pr-summary.sh outputs .ps1-compatible JSON schema" "generate-pr-summary.sh JSON schema mismatch: $PR_SH_OUT"
+    else
+        assert_condition 1 "generate-pr-summary.sh outputs .ps1-compatible JSON schema" "generate-pr-summary.sh JSON schema mismatch: $PR_SH_OUT"
+    fi
 else
     assert_condition 1 "generate-pr-summary scripts exist (.ps1 and .sh)" "generate-pr-summary scripts missing"
 fi
@@ -567,6 +579,12 @@ fi
 echo -e "\n\033[33m32. Validating changelog generator scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/generate-changelog.ps1" ] && [ -f "$REPO_ROOT/scripts/generate-changelog.sh" ]; then
     assert_condition 0 "generate-changelog scripts exist (.ps1 and .sh)" "generate-changelog scripts missing"
+    CL_SH_OUT=$(bash "$REPO_ROOT/scripts/generate-changelog.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$CL_SH_OUT" | grep -q '"markdown":'; then
+        assert_condition 0 "generate-changelog.sh outputs markdown JSON field" "generate-changelog.sh missing markdown JSON field: $CL_SH_OUT"
+    else
+        assert_condition 1 "generate-changelog.sh outputs markdown JSON field" "generate-changelog.sh missing markdown JSON field: $CL_SH_OUT"
+    fi
 else
     assert_condition 1 "generate-changelog scripts exist (.ps1 and .sh)" "generate-changelog scripts missing"
 fi
@@ -575,6 +593,12 @@ fi
 echo -e "\n\033[33m33. Validating security audit scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/run-security-audit.ps1" ] && [ -f "$REPO_ROOT/scripts/run-security-audit.sh" ]; then
     assert_condition 0 "run-security-audit scripts exist (.ps1 and .sh)" "run-security-audit scripts missing"
+    SEC_SH_OUT=$(bash "$REPO_ROOT/scripts/run-security-audit.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$SEC_SH_OUT" | grep -q '"ecosystem_audits":'; then
+        assert_condition 0 "run-security-audit.sh outputs ecosystem_audits JSON field" "run-security-audit.sh missing ecosystem_audits: $SEC_SH_OUT"
+    else
+        assert_condition 1 "run-security-audit.sh outputs ecosystem_audits JSON field" "run-security-audit.sh missing ecosystem_audits: $SEC_SH_OUT"
+    fi
 else
     assert_condition 1 "run-security-audit scripts exist (.ps1 and .sh)" "run-security-audit scripts missing"
 fi
@@ -582,6 +606,16 @@ fi
 echo -e "\n\033[33m34. Validating test coverage parser scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/check-test-coverage.ps1" ] && [ -f "$REPO_ROOT/scripts/check-test-coverage.sh" ]; then
     assert_condition 0 "check-test-coverage scripts exist (.ps1 and .sh)" "check-test-coverage scripts missing"
+    TEMP_COV_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'cov')
+    mkdir -p "$TEMP_COV_DIR/coverage"
+    printf '{"total":{"lines":{"pct":85.5},"branches":{"pct":72.0}}}\n' > "$TEMP_COV_DIR/coverage/coverage-summary.json"
+    COV_SH_OUT=$(bash "$REPO_ROOT/scripts/check-test-coverage.sh" --repo-root "$TEMP_COV_DIR" --threshold 80 --json 2>/dev/null || true)
+    rm -rf "$TEMP_COV_DIR"
+    if echo "$COV_SH_OUT" | grep -q '"coverage_found":true' && echo "$COV_SH_OUT" | grep -q '"report_file":' && echo "$COV_SH_OUT" | grep -q '"branch_coverage_pct":'; then
+        assert_condition 0 "check-test-coverage.sh discovers nested coverage/coverage-summary.json with full JSON schema" "check-test-coverage.sh failed nested discovery or JSON parity: $COV_SH_OUT"
+    else
+        assert_condition 1 "check-test-coverage.sh discovers nested coverage/coverage-summary.json with full JSON schema" "check-test-coverage.sh failed nested discovery or JSON parity: $COV_SH_OUT"
+    fi
 else
     assert_condition 1 "check-test-coverage scripts exist (.ps1 and .sh)" "check-test-coverage scripts missing"
 fi
@@ -589,6 +623,17 @@ fi
 echo -e "\n\033[33m35. Validating database migration linter scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/lint-db-migrations.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-db-migrations.sh" ]; then
     assert_condition 0 "lint-db-migrations scripts exist (.ps1 and .sh)" "lint-db-migrations scripts missing"
+    TEMP_DB_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'db')
+    mkdir -p "$TEMP_DB_DIR/src/db"
+    printf 'CREATE TABLE users(id INT);\n' > "$TEMP_DB_DIR/src/db/0001_init.sql"
+    printf 'DROP TABLE users;\n' > "$TEMP_DB_DIR/src/db/0001_dup.sql"
+    DB_SH_OUT=$(bash "$REPO_ROOT/scripts/lint-db-migrations.sh" --repo-root "$TEMP_DB_DIR" --json 2>/dev/null || true)
+    rm -rf "$TEMP_DB_DIR"
+    if echo "$DB_SH_OUT" | grep -q '"migrations_count":2' && echo "$DB_SH_OUT" | grep -q '"errors_count":1' && echo "$DB_SH_OUT" | grep -q '"errors":\['; then
+        assert_condition 0 "lint-db-migrations.sh matches filename prefixes under src/ and outputs full JSON" "lint-db-migrations.sh failed filename matching or JSON schema: $DB_SH_OUT"
+    else
+        assert_condition 1 "lint-db-migrations.sh matches filename prefixes under src/ and outputs full JSON" "lint-db-migrations.sh failed filename matching or JSON schema: $DB_SH_OUT"
+    fi
 else
     assert_condition 1 "lint-db-migrations scripts exist (.ps1 and .sh)" "lint-db-migrations scripts missing"
 fi
@@ -597,6 +642,12 @@ fi
 echo -e "\n\033[33m36. Validating API contract linter scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/lint-api-contracts.ps1" ] && [ -f "$REPO_ROOT/scripts/lint-api-contracts.sh" ]; then
     assert_condition 0 "lint-api-contracts scripts exist (.ps1 and .sh)" "lint-api-contracts scripts missing"
+    API_SH_OUT=$(bash "$REPO_ROOT/scripts/lint-api-contracts.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$API_SH_OUT" | grep -q '"errors":\[' && echo "$API_SH_OUT" | grep -q '"message":'; then
+        assert_condition 0 "lint-api-contracts.sh outputs .ps1-compatible JSON schema" "lint-api-contracts.sh JSON schema mismatch: $API_SH_OUT"
+    else
+        assert_condition 1 "lint-api-contracts.sh outputs .ps1-compatible JSON schema" "lint-api-contracts.sh JSON schema mismatch: $API_SH_OUT"
+    fi
 else
     assert_condition 1 "lint-api-contracts scripts exist (.ps1 and .sh)" "lint-api-contracts scripts missing"
 fi
@@ -604,6 +655,12 @@ fi
 echo -e "\n\033[33m37. Validating orphaned assets detector scripts...\033[0m"
 if [ -f "$REPO_ROOT/scripts/find-orphaned-assets.ps1" ] && [ -f "$REPO_ROOT/scripts/find-orphaned-assets.sh" ]; then
     assert_condition 0 "find-orphaned-assets scripts exist (.ps1 and .sh)" "find-orphaned-assets scripts missing"
+    OA_SH_OUT=$(bash "$REPO_ROOT/scripts/find-orphaned-assets.sh" --repo-root "$REPO_ROOT" --json 2>/dev/null || true)
+    if echo "$OA_SH_OUT" | grep -q '"orphaned_assets":\[' && echo "$OA_SH_OUT" | grep -q '"orphaned_docs":\[' && echo "$OA_SH_OUT" | grep -q '"message":'; then
+        assert_condition 0 "find-orphaned-assets.sh outputs .ps1-compatible JSON schema" "find-orphaned-assets.sh JSON schema mismatch: $OA_SH_OUT"
+    else
+        assert_condition 1 "find-orphaned-assets.sh outputs .ps1-compatible JSON schema" "find-orphaned-assets.sh JSON schema mismatch: $OA_SH_OUT"
+    fi
 else
     assert_condition 1 "find-orphaned-assets scripts exist (.ps1 and .sh)" "find-orphaned-assets scripts missing"
 fi

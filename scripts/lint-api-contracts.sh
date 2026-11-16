@@ -42,7 +42,39 @@ for file in "${CONTRACT_FILES[@]}"; do
 
     # 1. OpenAPI JSON
     if [[ "$base" == *openapi.json ]] || [[ "$base" == *swagger.json ]]; then
-        if command -v jq &>/dev/null; then
+        if command -v python3 &>/dev/null; then
+            while IFS=$'\t' read -r lvl msg; do
+                [ -z "$msg" ] && continue
+                if [ "$lvl" = "ERR" ]; then ERRORS+=("$msg"); else WARNINGS+=("$msg"); fi
+            done < <(python3 - "$file" "$base" << 'PYEOF' 2>/dev/null || true
+import json, re, sys
+fp, name = sys.argv[1], sys.argv[2]
+try:
+    with open(fp, 'r', encoding='utf-8') as f:
+        raw = f.read()
+    data = json.loads(raw)
+    if not (data.get('openapi') or data.get('swagger')):
+        print(f"ERR\tOpenAPI file '{name}' missing root 'openapi' or 'swagger' version specification.")
+    if not data.get('info'):
+        print(f"WARN\tOpenAPI file '{name}' missing 'info' section.")
+    if not data.get('paths'):
+        print(f"WARN\tOpenAPI file '{name}' missing 'paths' section.")
+    for m in re.finditer(r'"\$ref"\s*:\s*"#/([^"]+)"', raw):
+        curr = data
+        valid = True
+        for seg in m.group(1).split('/'):
+            if isinstance(curr, dict) and seg in curr:
+                curr = curr[seg]
+            else:
+                valid = False
+                break
+        if not valid:
+            print(f"ERR\tBroken $ref '#/{m.group(1)}' in '{name}'")
+except Exception as ex:
+    print(f"ERR\tInvalid JSON in OpenAPI contract '{name}': {ex}")
+PYEOF
+            )
+        elif command -v jq &>/dev/null; then
             if ! jq empty "$file" 2>/dev/null; then
                 ERRORS+=("Invalid JSON in OpenAPI contract '$base'")
             else
@@ -72,8 +104,36 @@ elif [ ${#WARNINGS[@]} -gt 0 ]; then
     STATUS="warning"
 fi
 
+api_json_esc() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\t'/\\t}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\n'/\\n}"
+    printf '%s' "$s"
+}
+
+api_json_arr() {
+    local out="" item
+    for item in "$@"; do
+        [ -z "$item" ] && continue
+        [ -n "$out" ] && out+=","
+        out+="\"$(api_json_esc "$item")\""
+    done
+    printf '[%s]' "$out"
+}
+
+if [ ${#CONTRACT_FILES[@]} -eq 0 ]; then
+    MSG="No API contract files detected in workspace."
+else
+    MSG="Linted ${#CONTRACT_FILES[@]} contract files with ${#ERRORS[@]} errors and ${#WARNINGS[@]} warnings."
+fi
+
 if [ "$JSON_OUTPUT" = true ]; then
-    echo "{\"status\":\"$STATUS\",\"contracts_count\":${#CONTRACT_FILES[@]},\"errors_count\":${#ERRORS[@]},\"warnings_count\":${#WARNINGS[@]}}"
+    ERR_JSON=$(api_json_arr "${ERRORS[@]:-}")
+    WARN_JSON=$(api_json_arr "${WARNINGS[@]:-}")
+    echo "{\"status\":\"$STATUS\",\"contracts_count\":${#CONTRACT_FILES[@]},\"errors_count\":${#ERRORS[@]},\"warnings_count\":${#WARNINGS[@]},\"errors\":$ERR_JSON,\"warnings\":$WARN_JSON,\"message\":\"$(api_json_esc "$MSG")\"}"
 else
     echo "API Contract Lint Summary"
     echo "Status: $STATUS"

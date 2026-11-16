@@ -100,8 +100,8 @@ if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d 
         if [ ${#models_array[@]} -gt 0 ]; then
             models_json="["$(IFS=,; echo "${models_array[*]}")"]"
         fi
-        flagship_high=$(echo "$raw_models" | grep -E '(opus|gemini-4|argon|pro|gpt-[56]|astra).*(high|extended)|opus|gpt-6.*astra' | head -n1 | awk '{print $1}')
-        analytical_high=$(echo "$raw_models" | grep -E '(sonnet|gemini-4|argon|gpt-[56]|sol).*(high|medium)|gpt-6\.1-sol' | head -n1 | awk '{print $1}')
+        flagship_high=$(echo "$raw_models" | grep -E '(opus|gemini-4|hydrogen|argon|pro|gpt-[56]|astra).*(high|extended)|opus|gpt-6.*astra' | head -n1 | awk '{print $1}')
+        analytical_high=$(echo "$raw_models" | grep -E '(sonnet|gemini-4|hydrogen|argon|gpt-[56]|sol).*(high|medium)|gpt-6\.1-sol' | head -n1 | awk '{print $1}')
         flash_high=$(echo "$raw_models" | grep -E '(flash|haiku|mini|luna).*high' | head -n1 | awk '{print $1}')
         flash_med=$(echo "$raw_models" | grep -E '(flash|argon|sonnet|gpt-6|sol).*medium|gpt-6\.1-sol' | head -n1 | awk '{print $1}')
         flash_low=$(echo "$raw_models" | grep -E '(flash|haiku|mini|luna).*low|gpt-6.*(mini|luna)' | head -n1 | awk '{print $1}')
