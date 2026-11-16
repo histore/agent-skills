@@ -41,12 +41,12 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
     - Windows:
       ```powershell
       $specScript = @("./_agents/scripts/inspect-feature-specs.ps1", "./.agents/scripts/inspect-feature-specs.ps1", "./scripts/inspect-feature-specs.ps1", "$HOME/_agents/scripts/inspect-feature-specs.ps1", "$HOME/.agents/scripts/inspect-feature-specs.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1
-      if ($specScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $specScript -ListAll }
+      if ($specScript) { pwsh -NoProfile -ExecutionPolicy Bypass -File $specScript -List }
       ```
     - macOS / Linux:
       ```bash
       for p in ./_agents/scripts/inspect-feature-specs.sh ./.agents/scripts/inspect-feature-specs.sh ./scripts/inspect-feature-specs.sh "$HOME/_agents/scripts/inspect-feature-specs.sh" "$HOME/.agents/scripts/inspect-feature-specs.sh"; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
-      [ -n "$SCRIPT_PATH" ] && bash "$SCRIPT_PATH" --list-all
+      [ -n "$SCRIPT_PATH" ] && bash "$SCRIPT_PATH" --list
       ```
 
 ### 2. Requirements Governance, Templates & Scoped IDs

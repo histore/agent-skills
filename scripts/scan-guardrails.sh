@@ -49,6 +49,9 @@ done
 if [[ -z "$SCAN_PATH" ]]; then
   SCAN_PATH="$(pwd)"
 fi
+if [[ "$SCAN_PATH" != "/" ]]; then
+  SCAN_PATH="${SCAN_PATH%/}"
+fi
 
 VIOLATIONS=()
 
@@ -251,17 +254,17 @@ for file in "${FILES[@]}"; do
     VIOLATIONS+=("[SubmoduleIsolation] ${rel_path}: Staged change originates inside submodule path")
   fi
 
-  # Text file check (use `file` when available, fall back to extension/name allowlist in minimal containers)
+  # Text file check (extension/name allowlist + MIME fallback, skipping 0-byte files)
   IS_TEXT=false
-  if command -v file >/dev/null 2>&1; then
-    if file -b --mime "$file" 2>/dev/null | grep -q 'text'; then
-      IS_TEXT=true
-    fi
-  else
+  if [[ -s "$file" ]]; then
     file_name="$(basename "$file")"
     if [[ "$file_name" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|json|md|yml|yaml|toml|ps1|sh|axaml|props|targets|xml|txt|csproj|sln|editorconfig|gitattributes|gitignore|manifest)$ ]] || \
        [[ "$file_name" =~ ^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$ ]]; then
       IS_TEXT=true
+    elif command -v file >/dev/null 2>&1; then
+      if file -b --mime "$file" 2>/dev/null | grep -qE 'text/|application/(json|xml|javascript|x-sh|x-shellscript)'; then
+        IS_TEXT=true
+      fi
     fi
   fi
 

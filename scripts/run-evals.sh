@@ -94,8 +94,11 @@ copilot_file = os.path.join(repo_root, '.github', 'copilot-instructions.md')
 copilot_content = open(copilot_file, 'r', encoding='utf-8', errors='ignore').read() if os.path.isfile(copilot_file) else ''
 
 def read_skill(skill_name):
-    p = os.path.join(repo_root, 'skills', skill_name, 'SKILL.md')
-    return open(p, 'r', encoding='utf-8', errors='ignore').read() if os.path.isfile(p) else ''
+    for root_rel in ('skills', '_agents/skills', '.agents/skills'):
+        p = os.path.join(repo_root, root_rel, skill_name, 'SKILL.md')
+        if os.path.isfile(p):
+            return open(p, 'r', encoding='utf-8', errors='ignore').read()
+    return ''
 
 cases = data.get('eval_cases', [])
 if case_id:
@@ -191,6 +194,26 @@ for c in cases:
         elif inv == 'single_prepare_commit_on_confirm':
             if 'without re-running' not in agents_content or 'do **not** re-run' not in copilot_content or 'without re-running' not in read_skill('ask-control'):
                 failures.append("Invariant 'single_prepare_commit_on_confirm' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
+        elif inv == 'clean_release_tagging' and 'Clean Release Tagging' not in agents_content:
+            failures.append("Invariant 'clean_release_tagging' missing in AGENTS.md")
+        elif inv == 'targeted_test_first':
+            if 'Target only affected test' not in agents_content or 'targeted Arrange-Act-Assert' not in read_skill('ask-control'):
+                failures.append("Invariant 'targeted_test_first' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'red_green_refactor_loop':
+            if 'Inner-Loop TDD' not in agents_content or 'Inner-Loop TDD' not in read_skill('ask-control'):
+                failures.append("Invariant 'red_green_refactor_loop' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'contract_first':
+            if 'Architecture Contract' not in agents_content or 'Architecture Contract' not in read_skill('ask-control'):
+                failures.append("Invariant 'contract_first' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'two_stage_quality_gate':
+            if 'Two-Stage Quality Gate' not in agents_content or 'Two-Stage Quality Gate' not in read_skill('ask-control'):
+                failures.append("Invariant 'two_stage_quality_gate' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'zero_test_execution_on_markdown':
+            if 'No test execution for markdown' not in agents_content or 'Omit build/test runners for markdown' not in read_skill('ask-control'):
+                failures.append("Invariant 'zero_test_execution_on_markdown' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'zero_git_on_read':
+            if not re.search(r'Zero Git operations.*read-only', agents_content) or 'Zero Git commands' not in copilot_content:
+                failures.append("Invariant 'zero_git_on_read' missing in AGENTS.md or .github/copilot-instructions.md")
 
     if transcript_path:
         if not os.path.isfile(transcript_path):

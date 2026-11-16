@@ -288,6 +288,41 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'single_prepare_commit_on_confirm' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
                 }
             }
+            "targeted_test_first" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'Target only affected test' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'targeted Arrange-Act-Assert') {
+                    $failures.Add("Invariant 'targeted_test_first' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "red_green_refactor_loop" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'Inner-Loop TDD' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Inner-Loop TDD') {
+                    $failures.Add("Invariant 'red_green_refactor_loop' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "contract_first" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'Architecture Contract' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Architecture Contract') {
+                    $failures.Add("Invariant 'contract_first' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "two_stage_quality_gate" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'Two-Stage Quality Gate' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Two-Stage Quality Gate') {
+                    $failures.Add("Invariant 'two_stage_quality_gate' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "zero_test_execution_on_markdown" {
+                $controlSkill = Join-Path $repoRoot "skills\ask-control\SKILL.md"
+                if ($agentsContent -notmatch 'No test execution for markdown' -or -not (Test-Path $controlSkill) -or (Get-Content $controlSkill -Raw -Encoding UTF8) -notmatch 'Omit build/test runners for markdown') {
+                    $failures.Add("Invariant 'zero_test_execution_on_markdown' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "zero_git_on_read" {
+                if ($agentsContent -notmatch 'Zero Git operations.*read-only' -or $copilotContent -notmatch 'Zero Git commands') {
+                    $failures.Add("Invariant 'zero_git_on_read' missing in AGENTS.md or .github/copilot-instructions.md")
+                }
+            }
         }
     }
 

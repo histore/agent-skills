@@ -1049,6 +1049,33 @@ try {
     if (Test-Path $tempFmtDir) { Remove-Item -LiteralPath $tempFmtDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+# 47. Validate scalar-safe single-line linting, inspect-feature-specs flags, and eval invariant coverage
+Write-Host "`n47. Validating scalar-safe single-line linting, CLI flags, and eval coverage..." -ForegroundColor Yellow
+$contractSkillContent = Get-Content -Path (Join-Path $skillsDir "ask-contract-specialist\SKILL.md") -Raw -Encoding UTF8
+Assert-Condition ($contractSkillContent -match '-List\b' -and $contractSkillContent -match '--list\b' -and $contractSkillContent -notmatch 'ListAll|--list-all') "ask-contract-specialist uses valid -List/--list flags for inspect-feature-specs" "ask-contract-specialist contains invalid -ListAll/--list-all flag"
+
+$runEvalsRaw = Get-Content -Path $runEvalsPs1 -Raw -Encoding UTF8
+Assert-Condition ($runEvalsRaw -match 'targeted_test_first' -and $runEvalsRaw -match 'zero_git_on_read' -and $runEvalsRaw -match 'zero_test_execution_on_markdown') "run-evals.ps1 actively asserts targeted_test_first, zero_git_on_read, and zero_test_execution_on_markdown" "run-evals.ps1 missing active invariant checks"
+
+$tempSingleDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+New-Item -ItemType Directory -Path $tempSingleDir | Out-Null
+try {
+    [System.IO.File]::WriteAllText((Join-Path $tempSingleDir "single.md"), "[broken](missing-target.md)", (New-Object System.Text.UTF8Encoding($false)))
+    $lintDocsPs1 = Join-Path $repoRoot "scripts\lint-docs.ps1"
+    $singleDocOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $lintDocsPs1 -RepoRoot $tempSingleDir -JsonOutput 2>$null
+    $singleDocObj = if ($singleDocOut) { $singleDocOut | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $singleDocObj -and $singleDocObj.status -eq "fail" -and $singleDocObj.broken_links_count -eq 1) "lint-docs.ps1 handles 1-line markdown files safely (array-wrapped Get-Content)" "lint-docs.ps1 failed on 1-line markdown file ($singleDocOut)"
+
+    $singleReqFile = Join-Path $tempSingleDir "REQUIREMENTS.md"
+    [System.IO.File]::WriteAllText($singleReqFile, "### [REQ-CORE-001] Single line req (APPROVED)", (New-Object System.Text.UTF8Encoding($false)))
+    $lintReqPs1 = Join-Path $repoRoot "scripts\lint-requirements.ps1"
+    $singleReqOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $lintReqPs1 -RequirementsPath $tempSingleDir -JsonOutput 2>$null
+    $singleReqObj = if ($singleReqOut) { $singleReqOut | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $singleReqObj -and $singleReqObj.status -eq "pass" -and $singleReqObj.defined_count -eq 1) "lint-requirements.ps1 handles 1-line requirement files safely (array-wrapped Get-Content)" "lint-requirements.ps1 failed on 1-line requirements file ($singleReqOut)"
+} finally {
+    if (Test-Path $tempSingleDir) { Remove-Item -LiteralPath $tempSingleDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
