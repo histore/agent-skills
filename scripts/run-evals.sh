@@ -159,42 +159,60 @@ for c in cases:
     contract_content = read_skill('ask-contract-specialist')
 
     for inv in invariants:
-        if inv == 'direct_response' and ('Answer directly' not in agents_content or 'Answer directly' not in copilot_content):
-            failures.append("Invariant 'direct_response' missing in AGENTS.md or .github/copilot-instructions.md")
-        elif inv == 'zero_git_operations' and ('Zero Git operations' not in agents_content or 'Zero Git commands' not in copilot_content):
-            failures.append("Invariant 'zero_git_operations' missing in AGENTS.md or .github/copilot-instructions.md")
-        elif inv == 'zero_test_execution' and ('zero test execution' not in agents_content or 'zero test execution' not in copilot_content):
-            failures.append("Invariant 'zero_test_execution' missing in AGENTS.md or .github/copilot-instructions.md")
-        elif inv == 'inner_loop_tdd' and ('Inner-Loop TDD' not in control_content or 'Inner-Loop TDD' not in copilot_content):
-            failures.append("Invariant 'inner_loop_tdd' missing in ask-control/SKILL.md or .github/copilot-instructions.md")
-        elif inv == 'safe_rust_only' and (not re.search(r'Rust codebases.*unsafe', agents_content) or not re.search(r'Rust codebases.*unsafe', control_content)):
-            failures.append("Invariant 'safe_rust_only' missing in AGENTS.md or ask-control/SKILL.md")
-        elif inv == 'no_unsafe_blocks' and ('unsafe' not in control_content or 'unsafe' not in copilot_content):
-            failures.append("Invariant 'no_unsafe_blocks' missing in ask-control/SKILL.md or .github/copilot-instructions.md")
-        elif inv == 'scope_to_host_workspace' and ('host repository root' not in agents_content or 'host workspace' not in control_content):
-            failures.append("Invariant 'scope_to_host_workspace' missing in AGENTS.md or ask-control/SKILL.md")
-        elif inv == 'submodule_boundary_isolation' and 'Submodule Isolation Guardrail' not in control_content:
-            failures.append("Invariant 'submodule_boundary_isolation' missing in ask-control/SKILL.md")
-        elif inv == 'circuit_breaker_triggered' and 'maximum of 3' not in control_content:
-            failures.append("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-control/SKILL.md")
-        elif inv == 'user_escalation_report' and ('before escalating' not in agents_content or 'User Escalation' not in control_content):
-            failures.append("Invariant 'user_escalation_report' missing in AGENTS.md or ask-control/SKILL.md")
-        elif inv == 'quota_protection_gate' and 'Quota Protection User Gate' not in control_content:
-            failures.append("Invariant 'quota_protection_gate' missing in ask-control/SKILL.md")
-        elif inv == 'fast_gate_consolidated' and 'Consolidated Deterministic Fast-Gate' not in control_content:
-            failures.append("Invariant 'fast_gate_consolidated' missing in ask-control/SKILL.md")
-        elif inv == 'copilot_uses_dot_agents' and ('./.agents/scripts/' not in copilot_content or '.agents/skills/' not in copilot_content):
-            failures.append("Invariant 'copilot_uses_dot_agents' violated in .github/copilot-instructions.md")
-        elif inv == 'agy_uses_underscore_agents' and ('./_agents/' not in agents_content or '~/_agents/' not in agents_content):
-            failures.append("Invariant 'agy_uses_underscore_agents' violated in AGENTS.md")
-        elif inv == 'surgical_editing_first' and ('Surgical Edit First' not in agents_content or 'Surgical Edit First' not in control_content):
-            failures.append("Invariant 'surgical_editing_first' missing in AGENTS.md or ask-control/SKILL.md")
-        elif inv == 'prompt_cache_two_zone' and ('Two-Zone Prompt Cache Architecture' not in agents_content or 'Two-Zone Prompt Architecture' not in control_content):
-            failures.append("Invariant 'prompt_cache_two_zone' missing in AGENTS.md or ask-control/SKILL.md")
-        elif inv == 'reasoning_budget_clamped' and 'Thinking Budget Clamping' not in control_content:
-            failures.append("Invariant 'reasoning_budget_clamped' missing in ask-control/SKILL.md")
-        elif inv == 'zero_token_log_compaction' and 'Zero-Token Log Compaction' not in agents_content:
-            failures.append("Invariant 'zero_token_log_compaction' missing in AGENTS.md")
+        if inv == 'direct_response':
+            if 'Answer directly' not in agents_content or 'Answer directly' not in copilot_content:
+                failures.append("Invariant 'direct_response' missing in AGENTS.md or .github/copilot-instructions.md")
+        elif inv == 'zero_git_operations':
+            if 'Zero Git operations' not in agents_content or 'Zero Git commands' not in copilot_content:
+                failures.append("Invariant 'zero_git_operations' missing in AGENTS.md or .github/copilot-instructions.md")
+        elif inv == 'zero_test_execution':
+            if 'zero test execution' not in agents_content or 'zero test execution' not in copilot_content:
+                failures.append("Invariant 'zero_test_execution' missing in AGENTS.md or .github/copilot-instructions.md")
+        elif inv == 'inner_loop_tdd':
+            if 'Inner-Loop TDD' not in control_content or 'Inner-Loop TDD' not in copilot_content:
+                failures.append("Invariant 'inner_loop_tdd' missing in ask-control/SKILL.md or .github/copilot-instructions.md")
+        elif inv == 'safe_rust_only':
+            if not re.search(r'Rust codebases.*unsafe', agents_content) or not re.search(r'Rust codebases.*unsafe', control_content):
+                failures.append("Invariant 'safe_rust_only' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'no_unsafe_blocks':
+            if 'unsafe' not in control_content or 'unsafe' not in copilot_content:
+                failures.append("Invariant 'no_unsafe_blocks' missing in ask-control/SKILL.md or .github/copilot-instructions.md")
+        elif inv == 'scope_to_host_workspace':
+            if 'host repository root' not in agents_content or 'host workspace' not in control_content:
+                failures.append("Invariant 'scope_to_host_workspace' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'submodule_boundary_isolation':
+            if 'Submodule Isolation Guardrail' not in control_content:
+                failures.append("Invariant 'submodule_boundary_isolation' missing in ask-control/SKILL.md")
+        elif inv == 'circuit_breaker_triggered':
+            if 'maximum of 3' not in control_content:
+                failures.append("Invariant 'circuit_breaker_triggered' (max 3 iterations) missing in ask-control/SKILL.md")
+        elif inv == 'user_escalation_report':
+            if 'before escalating' not in agents_content or 'User Escalation' not in control_content:
+                failures.append("Invariant 'user_escalation_report' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'quota_protection_gate':
+            if 'Quota Protection User Gate' not in control_content:
+                failures.append("Invariant 'quota_protection_gate' missing in ask-control/SKILL.md")
+        elif inv == 'fast_gate_consolidated':
+            if 'Consolidated Deterministic Fast-Gate' not in control_content:
+                failures.append("Invariant 'fast_gate_consolidated' missing in ask-control/SKILL.md")
+        elif inv == 'copilot_uses_dot_agents':
+            if './.agents/scripts/' not in copilot_content or '.agents/skills/' not in copilot_content:
+                failures.append("Invariant 'copilot_uses_dot_agents' violated in .github/copilot-instructions.md")
+        elif inv == 'agy_uses_underscore_agents':
+            if './_agents/' not in agents_content or '~/_agents/' not in agents_content:
+                failures.append("Invariant 'agy_uses_underscore_agents' violated in AGENTS.md")
+        elif inv == 'surgical_editing_first':
+            if 'Surgical Edit First' not in agents_content or 'Surgical Edit First' not in control_content:
+                failures.append("Invariant 'surgical_editing_first' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'prompt_cache_two_zone':
+            if 'Two-Zone Prompt Cache Architecture' not in agents_content or 'Two-Zone Prompt Architecture' not in control_content:
+                failures.append("Invariant 'prompt_cache_two_zone' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'reasoning_budget_clamped':
+            if 'Thinking Budget Clamping' not in control_content:
+                failures.append("Invariant 'reasoning_budget_clamped' missing in ask-control/SKILL.md")
+        elif inv == 'zero_token_log_compaction':
+            if 'Zero-Token Log Compaction' not in agents_content:
+                failures.append("Invariant 'zero_token_log_compaction' missing in AGENTS.md")
         elif inv == 'deferred_format_prepare_commit':
             prep_ok = os.path.isfile(os.path.join(repo_root, 'scripts', 'prepare-commit.sh'))
             if not prep_ok or 'prepare-commit' not in agents_content or 'prepare-commit' not in control_content:
@@ -205,8 +223,9 @@ for c in cases:
         elif inv == 'single_prepare_commit_on_confirm':
             if 'without re-running' not in agents_content or 'do **not** re-run' not in copilot_content or 'without re-running' not in control_content:
                 failures.append("Invariant 'single_prepare_commit_on_confirm' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
-        elif inv == 'clean_release_tagging' and 'Clean Release Tagging' not in agents_content:
-            failures.append("Invariant 'clean_release_tagging' missing in AGENTS.md")
+        elif inv == 'clean_release_tagging':
+            if 'Clean Release Tagging' not in agents_content:
+                failures.append("Invariant 'clean_release_tagging' missing in AGENTS.md")
         elif inv == 'targeted_test_first':
             if 'Target only affected test' not in agents_content or 'targeted Arrange-Act-Assert' not in control_content:
                 failures.append("Invariant 'targeted_test_first' missing in AGENTS.md or ask-control/SKILL.md")

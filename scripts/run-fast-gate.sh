@@ -78,7 +78,7 @@ if [[ -f "$DETECT_SCRIPT" ]]; then
       IFS= read -r TEST_CMD || true
       IFS= read -r FILTER_SYNTAX || true
       IFS= read -r LINT_CMD || true
-    } < <(python3 - "$STACK_JSON" << 'EOF' 2>/dev/null || true
+    } < <(python3 - "$STACK_JSON" << 'EOF' 2>/dev/null | tr -d '\r' || true
 import json, sys
 try:
     d = json.loads(sys.argv[1])

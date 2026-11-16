@@ -46,7 +46,7 @@ for file in "${CONTRACT_FILES[@]}"; do
             while IFS=$'\t' read -r lvl msg; do
                 [ -z "$msg" ] && continue
                 if [ "$lvl" = "ERR" ]; then ERRORS+=("$msg"); else WARNINGS+=("$msg"); fi
-            done < <(python3 - "$file" "$base" << 'PYEOF' 2>/dev/null || true
+            done < <(python3 - "$file" "$base" << 'PYEOF' 2>/dev/null | tr -d '\r' || true
 import json, re, sys
 fp, name = sys.argv[1], sys.argv[2]
 try:

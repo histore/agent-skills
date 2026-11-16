@@ -130,13 +130,26 @@ else
     assert_condition 1 "Zero occurrences of retired V1 or ghost roles across all markdown files" "Found retired/ghost roles in: ${FOUND_GHOSTS[*]}"
 fi
 
-# 4. Check for CRLF line endings
-echo -e "\n\033[33m4. Checking line endings (must be LF)...\033[0m"
-CRLF_COUNT=$(find "$REPO_ROOT" -type f -not -path '*/.*' -exec file {} + 2>/dev/null | grep "CRLF" | wc -l || true)
-if [ "$CRLF_COUNT" -eq 0 ]; then
-    assert_condition 0 "All repository files use LF line endings" "CRLF line endings detected"
+# 4. Check OS-native line endings (CRLF on Windows/MINGW, LF on Linux/macOS)
+OS_UNAME_TEST="$(uname -s 2>/dev/null || echo "")"
+case "$OS_UNAME_TEST" in
+    MINGW*|MSYS*|CYGWIN*) EXPECTED_OS_EOL="CRLF" ;;
+    *) EXPECTED_OS_EOL="LF" ;;
+esac
+echo -e "\n\033[33m4. Checking line endings (must be ${EXPECTED_OS_EOL})...\033[0m"
+if [ "$EXPECTED_OS_EOL" = "LF" ]; then
+    CRLF_COUNT=$(find "$REPO_ROOT" -type f -not -path '*/.*' -exec file {} + 2>/dev/null | grep "CRLF" | wc -l || true)
+    if [ "$CRLF_COUNT" -eq 0 ]; then
+        assert_condition 0 "All repository files use LF line endings" "CRLF line endings detected"
+    else
+        assert_condition 1 "All repository files use LF line endings" "CRLF line endings detected in $CRLF_COUNT files"
+    fi
 else
-    assert_condition 1 "All repository files use LF line endings" "CRLF line endings detected in $CRLF_COUNT files"
+    if bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "$REPO_ROOT" >/dev/null 2>&1; then
+        assert_condition 0 "All repository files use OS-native CRLF line endings" "Line ending violations detected"
+    else
+        assert_condition 1 "All repository files use OS-native CRLF line endings" "Line ending violations detected"
+    fi
 fi
 
 # 5. Validate model detection persistent caching functionality
@@ -893,18 +906,24 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
     git -C "$TEMP_PREP_DIR" config user.name "Test User"
     git -C "$TEMP_PREP_DIR" config core.autocrlf false
 
-    printf '# Title\nLine 2\n' > "$TEMP_PREP_DIR/notes.md"
-    printf 'alpha\r\nbeta\r\n' > "$TEMP_PREP_DIR/legacy.txt"
+    if [ "$EXPECTED_OS_EOL" = "CRLF" ]; then
+        NAT_NL=$'\r\n'; ALT_NL=$'\n'; OVR_ATTR="eol=lf"; OVR_EC="lf"
+    else
+        NAT_NL=$'\n'; ALT_NL=$'\r\n'; OVR_ATTR="eol=crlf"; OVR_EC="crlf"
+    fi
+
+    printf '# Title%sLine 2%s' "$NAT_NL" "$NAT_NL" > "$TEMP_PREP_DIR/notes.md"
+    printf 'alpha%sbeta%s' "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/legacy.txt"
     git -C "$TEMP_PREP_DIR" add notes.md legacy.txt
     git -C "$TEMP_PREP_DIR" commit -q -m "chore: init"
 
-    # 46a. Whitespace-only (CRLF) diff -> needs_decision without draft message, then --revert-whitespace-only -> clean
-    printf '# Title\r\nLine 2\r\n' > "$TEMP_PREP_DIR/notes.md"
+    # 46a. Whitespace-only (EOL) diff -> needs_decision without draft message, then --revert-whitespace-only -> clean
+    printf '# Title%sLine 2%s' "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/notes.md"
     WS_DETECT=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --json 2>/dev/null || true)
     if echo "$WS_DETECT" | grep -q '"status":"needs_decision"' && echo "$WS_DETECT" | grep -q '"suggested_commit_message":""'; then
-        assert_condition 0 "prepare-commit.sh detects whitespace/CRLF-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
+        assert_condition 0 "prepare-commit.sh detects whitespace/EOL-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
     else
-        assert_condition 1 "prepare-commit.sh detects whitespace/CRLF-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
+        assert_condition 1 "prepare-commit.sh detects whitespace/EOL-only diff and withholds commit message" "prepare-commit.sh failed whitespace detection or leaked draft message"
     fi
 
     WS_REVERT=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --revert-whitespace-only --json 2>/dev/null || true)
@@ -914,38 +933,38 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
         assert_condition 1 "prepare-commit.sh --revert-whitespace-only reverts noise diffs to HEAD" "prepare-commit.sh failed to revert whitespace-only diff"
     fi
 
-    # 46b. Real edit + CRLF on LF file -> normalized under --direct
-    printf '# Title\r\nLine 2\r\nLine 3\r\n' > "$TEMP_PREP_DIR/notes.md"
+    # 46b. Real edit + non-native EOL on native file -> normalized under --direct
+    printf '# Title%sLine 2%sLine 3%s' "$ALT_NL" "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/notes.md"
     DIRECT_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
     if echo "$DIRECT_RES" | grep -q '"status":"ready"' && echo "$DIRECT_RES" | grep -q '"next_step":"execute_commit"' && echo "$DIRECT_RES" | grep -q '"normalized_count":1'; then
-        assert_condition 0 "prepare-commit.sh --direct normalizes unambiguous CRLF->LF and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit"
+        assert_condition 0 "prepare-commit.sh --direct normalizes unambiguous non-native EOL and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit: $DIRECT_RES"
     else
-        assert_condition 1 "prepare-commit.sh --direct normalizes unambiguous CRLF->LF and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit"
+        assert_condition 1 "prepare-commit.sh --direct normalizes unambiguous non-native EOL and signals execute_commit" "prepare-commit.sh --direct failed on unambiguous edit: $DIRECT_RES"
     fi
 
-    # 46c. Ambiguous legacy CRLF file -> pauses under --direct until --force-normalize
-    printf 'alpha\r\nbeta\r\ngamma\r\n' > "$TEMP_PREP_DIR/legacy.txt"
+    # 46c. Ambiguous legacy non-native EOL file -> pauses under --direct until --force-normalize
+    printf 'alpha%sbeta%sgamma%s' "$ALT_NL" "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/legacy.txt"
     AMBIG_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
     if echo "$AMBIG_RES" | grep -q '"status":"needs_decision"' && echo "$AMBIG_RES" | grep -q '"ambiguous_count":1'; then
-        assert_condition 0 "prepare-commit.sh pauses for user decision on ambiguous legacy CRLF file" "prepare-commit.sh normalized ambiguous file without permission"
+        assert_condition 0 "prepare-commit.sh pauses for user decision on ambiguous legacy EOL file" "prepare-commit.sh normalized ambiguous file without permission"
     else
-        assert_condition 1 "prepare-commit.sh pauses for user decision on ambiguous legacy CRLF file" "prepare-commit.sh normalized ambiguous file without permission"
+        assert_condition 1 "prepare-commit.sh pauses for user decision on ambiguous legacy EOL file" "prepare-commit.sh normalized ambiguous file without permission"
     fi
 
     FORCE_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --force-normalize --json 2>/dev/null || true)
     if echo "$FORCE_RES" | grep -q '"status":"ready"' && echo "$FORCE_RES" | grep -q '"normalized_count":1'; then
-        assert_condition 0 "prepare-commit.sh --force-normalize normalizes legacy CRLF after confirmation" "prepare-commit.sh --force-normalize failed"
+        assert_condition 0 "prepare-commit.sh --force-normalize normalizes legacy EOL after confirmation" "prepare-commit.sh --force-normalize failed: $FORCE_RES"
     else
-        assert_condition 1 "prepare-commit.sh --force-normalize normalizes legacy CRLF after confirmation" "prepare-commit.sh --force-normalize failed"
+        assert_condition 1 "prepare-commit.sh --force-normalize normalizes legacy EOL after confirmation" "prepare-commit.sh --force-normalize failed: $FORCE_RES"
     fi
 
     # 46d. Governance/tooling mixed commit heuristic -> chore(tooling) without blank leaf
     git -C "$TEMP_PREP_DIR" add notes.md legacy.txt
     git -C "$TEMP_PREP_DIR" commit -q -m "chore: sync"
     mkdir -p "$TEMP_PREP_DIR/scripts"
-    printf '* text=auto\n' > "$TEMP_PREP_DIR/.gitattributes"
-    printf '# Agents\n' > "$TEMP_PREP_DIR/AGENTS.md"
-    printf 'echo ok\n' > "$TEMP_PREP_DIR/scripts/test-skills.sh"
+    printf '* text=auto%s' "$NAT_NL" > "$TEMP_PREP_DIR/.gitattributes"
+    printf '# Agents%s' "$NAT_NL" > "$TEMP_PREP_DIR/AGENTS.md"
+    printf 'echo ok%s' "$NAT_NL" > "$TEMP_PREP_DIR/scripts/test-skills.sh"
     TOOLING_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --json 2>/dev/null || true)
     if echo "$TOOLING_RES" | grep -q '"status":"ready"' && echo "$TOOLING_RES" | grep -q '"suggested_commit_message":"chore(tooling): update \.gitattributes and 2 additional file(s)"'; then
         assert_condition 0 "prepare-commit.sh classifies dotfile+docs+scripts as chore(tooling) without blank leaf" "prepare-commit.sh misclassified governance/tooling commit"
@@ -953,7 +972,7 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
         assert_condition 1 "prepare-commit.sh classifies dotfile+docs+scripts as chore(tooling) without blank leaf" "prepare-commit.sh misclassified governance/tooling commit: $TOOLING_RES"
     fi
 
-    # 46e. Project config overrides (.gitattributes eol=crlf and .editorconfig end_of_line=crlf) + command -v file fallback
+    # 46e. Project config overrides (.gitattributes and .editorconfig) + command -v file fallback
     if grep -q 'OS-Native Line Endings Invariant' "$REPO_ROOT/AGENTS.md" && grep -q 'command -v file' "$REPO_ROOT/scripts/prepare-commit.sh"; then
         assert_condition 0 "AGENTS.md enforces OS-Native Line Endings Invariant and prepare-commit.sh includes file fallback" "Missing invariant or file fallback"
     else
@@ -962,16 +981,22 @@ if [ -f "$REPO_ROOT/scripts/prepare-commit.ps1" ] && [ -f "$REPO_ROOT/scripts/pr
 
     git -C "$TEMP_PREP_DIR" add .gitattributes AGENTS.md scripts/test-skills.sh
     git -C "$TEMP_PREP_DIR" commit -q -m "chore: baseline"
-    printf '* text=auto\n*.bat text eol=crlf\n' > "$TEMP_PREP_DIR/.gitattributes"
-    printf 'root = true\n[*.ps1]\nend_of_line = crlf\n' > "$TEMP_PREP_DIR/.editorconfig"
-    printf '@echo off\r\necho ok\r\n' > "$TEMP_PREP_DIR/scripts/build.bat"
-    printf 'Write-Host ok\n' > "$TEMP_PREP_DIR/scripts/check.ps1"
-    printf 'hello\r\nworld\r\n' > "$TEMP_PREP_DIR/default.txt"
+    printf '* text=auto%s*.bat text %s%s' "$NAT_NL" "$OVR_ATTR" "$NAT_NL" > "$TEMP_PREP_DIR/.gitattributes"
+    printf 'root = true%s[*.ps1]%send_of_line = %s%s' "$NAT_NL" "$NAT_NL" "$OVR_EC" "$NAT_NL" > "$TEMP_PREP_DIR/.editorconfig"
+    printf '@echo off%secho ok%s' "$NAT_NL" "$NAT_NL" > "$TEMP_PREP_DIR/scripts/build.bat"
+    printf 'Write-Host ok%s' "$NAT_NL" > "$TEMP_PREP_DIR/scripts/check.ps1"
+    printf 'hello%sworld%s' "$ALT_NL" "$ALT_NL" > "$TEMP_PREP_DIR/default.txt"
     OV_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_PREP_DIR" --direct --json 2>/dev/null || true)
-    if echo "$OV_RES" | grep -q '"status":"ready"' && grep -q $'\r' "$TEMP_PREP_DIR/scripts/build.bat" && grep -q $'\r' "$TEMP_PREP_DIR/scripts/check.ps1" && ! grep -q $'\r' "$TEMP_PREP_DIR/default.txt"; then
-        assert_condition 0 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native LF" "Project EOL override or OS-native default failed: $OV_RES"
+    has_cr() { [ "$(LC_ALL=C tr -cd '\r' < "$1" 2>/dev/null | wc -c)" -gt 0 ]; }
+    if [ "$EXPECTED_OS_EOL" = "CRLF" ]; then
+        OV_OK=$(! has_cr "$TEMP_PREP_DIR/scripts/build.bat" && ! has_cr "$TEMP_PREP_DIR/scripts/check.ps1" && has_cr "$TEMP_PREP_DIR/default.txt" && echo 1 || echo 0)
     else
-        assert_condition 1 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native LF" "Project EOL override or OS-native default failed: $OV_RES"
+        OV_OK=$(has_cr "$TEMP_PREP_DIR/scripts/build.bat" && has_cr "$TEMP_PREP_DIR/scripts/check.ps1" && ! has_cr "$TEMP_PREP_DIR/default.txt" && echo 1 || echo 0)
+    fi
+    if echo "$OV_RES" | grep -q '"status":"ready"' && [ "$OV_OK" -eq 1 ]; then
+        assert_condition 0 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native ${EXPECTED_OS_EOL}" "Project EOL override or OS-native default failed: $OV_RES"
+    else
+        assert_condition 1 "prepare-commit.sh and scan-guardrails.sh honor .gitattributes/.editorconfig EOL overrides while defaulting others to OS-native ${EXPECTED_OS_EOL}" "Project EOL override or OS-native default failed: $OV_RES"
     fi
 
     rm -rf "$TEMP_PREP_DIR"

@@ -267,9 +267,64 @@ for rel in sys.stdin:
             if rx.search(rel): res = val
     if res:
         print(f"{rel}\t{res}")
-' "$EC_PATH" "${SCAN_PATH}/.gitattributes" "$HAS_GITATTR" "$GIT_TOP" 2>/dev/null || true)
+' "$EC_PATH" "${SCAN_PATH}/.gitattributes" "$HAS_GITATTR" "$GIT_TOP" 2>/dev/null | tr -d '\r' || true)
   fi
 fi
+
+has_wrong_eol() {
+  local target_file="$1"
+  local expected="$2"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$target_file" "$expected" << 'PYEOF'
+import sys
+fp, exp = sys.argv[1], sys.argv[2]
+data = open(fp, 'rb').read()
+if not data:
+    sys.exit(1)
+if exp == 'CRLF':
+    bad = False
+    n = len(data)
+    for i, b in enumerate(data):
+        if b == 10 and (i == 0 or data[i - 1] != 13):
+            bad = True; break
+        if b == 13 and (i + 1 >= n or data[i + 1] != 10):
+            bad = True; break
+    sys.exit(0 if bad else 1)
+else:
+    sys.exit(0 if b'\r' in data else 1)
+PYEOF
+    return $?
+  fi
+  if [[ "$expected" == "CRLF" ]]; then
+    awk -v BINMODE=3 '{ if (/\r[^\r]/ || !/\r$/) { found=1; exit } } END { exit !found }' "$target_file" 2>/dev/null
+  else
+    [ "$(LC_ALL=C tr -cd '\r' < "$target_file" 2>/dev/null | wc -c)" -gt 0 ]
+  fi
+}
+
+fix_file_eol() {
+  local target_file="$1"
+  local expected="$2"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$target_file" "$expected" << 'PYEOF'
+import sys
+fp, exp = sys.argv[1], sys.argv[2]
+data = open(fp, 'rb').read()
+if data.startswith(b'\xef\xbb\xbf'):
+    data = data[3:]
+lf = data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+out = lf.replace(b'\n', b'\r\n') if exp == 'CRLF' else lf
+with open(fp, 'wb') as f:
+    f.write(out)
+PYEOF
+    return $?
+  fi
+  if [[ "$expected" == "CRLF" ]]; then
+    awk -v BINMODE=3 'BEGIN{ORS=""} { sub(/\r$/, ""); printf "%s\r\n", $0 }' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+  else
+    tr -d '\r' < "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+  fi
+}
 
 # 2. Scan files
 for file in "${FILES[@]}"; do
@@ -307,23 +362,16 @@ for file in "${FILES[@]}"; do
 
     if [[ "$SKIP_LINE_ENDINGS" != "true" && "$EFF_EOL" != "SKIP" ]]; then
       HAS_WRONG_EOL=false
-      if [[ "$EFF_EOL" == "CRLF" ]]; then
-        if awk '{ if (/\r[^\r]/ || !/\r$/) { found=1; exit } } END { exit !found }' "$file" 2>/dev/null; then
-          HAS_WRONG_EOL=true
-        fi
-      else
-        if grep -q $'\r' "$file" 2>/dev/null; then
-          HAS_WRONG_EOL=true
-        fi
+      if has_wrong_eol "$file" "$EFF_EOL"; then
+        HAS_WRONG_EOL=true
       fi
 
       if [[ "$HAS_WRONG_EOL" == "true" ]]; then
         if [[ "$FIX" == "true" ]]; then
+          fix_file_eol "$file" "$EFF_EOL"
           if [[ "$EFF_EOL" == "CRLF" ]]; then
-            awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
             ACTION_MSG="Normalized LF to CRLF"
           else
-            tr -d '\r' < "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
             ACTION_MSG="Normalized CRLF to LF"
           fi
           if [[ "$STAGED_ONLY" == "true" ]]; then

@@ -99,7 +99,7 @@ if [ -n "$FOUND_FILE" ] && [ -f "$FOUND_FILE" ]; then
     elif echo "$BASE" | grep -iq "coverage-summary\.json$"; then
         FORMAT="istanbul-json"
         if command -v python3 >/dev/null 2>&1; then
-            read -r LINE_PCT BRANCH_PCT < <(python3 - "$FOUND_FILE" << 'PYEOF' 2>/dev/null || echo "0 null"
+            read -r LINE_PCT BRANCH_PCT < <(python3 - "$FOUND_FILE" << 'PYEOF' 2>/dev/null | tr -d '\r' || echo "0 null"
 import json, sys
 d = json.load(open(sys.argv[1], 'r', encoding='utf-8'))
 tot = d.get('total', {})
