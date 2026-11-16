@@ -160,8 +160,8 @@ if (-not $Fast) {
 }
 
 $swTotal.Stop()
-$failedCount = ($results | Where-Object { $_.Status -eq "fail" }).Count
-$passedCount = ($results | Where-Object { $_.Status -eq "pass" }).Count
+$failedCount = @($results | Where-Object { $_.Status -eq "fail" }).Count
+$passedCount = @($results | Where-Object { $_.Status -eq "pass" }).Count
 $overallPass = ($failedCount -eq 0)
 
 if ($JsonOutput) {

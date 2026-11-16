@@ -200,7 +200,8 @@ foreach ($filePath in $filesToScan) {
             $importTarget = $matches[2].ToLowerInvariant()
             foreach ($rule in $activeLayerRules) {
                 foreach ($forbidden in $rule.forbidden_imports) {
-                    if ($importTarget -match "\b$forbidden\b" -or $importTarget -match $forbidden) {
+                    $pattern = if ($forbidden -match '^\w' -and $forbidden -match '\w$') { "\b$forbidden\b" } else { $forbidden }
+                    if ($importTarget -match $pattern) {
                         $violations.Add([PSCustomObject]@{
                             Type = "LayerBoundaryViolation"
                             File = $relPath
@@ -225,15 +226,17 @@ foreach ($filePath in $filesToScan) {
     }
 }
 
-$hasErrors = ($violations | Where-Object { $_.Severity -eq "Error" }).Count -gt 0
+$errorViolations = @($violations | Where-Object { $_.Severity -eq "Error" })
+$warningViolations = @($violations | Where-Object { $_.Severity -eq "Warning" })
+$hasErrors = $errorViolations.Count -gt 0
 $isPass = (-not $hasErrors)
 
 $result = [ordered]@{
     status = if ($isPass) { "pass" } else { "fail" }
     scanned_source_files = $filesToScan.Count
     violations_count = $violations.Count
-    error_count = ($violations | Where-Object { $_.Severity -eq "Error" }).Count
-    warning_count = ($violations | Where-Object { $_.Severity -eq "Warning" }).Count
+    error_count = $errorViolations.Count
+    warning_count = $warningViolations.Count
     violations = $violations.ToArray()
 }
 

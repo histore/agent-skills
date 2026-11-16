@@ -97,7 +97,7 @@ $targetEol = if ($isWindowsOs) { "CRLF" } else { "LF" }
 function Restore-FileFromHead {
     param([string]$Root, [string]$RelPath)
     $fullPath = Join-Path $Root $RelPath
-    & git -C $Root checkout -- $RelPath 2>$null
+    & git -C $Root checkout HEAD -- $RelPath 2>$null
     if ($LASTEXITCODE -eq 0) { return $true }
 
     # Sandbox fallback: write exact raw HEAD blob bytes directly to disk
@@ -389,7 +389,7 @@ $formatFixCommand = ""
 $formatErrors = [System.Collections.Generic.List[string]]::new()
 
 $hasDecisionItems = ($whitespaceOnlyFiles.Count -gt 0) -or ($ambiguousFiles.Count -gt 0) -or ($crlfFiles.Count -gt 0)
-$hasExecutableChanges = ($hostFiles | Where-Object { $_ -match $codeExtRegex }).Count -gt 0
+$hasExecutableChanges = @($hostFiles | Where-Object { $_ -match $codeExtRegex }).Count -gt 0
 if ($hasExecutableChanges -and -not $hasDecisionItems -and $submoduleFiles.Count -eq 0) {
     $detectScript = Join-Path $scriptDir "detect-tech-stack.ps1"
     if (Test-Path $detectScript) {

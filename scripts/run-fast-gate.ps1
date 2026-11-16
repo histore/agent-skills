@@ -151,6 +151,7 @@ if ($stackInfo.stack -ne "unknown") {
                         if ($rawPath -match '->') {
                             $rawPath = ($rawPath -split '->')[-1].Trim()
                         }
+                        $rawPath = $rawPath.Trim('"')
                         $fileName = [System.IO.Path]::GetFileName($rawPath)
                         if ($fileName -match $codeExtRegex -or $fileName -match $manifestRegex) {
                             $hasExecutableCode = $true

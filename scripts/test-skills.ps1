@@ -76,7 +76,7 @@ if ($modelTiersExist) {
         $hasCostEfficiency = ($null -ne $modelTiersData.cost_efficiency_policy -and $modelTiersData.cost_efficiency_policy.default_to_cost_efficient -eq $true)
         Assert-Condition $hasCostEfficiency "Cost-efficiency policy is defined and enforces cost-efficient defaults" "model-tiers.json lacks cost_efficiency_policy or default_to_cost_efficient is false"
 
-        $hasProModelClassDefault = ($tierDispatch.PSObject.Properties | Where-Object { $_.Value.model_class -eq "pro" }).Count -gt 0
+        $hasProModelClassDefault = @($tierDispatch.PSObject.Properties | Where-Object { $_.Value.model_class -eq "pro" }).Count -gt 0
         Assert-Condition (-not $hasProModelClassDefault) "No tier dispatches to high-cost 'pro' model class by default" "Found tier dispatch configured with 'pro' as default model class"
 
         $hasReasoningCostRule = ($null -ne $modelTiersData.cost_efficiency_policy -and $modelTiersData.cost_efficiency_policy.high_reasoning_requires_cost_advantage -eq $true)
@@ -1086,6 +1086,59 @@ try {
 $readmeRaw = Get-Content -Path (Join-Path $repoRoot "README.md") -Raw -Encoding UTF8
 Assert-Condition ($readmeRaw -match '5 consolidated specialist capability packs' -and $readmeRaw -notmatch '4 consolidated specialist capability packs') "README.md accurately lists 5 specialist capability packs" "README.md has stale specialist pack count"
 Assert-Condition ($gitTroubleContent -match 'safety-snapshot-\*') "ask-git-troubleshooter documents safety-snapshot-* branch verification matching diagnose-git-state" "ask-git-troubleshooter snapshot verification mismatches diagnose-git-state"
+
+# 48. Validate Clean Architecture word-boundary precision, staged whitespace revert, and doc alignment
+Write-Host "`n48. Validating Clean Architecture word-boundary precision, staged whitespace revert, and doc alignment..." -ForegroundColor Yellow
+$tempAuditDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+New-Item -ItemType Directory -Path (Join-Path $tempAuditDir "domain") -Force | Out-Null
+try {
+    [System.IO.File]::WriteAllText((Join-Path $tempAuditDir "domain\Entity.rs"), "use uuid::Uuid;`r`nuse serde::Serialize;`r`npub struct Order { id: Uuid }`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $uuidArchOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $cleanArchPs1 -TargetPath $tempAuditDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($uuidArchOut.status -eq "pass" -and $uuidArchOut.error_count -eq 0) "lint-clean-architecture.ps1 avoids false-positive substring matches on 'uuid' in domain/" "lint-clean-architecture.ps1 reported false positive on uuid import"
+
+    # Staged whitespace-only diff revert via prepare-commit.ps1
+    $stagedRepo = Join-Path $tempAuditDir "staged-repo"
+    New-Item -ItemType Directory -Path $stagedRepo | Out-Null
+    git -C $stagedRepo init -q 2>$null
+    git -C $stagedRepo config user.email "test@example.com"
+    git -C $stagedRepo config user.name "Test User"
+    git -C $stagedRepo config core.autocrlf false
+    $stagedDoc = Join-Path $stagedRepo "notes.md"
+    [System.IO.File]::WriteAllText($stagedDoc, "# Notes`r`nLine 1`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    git -C $stagedRepo add notes.md
+    git -C $stagedRepo commit -q -m "chore: init"
+    [System.IO.File]::WriteAllText($stagedDoc, "# Notes`nLine 1`n", (New-Object System.Text.UTF8Encoding($false)))
+    git -C $stagedRepo add notes.md
+    $stagedRevRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $stagedRepo -RevertWhitespaceOnly -JsonOutput | ConvertFrom-Json
+    $postGitStatus = (git -C $stagedRepo status --porcelain 2>$null)
+    Assert-Condition ($stagedRevRes.status -eq "clean" -and ($stagedRevRes.reverted_whitespace_files -contains "notes.md") -and [string]::IsNullOrWhiteSpace($postGitStatus)) "prepare-commit.ps1 reverts staged whitespace-only diffs cleanly from HEAD" "prepare-commit.ps1 failed to revert staged whitespace-only diff ($postGitStatus)"
+} finally {
+    if (Test-Path $tempAuditDir) { Remove-Item -LiteralPath $tempAuditDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+Assert-Condition ($gitTroubleContent -match 'OS-Native Line Endings Invariant' -and $gitTroubleContent -notmatch '\* text=auto eol=lf') "ask-git-troubleshooter aligns with OS-Native Line Endings Invariant" "ask-git-troubleshooter contradicts OS-Native Line Endings Invariant"
+$archDocRaw = Get-Content -Path (Join-Path $repoRoot "ARCHITECTURE.md") -Raw -Encoding UTF8
+Assert-Condition ($archDocRaw -match "$($rawEvals.eval_cases.Count)\s+Synthetic Scenario Benchmarks") "ARCHITECTURE.md benchmark count matches evals/eval-cases.json ($($rawEvals.eval_cases.Count))" "ARCHITECTURE.md benchmark count is stale"
+
+# 49. Validate cross-OS spec drift stability, ROADMAP count, and single-gate failure detection
+Write-Host "`n49. Validating cross-OS spec drift stability, ROADMAP count, and single-gate failure detection..." -ForegroundColor Yellow
+$driftOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $repoRoot -CheckDrift -JsonOutput | ConvertFrom-Json
+Assert-Condition ($driftOut.status -eq "synchronized" -and $driftOut.drift_count -eq 0) "inspect-feature-specs.ps1 -CheckDrift is cross-OS synchronized (LF-normalized hashes)" "inspect-feature-specs.ps1 -CheckDrift reported drift: $($driftOut | ConvertTo-Json -Compress)"
+
+$roadmapRaw = Get-Content -Path (Join-Path $repoRoot "docs\ROADMAP.md") -Raw -Encoding UTF8
+Assert-Condition ($roadmapRaw -match '5 On-Demand Specialist Capability Packs') "docs/ROADMAP.md accurately lists 5 On-Demand Specialist Capability Packs" "docs/ROADMAP.md has stale specialist count"
+
+$tempGateDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+New-Item -ItemType Directory -Path (Join-Path $tempGateDir "domain") -Force | Out-Null
+try {
+    [System.IO.File]::WriteAllText((Join-Path $tempGateDir "domain\Bad.rs"), "use crate::infrastructure::db;`r`npub fn x() {}`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $failGateRaw = $null
+    try { $failGateRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File $allGatesPs1 -RepoRoot $tempGateDir -Fast -JsonOutput 2>$null } catch {}
+    $failGateObj = if ($failGateRaw) { $failGateRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $failGateObj -and $failGateObj.status -eq "fail" -and $failGateObj.failed_gates -eq 1) "run-all-gates.ps1 detects single failing gate safely (PS 5.1 scalar array wrapping)" "run-all-gates.ps1 failed to report single failing gate ($failGateRaw)"
+} finally {
+    if (Test-Path $tempGateDir) { Remove-Item -LiteralPath $tempGateDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
 
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan

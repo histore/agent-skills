@@ -260,7 +260,8 @@
         "primary_role": "Control",
         "required_invariants": [
           "deferred_format_prepare_commit",
-          "single_prepare_commit_on_confirm"
+          "single_prepare_commit_on_confirm",
+          "os_native_line_endings"
         ]
       }
     },

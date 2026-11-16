@@ -181,7 +181,7 @@ foreach ($tc in $cases) {
     }
 
     if ($caseCategory -eq "git_hygiene" -and $tc.expected.prohibited_staging_paths) {
-        $hasSubmodulePath = ($tc.expected.prohibited_staging_paths | Where-Object { $_ -match '_agents|\.agents' }).Count -gt 0
+        $hasSubmodulePath = @($tc.expected.prohibited_staging_paths | Where-Object { $_ -match '_agents|\.agents' }).Count -gt 0
         if (-not $hasSubmodulePath) {
             $failures.Add("Submodule git hygiene eval must declare prohibited submodule staging paths")
         }
@@ -299,6 +299,11 @@ foreach ($tc in $cases) {
             "single_prepare_commit_on_confirm" {
                 if ($agentsContent -notmatch 'without re-running' -or $copilotContent -notmatch 'do \*\*not\*\* re-run' -or $controlContent -notmatch 'without re-running') {
                     $failures.Add("Invariant 'single_prepare_commit_on_confirm' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
+                }
+            }
+            "os_native_line_endings" {
+                if ($agentsContent -notmatch 'OS-Native Line Endings Invariant' -or $copilotContent -notmatch 'OS-native line-ending normalization' -or $controlContent -notmatch 'OS-native line-ending normalization') {
+                    $failures.Add("Invariant 'os_native_line_endings' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
                 }
             }
             "targeted_test_first" {

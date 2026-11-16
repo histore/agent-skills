@@ -60,7 +60,7 @@ if (Test-Path (Join-Path $ProjectRoot "Cargo.toml")) {
     $detected.manifest_file = "Cargo.toml"
 }
 # 2. .NET (Directory.Build.props, *.sln, *.csproj)
-elseif ((Test-Path (Join-Path $ProjectRoot "Directory.Build.props")) -or (Get-ChildItem -Path $ProjectRoot -Filter "*.sln" -File -Depth 1).Count -gt 0 -or (Get-ChildItem -Path $ProjectRoot -Filter "*.*proj" -File -Depth 2).Count -gt 0) {
+elseif ((Test-Path (Join-Path $ProjectRoot "Directory.Build.props")) -or @(Get-ChildItem -Path $ProjectRoot -Filter "*.sln" -File -Depth 1).Count -gt 0 -or @(Get-ChildItem -Path $ProjectRoot -Filter "*.*proj" -File -Depth 2).Count -gt 0) {
     $detected.stack = "dotnet"
     $detected.language = "csharp"
     $detected.build_cmd = "dotnet build -v quiet"
@@ -138,7 +138,7 @@ elseif ((Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) -or (Test-Path (
         try { $gradleRaw += "`n" + (Get-Content -Path $gf.FullName -Raw -Encoding UTF8) } catch {}
     }
     $hasSpotless = ($gradleRaw -match '(?i)spotless')
-    $isKotlinLang = ($gradleRaw -match '(?i)kotlin') -or ((Get-ChildItem -Path $ProjectRoot -Filter "*.kt" -File -Depth 3 -ErrorAction SilentlyContinue).Count -gt 0)
+    $isKotlinLang = ($gradleRaw -match '(?i)kotlin') -or (@(Get-ChildItem -Path $ProjectRoot -Filter "*.kt" -File -Depth 3 -ErrorAction SilentlyContinue).Count -gt 0)
     $detected.stack = "gradle"
     $detected.language = if ($isKotlinLang) { "kotlin" } else { "java" }
     if ($hasSpotless) {

@@ -2,7 +2,7 @@
 # Generates or updates CHANGELOG.md deterministically from git commits.
 set -euo pipefail
 
-REPO_ROOT="$(pwd)"
+REPO_ROOT=""
 VERSION=""
 RELEASE_DATE="$(date +%Y-%m-%d)"
 OUTPUT_FILE=""
@@ -43,6 +43,10 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ -z "$REPO_ROOT" ]]; then
+    REPO_ROOT="$(pwd)"
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

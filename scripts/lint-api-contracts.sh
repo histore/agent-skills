@@ -2,7 +2,7 @@
 # Lints API contract specifications (OpenAPI/Swagger, Protobuf, GraphQL) for syntax and broken references.
 set -euo pipefail
 
-REPO_ROOT="$(pwd)"
+REPO_ROOT=""
 STRICT=false
 JSON_OUTPUT=false
 
@@ -29,6 +29,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [[ -z "$REPO_ROOT" ]]; then
+    REPO_ROOT="$(pwd)"
+fi
+
 CONTRACT_FILES=()
 while IFS= read -r f; do
     [ -n "$f" ] && CONTRACT_FILES+=("$f")
@@ -37,7 +41,8 @@ done < <(find "$REPO_ROOT" -type f \( -name "openapi.json" -o -name "openapi.yam
 ERRORS=()
 WARNINGS=()
 
-for file in "${CONTRACT_FILES[@]}"; do
+for file in "${CONTRACT_FILES[@]:-}"; do
+    [ -z "$file" ] && continue
     base=$(basename "$file")
 
     # 1. OpenAPI JSON
@@ -88,6 +93,26 @@ PYEOF
     elif [[ "$base" == *.proto ]]; then
         if ! grep -qE 'syntax\s*=\s*"proto[23]";' "$file"; then
             WARNINGS+=("Protobuf file '$base' missing explicit 'syntax = \"proto3\";' declaration.")
+        fi
+        if command -v python3 &>/dev/null; then
+            while IFS= read -r dup_err; do
+                [ -n "$dup_err" ] && ERRORS+=("$dup_err")
+            done < <(python3 - "$file" "$base" << 'PYEOF' 2>/dev/null | tr -d '\r' || true
+import re, sys
+fp, name = sys.argv[1], sys.argv[2]
+with open(fp, 'r', encoding='utf-8', errors='ignore') as f:
+    content = f.read()
+for m in re.finditer(r'message\s+(\w+)\s*\{([^}]+)\}', content):
+    msg_name, body = m.group(1), m.group(2)
+    seen = set()
+    for fm in re.finditer(r'=\s*(\d+)\s*;', body):
+        tag = int(fm.group(1))
+        if tag in seen:
+            print(f"Duplicate field tag '{tag}' in Protobuf message '{msg_name}' in '{name}'")
+        else:
+            seen.add(tag)
+PYEOF
+            )
         fi
     # 3. GraphQL
     elif [[ "$base" == *.graphql ]] || [[ "$base" == *.gql ]]; then

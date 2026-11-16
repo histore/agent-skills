@@ -39,7 +39,7 @@ $isDetached = ([string]::IsNullOrWhiteSpace($branch))
 
 # Check conflict files
 $conflicts = git -C $RepoRoot diff --name-only --diff-filter=U 2>$null
-$conflictList = if ($conflicts) { $conflicts -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } } else { @() }
+$conflictList = if ($conflicts) { @($conflicts -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) } else { @() }
 $hasConflicts = ($conflictList.Count -gt 0)
 
 # Check git internal state files

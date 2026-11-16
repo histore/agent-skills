@@ -9,13 +9,13 @@
                                                                 "phase":  "0",
                                                                 "status":  "VERIFIED",
                                                                 "id":  "FEAT-ROLE-001",
-                                                                "hash":  "c6d88df64af05fb468fd42aaa58e05e34dfcfa89edb7f5f6c2ffcae18ecfe336"
+                                                                "hash":  "07b3a5b3725326c895cb5cc5fb953c368efcf199ff193aeebf549bf96cd69ee0"
                                                             },
     "docs/features/FEAT-EFF-001-next-gen-llm-efficiency.md":  {
                                                                   "phase":  "0",
                                                                   "status":  "VERIFIED",
                                                                   "id":  "FEAT-EFF-001",
-                                                                  "hash":  "f30bfc153604348c4d80d66a7e144323922d0e0939294c00f0d8ee0c7905f651"
+                                                                  "hash":  "4124b07ccc607ba4f11b06fc98ca74965deadc9db2cca43f692a9e37b000d154"
                                                               },
     "docs/features/FEAT-GOV-001-governance-and-orchestration.md":  {
                                                                        "phase":  "0",
@@ -27,6 +27,6 @@
                                                               "phase":  "0",
                                                               "status":  "VERIFIED",
                                                               "id":  "FEAT-TOOL-001",
-                                                              "hash":  "508ee17b2ac2b1ce2155101c57e2f5cd99a638b94a65104135eb96ada5eefeb0"
+                                                              "hash":  "1cf76ccf8ceeed17e8c24ca27f005b9eac56a325aabed95d84df98552fff9189"
                                                           }
 }

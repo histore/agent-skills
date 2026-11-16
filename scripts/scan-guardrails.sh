@@ -327,6 +327,7 @@ PYEOF
 }
 
 # 2. Scan files
+if [[ ${#FILES[@]} -gt 0 ]]; then
 for file in "${FILES[@]}"; do
   rel_path="${file#"${SCAN_PATH}/"}"
 
@@ -409,6 +410,7 @@ for file in "${FILES[@]}"; do
     fi
   fi
 done
+fi
 
 TOTAL_VIOLATIONS=${#VIOLATIONS[@]}
 TOTAL_FIXED=${#FIXED_JSON_ITEMS[@]}

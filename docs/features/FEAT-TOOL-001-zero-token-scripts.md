@@ -31,7 +31,7 @@ Implements dual-platform deterministic scripts (`.ps1` for PowerShell on Windows
 - [x] **AC-1**: **Given** any script in `scripts/`, **When** inspected, **Then** both PowerShell (`.ps1`) and Bash (`.sh`) equivalents exist with identical parameter interfaces.
 - [x] **AC-2**: **Given** code modifications, **When** validating quality gates, **Then** `run-fast-gate.ps1` checks compilation and tests with 0 errors before LLM semantic analysis.
 - [x] **AC-3**: **Given** clean architecture boundaries, **When** audited, **Then** `lint-clean-architecture.ps1` validates layer dependency rules against `rules/clean-architecture.json`.
-- [x] **AC-4**: **Given** all repository files, **When** scanned by `scan-guardrails.ps1`, **Then** enforce LF line endings, absence of hardcoded secrets, and no unsafe Rust code.
+- [x] **AC-4**: **Given** all repository files, **When** scanned by `scan-guardrails.ps1`, **Then** enforce OS-native line endings (`CRLF` on Windows, `LF` on Linux/macOS unless overridden by `.gitattributes`/`.editorconfig`), absence of hardcoded secrets, and no unsafe Rust code.
 
 ---
 
@@ -42,7 +42,7 @@ Implements dual-platform deterministic scripts (`.ps1` for PowerShell on Windows
 
 ## 5. Architecture & Technical Constraints
 - **Script Directory**: `scripts/`.
-- **PowerShell Standard**: `-NoProfile` flag, LF line endings, robust error handling.
+- **PowerShell Standard**: `-NoProfile` flag, OS-native line endings (`CRLF` on Windows, `LF` on Linux/macOS unless overridden), robust error handling.
 - **Unified Orchestrator**: `scripts/run-all-gates.ps1`.
 
 ---

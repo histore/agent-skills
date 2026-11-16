@@ -2,7 +2,7 @@
 # Lints GitHub Actions CI/CD workflows for syntax, structure, permissions, and PowerShell hygiene.
 set -euo pipefail
 
-REPO_ROOT="$(pwd)"
+REPO_ROOT=""
 STRICT=false
 JSON_OUTPUT=false
 
@@ -29,6 +29,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [[ -z "$REPO_ROOT" ]]; then
+    REPO_ROOT="$(pwd)"
+fi
+
 WORKFLOW_FILES=()
 if [ -d "$REPO_ROOT/.github/workflows" ]; then
     while IFS= read -r f; do
@@ -39,7 +43,8 @@ fi
 ERRORS=()
 WARNINGS=()
 
-for wf in "${WORKFLOW_FILES[@]}"; do
+for wf in "${WORKFLOW_FILES[@]:-}"; do
+    [ -z "$wf" ] && continue
     base=$(basename "$wf")
     if [ ! -s "$wf" ]; then
         WARNINGS+=("Workflow file '$base' is empty.")

@@ -2,7 +2,7 @@
 # Lints database migration scripts for naming conventions, duplicate versions, and dangerous DDL operations.
 set -euo pipefail
 
-REPO_ROOT="$(pwd)"
+REPO_ROOT=""
 STRICT=false
 JSON_OUTPUT=false
 
@@ -29,6 +29,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [[ -z "$REPO_ROOT" ]]; then
+    REPO_ROOT="$(pwd)"
+fi
+
 MIGRATION_FILES=()
 for dir in "migrations" "db/migrations" "sql/migrations" "src" "prisma/migrations"; do
     if [ -d "$REPO_ROOT/$dir" ]; then
@@ -45,19 +49,20 @@ done
 
 ERRORS=()
 WARNINGS=()
-declare -A SEEN_VERSIONS
+SEEN_VERSIONS=""
 
-for file in "${MIGRATION_FILES[@]}"; do
+for file in "${MIGRATION_FILES[@]:-}"; do
+    [ -z "$file" ] && continue
     base=$(basename "$file")
 
     # Check version prefix
     if [[ "$base" =~ ^([Vv]?[0-9]+)[_-] ]]; then
         ver="${BASH_REMATCH[1]}"
         ver=$(echo "$ver" | tr '[:lower:]' '[:upper:]')
-        if [[ -n "${SEEN_VERSIONS[$ver]:-}" ]]; then
+        if [[ $'\n'"$SEEN_VERSIONS"$'\n' == *$'\n'"$ver"$'\n'* ]]; then
             ERRORS+=("Duplicate migration version detected: '$ver' in file '$base'")
         else
-            SEEN_VERSIONS[$ver]=1
+            SEEN_VERSIONS+="${ver}"$'\n'
         fi
     fi
 

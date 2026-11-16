@@ -1098,6 +1098,96 @@ fi
 
 rm -rf "$TEMP_PARITY_DIR"
 
+# 48. Validate Clean Architecture word-boundary precision, staged whitespace revert, positional args & doc alignment
+echo -e "\n\033[33m48. Validating Clean Architecture precision, staged whitespace revert, positional args & doc alignment...\033[0m"
+TEMP_AUDIT_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'audit')
+mkdir -p "$TEMP_AUDIT_DIR/domain" "$TEMP_AUDIT_DIR/staged-repo"
+printf 'use uuid::Uuid;\nuse serde::Serialize;\npub struct Order { id: Uuid }\n' > "$TEMP_AUDIT_DIR/domain/Entity.rs"
+UUID_ARCH_OUT=$(bash "$REPO_ROOT/scripts/lint-clean-architecture.sh" "$TEMP_AUDIT_DIR" --json 2>/dev/null || true)
+if echo "$UUID_ARCH_OUT" | grep -q '"status": "pass"' && echo "$UUID_ARCH_OUT" | grep -q '"error_count": 0'; then
+    assert_condition 0 "lint-clean-architecture.sh avoids false-positive substring matches on 'uuid' in domain/" "lint-clean-architecture.sh false positive: $UUID_ARCH_OUT"
+else
+    assert_condition 1 "lint-clean-architecture.sh avoids false-positive substring matches on 'uuid' in domain/" "lint-clean-architecture.sh false positive: $UUID_ARCH_OUT"
+fi
+
+git -C "$TEMP_AUDIT_DIR/staged-repo" init -q 2>/dev/null || true
+git -C "$TEMP_AUDIT_DIR/staged-repo" config user.email "test@example.com"
+git -C "$TEMP_AUDIT_DIR/staged-repo" config user.name "Test User"
+git -C "$TEMP_AUDIT_DIR/staged-repo" config core.autocrlf false
+if [ "$EXPECTED_OS_EOL" = "CRLF" ]; then
+    ST_NAT=$'\r\n'; ST_ALT=$'\n'
+else
+    ST_NAT=$'\n'; ST_ALT=$'\r\n'
+fi
+printf '# Notes%sLine 1%s' "$ST_NAT" "$ST_NAT" > "$TEMP_AUDIT_DIR/staged-repo/notes.md"
+git -C "$TEMP_AUDIT_DIR/staged-repo" add notes.md
+git -C "$TEMP_AUDIT_DIR/staged-repo" commit -q -m "chore: init"
+printf '# Notes%sLine 1%s' "$ST_ALT" "$ST_ALT" > "$TEMP_AUDIT_DIR/staged-repo/notes.md"
+git -C "$TEMP_AUDIT_DIR/staged-repo" add notes.md
+STAGED_REV_RES=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$TEMP_AUDIT_DIR/staged-repo" --revert-whitespace-only --json 2>/dev/null || true)
+POST_STAGED_STATUS=$(git -C "$TEMP_AUDIT_DIR/staged-repo" status --porcelain 2>/dev/null || true)
+if echo "$STAGED_REV_RES" | grep -q '"status":"clean"' && [ -z "$POST_STAGED_STATUS" ]; then
+    assert_condition 0 "prepare-commit.sh reverts staged whitespace-only diffs cleanly from HEAD" "prepare-commit.sh failed staged revert: $STAGED_REV_RES | $POST_STAGED_STATUS"
+else
+    assert_condition 1 "prepare-commit.sh reverts staged whitespace-only diffs cleanly from HEAD" "prepare-commit.sh failed staged revert: $STAGED_REV_RES | $POST_STAGED_STATUS"
+fi
+
+CI_POS_OUT=$(bash "$REPO_ROOT/scripts/lint-ci-workflows.sh" "$REPO_ROOT" --strict --json 2>/dev/null || true)
+if echo "$CI_POS_OUT" | grep -q '"status":"pass"' && echo "$CI_POS_OUT" | grep -q '"workflows_count":1'; then
+    assert_condition 0 "lint-ci-workflows.sh accepts positional repo root argument" "lint-ci-workflows.sh positional arg failed: $CI_POS_OUT"
+else
+    assert_condition 1 "lint-ci-workflows.sh accepts positional repo root argument" "lint-ci-workflows.sh positional arg failed: $CI_POS_OUT"
+fi
+rm -rf "$TEMP_AUDIT_DIR"
+
+if grep -q 'OS-Native Line Endings Invariant' "$GIT_TROUBLE_FILE" && ! grep -q '\* text=auto eol=lf' "$GIT_TROUBLE_FILE"; then
+    assert_condition 0 "ask-git-troubleshooter aligns with OS-Native Line Endings Invariant" "ask-git-troubleshooter contradicts OS-Native Line Endings Invariant"
+else
+    assert_condition 1 "ask-git-troubleshooter aligns with OS-Native Line Endings Invariant" "ask-git-troubleshooter contradicts OS-Native Line Endings Invariant"
+fi
+
+if grep -q '19 Synthetic Scenario Benchmarks' "$REPO_ROOT/ARCHITECTURE.md"; then
+    assert_condition 0 "ARCHITECTURE.md benchmark count reflects 19 eval cases" "ARCHITECTURE.md benchmark count is stale"
+else
+    assert_condition 1 "ARCHITECTURE.md benchmark count reflects 19 eval cases" "ARCHITECTURE.md benchmark count is stale"
+fi
+
+# 49. Validate cross-OS spec drift stability, ROADMAP count, and bash parity checks
+echo -e "\n\033[33m49. Validating cross-OS spec drift stability, ROADMAP count, and bash parity checks...\033[0m"
+DRIFT_SH_OUT=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$REPO_ROOT" --check-drift --json 2>/dev/null || true)
+if echo "$DRIFT_SH_OUT" | grep -q '"status":"synchronized"' && echo "$DRIFT_SH_OUT" | grep -q '"drift_count":0'; then
+    assert_condition 0 "inspect-feature-specs.sh --check-drift is cross-OS synchronized (LF-normalized hashes)" "inspect-feature-specs.sh --check-drift reported drift: $DRIFT_SH_OUT"
+else
+    assert_condition 1 "inspect-feature-specs.sh --check-drift is cross-OS synchronized (LF-normalized hashes)" "inspect-feature-specs.sh --check-drift reported drift: $DRIFT_SH_OUT"
+fi
+
+if grep -q '5 On-Demand Specialist Capability Packs' "$REPO_ROOT/docs/ROADMAP.md"; then
+    assert_condition 0 "docs/ROADMAP.md accurately lists 5 On-Demand Specialist Capability Packs" "docs/ROADMAP.md has stale specialist count"
+else
+    assert_condition 1 "docs/ROADMAP.md accurately lists 5 On-Demand Specialist Capability Packs" "docs/ROADMAP.md has stale specialist count"
+fi
+
+TEMP_PROTO_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'proto')
+printf 'syntax = "proto3";\nmessage Item { string id = 1; string dup = 1; }\n' > "$TEMP_PROTO_DIR/test.proto"
+PROTO_SH_OUT=$(bash "$REPO_ROOT/scripts/lint-api-contracts.sh" "$TEMP_PROTO_DIR" --json 2>/dev/null || true)
+git -C "$TEMP_PROTO_DIR" init -q 2>/dev/null || true
+git -C "$TEMP_PROTO_DIR" config user.email "test@example.com"
+git -C "$TEMP_PROTO_DIR" config user.name "Test User"
+git -C "$TEMP_PROTO_DIR" add test.proto
+git -C "$TEMP_PROTO_DIR" commit -q -m "chore: init"
+CLEAN_WT_GUARD=$(bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "$TEMP_PROTO_DIR" --working-tree --json 2>/dev/null || true)
+rm -rf "$TEMP_PROTO_DIR"
+if echo "$PROTO_SH_OUT" | grep -q '"status":"fail"' && echo "$PROTO_SH_OUT" | grep -q 'Duplicate field tag'; then
+    assert_condition 0 "lint-api-contracts.sh detects duplicate Protobuf field tags with positional repo root" "lint-api-contracts.sh missed duplicate Protobuf tag: $PROTO_SH_OUT"
+else
+    assert_condition 1 "lint-api-contracts.sh detects duplicate Protobuf field tags with positional repo root" "lint-api-contracts.sh missed duplicate Protobuf tag: $PROTO_SH_OUT"
+fi
+if echo "$CLEAN_WT_GUARD" | grep -q '"status":"pass"' && echo "$CLEAN_WT_GUARD" | grep -q '"scanned_files_count":0'; then
+    assert_condition 0 "scan-guardrails.sh --working-tree handles clean repo with 0 files safely under set -u" "scan-guardrails.sh --working-tree failed on 0 files: $CLEAN_WT_GUARD"
+else
+    assert_condition 1 "scan-guardrails.sh --working-tree handles clean repo with 0 files safely under set -u" "scan-guardrails.sh --working-tree failed on 0 files: $CLEAN_WT_GUARD"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"
