@@ -1120,6 +1120,26 @@ Assert-Condition ($gitTroubleContent -match 'OS-Native Line Endings Invariant' -
 $archDocRaw = Get-Content -Path (Join-Path $repoRoot "ARCHITECTURE.md") -Raw -Encoding UTF8
 Assert-Condition ($archDocRaw -match "$($rawEvals.eval_cases.Count)\s+Synthetic Scenario Benchmarks") "ARCHITECTURE.md benchmark count matches evals/eval-cases.json ($($rawEvals.eval_cases.Count))" "ARCHITECTURE.md benchmark count is stale"
 
+# 49. Validate cross-OS spec drift stability, ROADMAP count, and single-gate failure detection
+Write-Host "`n49. Validating cross-OS spec drift stability, ROADMAP count, and single-gate failure detection..." -ForegroundColor Yellow
+$driftOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $inspectFeatPs1 -RepoRoot $repoRoot -CheckDrift -JsonOutput | ConvertFrom-Json
+Assert-Condition ($driftOut.status -eq "synchronized" -and $driftOut.drift_count -eq 0) "inspect-feature-specs.ps1 -CheckDrift is cross-OS synchronized (LF-normalized hashes)" "inspect-feature-specs.ps1 -CheckDrift reported drift: $($driftOut | ConvertTo-Json -Compress)"
+
+$roadmapRaw = Get-Content -Path (Join-Path $repoRoot "docs\ROADMAP.md") -Raw -Encoding UTF8
+Assert-Condition ($roadmapRaw -match '5 On-Demand Specialist Capability Packs') "docs/ROADMAP.md accurately lists 5 On-Demand Specialist Capability Packs" "docs/ROADMAP.md has stale specialist count"
+
+$tempGateDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+New-Item -ItemType Directory -Path (Join-Path $tempGateDir "domain") -Force | Out-Null
+try {
+    [System.IO.File]::WriteAllText((Join-Path $tempGateDir "domain\Bad.rs"), "use crate::infrastructure::db;`r`npub fn x() {}`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $failGateRaw = $null
+    try { $failGateRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File $allGatesPs1 -RepoRoot $tempGateDir -Fast -JsonOutput 2>$null } catch {}
+    $failGateObj = if ($failGateRaw) { $failGateRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $failGateObj -and $failGateObj.status -eq "fail" -and $failGateObj.failed_gates -eq 1) "run-all-gates.ps1 detects single failing gate safely (PS 5.1 scalar array wrapping)" "run-all-gates.ps1 failed to report single failing gate ($failGateRaw)"
+} finally {
+    if (Test-Path $tempGateDir) { Remove-Item -LiteralPath $tempGateDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

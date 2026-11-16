@@ -41,12 +41,10 @@ Compare viable approaches before solidifying requirements:
 ---
 
 ## 3. High-Level Architecture & Clean Architecture Boundaries
-- **Target Schicht / Layer**: Domain Core | Application Contracts | Adapters | Infrastructure
+- **Target Layer**: Domain Core | Application Contracts | Adapters | Infrastructure
 - **Clean Architecture Invariants**: Core logic remains independent of external frameworks and drivers.
 - **Safety Invariants**: In Rust codebases, `unsafe` blocks are strictly forbidden.
 - **Data Flow & Components**: `<Key interfaces, interactions, and data contracts>`
-
----
 
 ---
 

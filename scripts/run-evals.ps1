@@ -301,6 +301,11 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'single_prepare_commit_on_confirm' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
                 }
             }
+            "os_native_line_endings" {
+                if ($agentsContent -notmatch 'OS-Native Line Endings Invariant' -or $copilotContent -notmatch 'OS-native line-ending normalization' -or $controlContent -notmatch 'OS-native line-ending normalization') {
+                    $failures.Add("Invariant 'os_native_line_endings' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
+                }
+            }
             "targeted_test_first" {
                 if ($agentsContent -notmatch 'Target only affected test' -or $controlContent -notmatch 'targeted Arrange-Act-Assert') {
                     $failures.Add("Invariant 'targeted_test_first' missing in AGENTS.md or ask-control/SKILL.md")

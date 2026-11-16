@@ -46,7 +46,7 @@ Integrates next-generation LLM efficiency mechanisms into agent-skills governanc
 ## 4. Architecture & Technical Constraints
 - **Governance Alignment**: Documented in [../../AGENTS.md](../../AGENTS.md) and [../../rules/model-tiers.json](../../rules/model-tiers.json).
 - **Client Synchronization**: Cross-platform parity maintained between Google Antigravity (`ask-control`) and GitHub Copilot (`.github/copilot-instructions.md`).
-- **Zero-Token Scripting**: Implemented in native PowerShell 5.1+ and POSIX Bash with `-NoProfile` and LF line endings.
+- **Zero-Token Scripting**: Implemented in native PowerShell 5.1+ and POSIX Bash with `-NoProfile` and OS-native line endings (`CRLF` on Windows, `LF` on Linux/macOS unless overridden).
 
 ---
 

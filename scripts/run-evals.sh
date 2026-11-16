@@ -223,6 +223,9 @@ for c in cases:
         elif inv == 'single_prepare_commit_on_confirm':
             if 'without re-running' not in agents_content or 'do **not** re-run' not in copilot_content or 'without re-running' not in control_content:
                 failures.append("Invariant 'single_prepare_commit_on_confirm' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
+        elif inv == 'os_native_line_endings':
+            if 'OS-Native Line Endings Invariant' not in agents_content or 'OS-native line-ending normalization' not in copilot_content or 'OS-native line-ending normalization' not in control_content:
+                failures.append("Invariant 'os_native_line_endings' missing in AGENTS.md, .github/copilot-instructions.md, or ask-control/SKILL.md")
         elif inv == 'clean_release_tagging':
             if 'Clean Release Tagging' not in agents_content:
                 failures.append("Invariant 'clean_release_tagging' missing in AGENTS.md")

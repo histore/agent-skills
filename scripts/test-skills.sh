@@ -1152,6 +1152,31 @@ else
     assert_condition 1 "ARCHITECTURE.md benchmark count reflects 19 eval cases" "ARCHITECTURE.md benchmark count is stale"
 fi
 
+# 49. Validate cross-OS spec drift stability, ROADMAP count, and bash parity checks
+echo -e "\n\033[33m49. Validating cross-OS spec drift stability, ROADMAP count, and bash parity checks...\033[0m"
+DRIFT_SH_OUT=$(bash "$REPO_ROOT/scripts/inspect-feature-specs.sh" --repo-root "$REPO_ROOT" --check-drift --json 2>/dev/null || true)
+if echo "$DRIFT_SH_OUT" | grep -q '"status":"synchronized"' && echo "$DRIFT_SH_OUT" | grep -q '"drift_count":0'; then
+    assert_condition 0 "inspect-feature-specs.sh --check-drift is cross-OS synchronized (LF-normalized hashes)" "inspect-feature-specs.sh --check-drift reported drift: $DRIFT_SH_OUT"
+else
+    assert_condition 1 "inspect-feature-specs.sh --check-drift is cross-OS synchronized (LF-normalized hashes)" "inspect-feature-specs.sh --check-drift reported drift: $DRIFT_SH_OUT"
+fi
+
+if grep -q '5 On-Demand Specialist Capability Packs' "$REPO_ROOT/docs/ROADMAP.md"; then
+    assert_condition 0 "docs/ROADMAP.md accurately lists 5 On-Demand Specialist Capability Packs" "docs/ROADMAP.md has stale specialist count"
+else
+    assert_condition 1 "docs/ROADMAP.md accurately lists 5 On-Demand Specialist Capability Packs" "docs/ROADMAP.md has stale specialist count"
+fi
+
+TEMP_PROTO_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'proto')
+printf 'syntax = "proto3";\nmessage Item { string id = 1; string dup = 1; }\n' > "$TEMP_PROTO_DIR/test.proto"
+PROTO_SH_OUT=$(bash "$REPO_ROOT/scripts/lint-api-contracts.sh" "$TEMP_PROTO_DIR" --json 2>/dev/null || true)
+rm -rf "$TEMP_PROTO_DIR"
+if echo "$PROTO_SH_OUT" | grep -q '"status":"fail"' && echo "$PROTO_SH_OUT" | grep -q 'Duplicate field tag'; then
+    assert_condition 0 "lint-api-contracts.sh detects duplicate Protobuf field tags with positional repo root" "lint-api-contracts.sh missed duplicate Protobuf tag: $PROTO_SH_OUT"
+else
+    assert_condition 1 "lint-api-contracts.sh detects duplicate Protobuf field tags with positional repo root" "lint-api-contracts.sh missed duplicate Protobuf tag: $PROTO_SH_OUT"
+fi
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

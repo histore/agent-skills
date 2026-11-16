@@ -49,7 +49,7 @@ done
 
 ERRORS=()
 WARNINGS=()
-declare -A SEEN_VERSIONS
+SEEN_VERSIONS=""
 
 for file in "${MIGRATION_FILES[@]:-}"; do
     [ -z "$file" ] && continue
@@ -59,10 +59,10 @@ for file in "${MIGRATION_FILES[@]:-}"; do
     if [[ "$base" =~ ^([Vv]?[0-9]+)[_-] ]]; then
         ver="${BASH_REMATCH[1]}"
         ver=$(echo "$ver" | tr '[:lower:]' '[:upper:]')
-        if [[ -n "${SEEN_VERSIONS[$ver]:-}" ]]; then
+        if [[ $'\n'"$SEEN_VERSIONS"$'\n' == *$'\n'"$ver"$'\n'* ]]; then
             ERRORS+=("Duplicate migration version detected: '$ver' in file '$base'")
         else
-            SEEN_VERSIONS[$ver]=1
+            SEEN_VERSIONS+="${ver}"$'\n'
         fi
     fi
 

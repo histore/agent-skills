@@ -257,11 +257,11 @@ if ($ArchiveConcept) {
         exit 1
     }
 
-    $draftFiles = Get-ChildItem -Path $conceptsDraftDir -Filter "*.md" -File | Where-Object {
+    $draftFiles = @(Get-ChildItem -Path $conceptsDraftDir -Filter "*.md" -File | Where-Object {
         $_.Name -like "*$ArchiveConcept*" -or (Get-Content $_.FullName -Raw) -match "id:\s*['`"]?$ArchiveConcept['`"]?"
-    }
+    })
 
-    if (-not $draftFiles -or $draftFiles.Count -eq 0) {
+    if ($draftFiles.Count -eq 0) {
         Write-Error "No matching draft concept found for '$ArchiveConcept' in $conceptsDraftDir"
         exit 1
     }
@@ -429,7 +429,8 @@ if ($CheckDrift) {
     $currentState = @{}
 
     foreach ($spec in $allSpecs) {
-        $bytes = [System.IO.File]::ReadAllBytes($spec.FullPath)
+        $rawText = [System.IO.File]::ReadAllText($spec.FullPath, [System.Text.Encoding]::UTF8).TrimStart([char]0xFEFF)
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($rawText.Replace("`r`n", "`n"))
         $hashBytes = $sha.ComputeHash($bytes)
         $hashStr = [BitConverter]::ToString($hashBytes).Replace('-', '').ToLowerInvariant()
         $currentState[$spec.FilePath] = @{
@@ -454,7 +455,7 @@ if ($CheckDrift) {
         }
     } else {
         $driftDetected = ($allSpecs.Count -gt 0)
-        $changedFiles = $currentState.Keys
+        $changedFiles = @($currentState.Keys)
     }
 
     if ($UpdateState) {

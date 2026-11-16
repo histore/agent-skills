@@ -119,7 +119,7 @@ elif [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/build
   if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qi "spotless" {} + 2>/dev/null; then
     HAS_SPOTLESS=true
   fi
-  if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" \) -exec grep -qi "kotlin" {} + 2>/dev/null; then
+  if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qi "kotlin" {} + 2>/dev/null || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -name "*.kt" -type f 2>/dev/null | head -n 1)" ]]; then
     LANG="kotlin"
   else
     LANG="java"

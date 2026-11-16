@@ -94,6 +94,26 @@ PYEOF
         if ! grep -qE 'syntax\s*=\s*"proto[23]";' "$file"; then
             WARNINGS+=("Protobuf file '$base' missing explicit 'syntax = \"proto3\";' declaration.")
         fi
+        if command -v python3 &>/dev/null; then
+            while IFS= read -r dup_err; do
+                [ -n "$dup_err" ] && ERRORS+=("$dup_err")
+            done < <(python3 - "$file" "$base" << 'PYEOF' 2>/dev/null | tr -d '\r' || true
+import re, sys
+fp, name = sys.argv[1], sys.argv[2]
+with open(fp, 'r', encoding='utf-8', errors='ignore') as f:
+    content = f.read()
+for m in re.finditer(r'message\s+(\w+)\s*\{([^}]+)\}', content):
+    msg_name, body = m.group(1), m.group(2)
+    seen = set()
+    for fm in re.finditer(r'=\s*(\d+)\s*;', body):
+        tag = int(fm.group(1))
+        if tag in seen:
+            print(f"Duplicate field tag '{tag}' in Protobuf message '{msg_name}' in '{name}'")
+        else:
+            seen.add(tag)
+PYEOF
+            )
+        fi
     # 3. GraphQL
     elif [[ "$base" == *.graphql ]] || [[ "$base" == *.gql ]]; then
         if ! grep -qE '\b(type|schema|query|mutation|input|interface|enum)\b' "$file"; then

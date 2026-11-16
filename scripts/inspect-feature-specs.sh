@@ -374,9 +374,11 @@ for rel_dir in ("docs/features", "docs/requirements/modules"):
 current_state = {}
 for rel_path, full_path in spec_files:
     with open(full_path, "rb") as f:
-        digest = hashlib.sha256(f.read()).hexdigest()
-    with open(full_path, "r", encoding="utf-8", errors="ignore") as tf:
-        txt = tf.read()
+        raw_bytes = f.read()
+    if raw_bytes.startswith(b"\xef\xbb\xbf"):
+        raw_bytes = raw_bytes[3:]
+    digest = hashlib.sha256(raw_bytes.replace(b"\r\n", b"\n")).hexdigest()
+    txt = raw_bytes.decode("utf-8", errors="ignore")
     m_id = re.search(r'^\s*id:\s*["\']?([A-Za-z0-9_-]+)["\']?', txt, re.M)
     feat_id = m_id.group(1) if m_id else os.path.splitext(os.path.basename(full_path))[0]
     m_phase = re.search(r'^\s*phase:\s*["\']?(.*?)["\']?\s*$', txt, re.M)
