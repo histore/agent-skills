@@ -46,7 +46,7 @@ if [[ -f "${PROJECT_ROOT}/Cargo.toml" ]]; then
   FORMAT_CHECK_CMD="cargo fmt --check"
   FORMAT_FIX_CMD="cargo fmt"
   MANIFEST="Cargo.toml"
-elif [[ -f "${PROJECT_ROOT}/Directory.Build.props" ]] || compgen -G "${PROJECT_ROOT}/*.sln" > /dev/null 2>&1 || compgen -G "${PROJECT_ROOT}/*.*proj" > /dev/null 2>&1; then
+elif [[ -f "${PROJECT_ROOT}/Directory.Build.props" ]] || compgen -G "${PROJECT_ROOT}/*.sln" > /dev/null 2>&1 || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 -name "*.*proj" -type f 2>/dev/null | head -n 1)" ]]; then
   STACK="dotnet"
   LANG="csharp"
   BUILD_CMD="dotnet build -v quiet"
@@ -58,8 +58,15 @@ elif [[ -f "${PROJECT_ROOT}/Directory.Build.props" ]] || compgen -G "${PROJECT_R
     FORMAT_CHECK_CMD="dotnet format \"$(basename "$SLN_FILE")\" --verify-no-changes"
     FORMAT_FIX_CMD="dotnet format \"$(basename "$SLN_FILE")\""
   else
-    FORMAT_CHECK_CMD="dotnet format --verify-no-changes"
-    FORMAT_FIX_CMD="dotnet format"
+    PROJ_FILE=$(find "$PROJECT_ROOT" -maxdepth 3 -name "*.*proj" -type f 2>/dev/null | head -n 1 || true)
+    if [[ -n "$PROJ_FILE" ]]; then
+      REL_PROJ="${PROJ_FILE#"${PROJECT_ROOT%/}"/}"
+      FORMAT_CHECK_CMD="dotnet format \"${REL_PROJ}\" --verify-no-changes"
+      FORMAT_FIX_CMD="dotnet format \"${REL_PROJ}\""
+    else
+      FORMAT_CHECK_CMD="dotnet format --verify-no-changes"
+      FORMAT_FIX_CMD="dotnet format"
+    fi
   fi
   MANIFEST="Directory.Build.props / *.csproj / *.sln"
 elif [[ -f "${PROJECT_ROOT}/package.json" ]]; then

@@ -12,29 +12,48 @@ SKIP_GUARDRAILS=false
 FORCE=false
 JSON_OUTPUT=false
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --json|-j)
       JSON_OUTPUT=true
+      shift
       ;;
     --skip-lint)
       SKIP_LINT=true
+      shift
       ;;
     --skip-guardrails)
       SKIP_GUARDRAILS=true
+      shift
       ;;
     --force|-f)
       FORCE=true
+      shift
+      ;;
+    --filter)
+      TEST_FILTER="${2:-}"
+      shift 2
       ;;
     --filter=*)
-      TEST_FILTER="${arg#*=}"
+      TEST_FILTER="${1#*=}"
+      shift
+      ;;
+    --project-root)
+      PROJECT_ROOT="${2:-}"
+      shift 2
+      ;;
+    --project-root=*)
+      PROJECT_ROOT="${1#*=}"
+      shift
       ;;
     -*)
+      shift
       ;;
     *)
       if [[ -z "$PROJECT_ROOT" ]]; then
-        PROJECT_ROOT="$arg"
+        PROJECT_ROOT="$1"
       fi
+      shift
       ;;
   esac
 done
@@ -162,13 +181,45 @@ fi
 
 if [[ "$OVERALL_PASS" == "true" && "$SKIP_GUARDRAILS" == "false" ]]; then
   if [[ -f "${SCRIPT_DIR}/lint-clean-architecture.sh" ]]; then
-    if ! run_step "CleanArchitecture" "bash '${SCRIPT_DIR}/lint-clean-architecture.sh' '$PROJECT_ROOT' --working-tree"; then
+    ARCH_OUT=""
+    if ! ARCH_OUT=$(bash "${SCRIPT_DIR}/lint-clean-architecture.sh" "$PROJECT_ROOT" --working-tree --json 2>&1); then
       OVERALL_PASS=false
+      FAILED_STEP="CleanArchitecture"
+      if command -v python3 &>/dev/null; then
+        ERROR_LOG=$(python3 - "$ARCH_OUT" << 'EOF' 2>/dev/null || printf '%s\n' "$ARCH_OUT"
+import json, sys
+try:
+    d = json.loads(sys.argv[1])
+    lines = [f"[{v.get('type','Error')}] {v.get('file','')}:{v.get('line',0)} - {v.get('message','')}" for v in d.get('violations', []) if v.get('severity') == 'Error']
+    print('\n'.join(lines) if lines else sys.argv[1])
+except Exception:
+    print(sys.argv[1])
+EOF
+        )
+      else
+        ERROR_LOG="$ARCH_OUT"
+      fi
     fi
   fi
   if [[ "$OVERALL_PASS" == "true" && -f "${SCRIPT_DIR}/scan-guardrails.sh" ]]; then
-    if ! run_step "Guardrails" "bash '${SCRIPT_DIR}/scan-guardrails.sh' --path '$PROJECT_ROOT' --working-tree --skip-line-endings"; then
+    SCAN_OUT=""
+    if ! SCAN_OUT=$(bash "${SCRIPT_DIR}/scan-guardrails.sh" --path "$PROJECT_ROOT" --working-tree --skip-line-endings --json 2>&1); then
       OVERALL_PASS=false
+      FAILED_STEP="Guardrails"
+      if command -v python3 &>/dev/null; then
+        ERROR_LOG=$(python3 - "$SCAN_OUT" << 'EOF' 2>/dev/null || printf '%s\n' "$SCAN_OUT"
+import json, sys
+try:
+    d = json.loads(sys.argv[1])
+    lines = [str(v) for v in d.get('violations', [])]
+    print('\n'.join(lines) if lines else sys.argv[1])
+except Exception:
+    print(sys.argv[1])
+EOF
+        )
+      else
+        ERROR_LOG="$SCAN_OUT"
+      fi
     fi
   fi
 fi
@@ -181,10 +232,33 @@ fi
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
   if [[ "$OVERALL_PASS" == "true" ]]; then
-    echo "{\"status\":\"pass\",\"duration_ms\":$DURATION_MS,\"bypassed_code_gate\":$BYPASSED_NO_CODE}"
+    echo "{\"status\":\"pass\",\"failed_step\":null,\"duration_ms\":$DURATION_MS,\"bypassed_code_gate\":$BYPASSED_NO_CODE,\"errors\":[]}"
   else
-    ESCAPED_ERR=$(echo "$ERROR_LOG" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
-    echo "{\"status\":\"fail\",\"failed_step\":\"$FAILED_STEP\",\"duration_ms\":$DURATION_MS,\"errors\":\"$ESCAPED_ERR\"}"
+    if command -v python3 &>/dev/null; then
+      python3 - "$FAILED_STEP" "$DURATION_MS" "$BYPASSED_NO_CODE" "$ERROR_LOG" << 'EOF'
+import json, sys
+step, dur_s, byp_s, raw_err = sys.argv[1:5]
+errs = [l.strip() for l in raw_err.splitlines() if l.strip()]
+print(json.dumps({
+    "status": "fail",
+    "failed_step": step,
+    "duration_ms": int(dur_s),
+    "bypassed_code_gate": byp_s == "true",
+    "errors": errs,
+}))
+EOF
+    else
+      ERR_ARR=""
+      while IFS= read -r eline; do
+        [[ -z "$eline" ]] && continue
+        eline="${eline//\\/\\\\}"
+        eline="${eline//\"/\\\"}"
+        eline="${eline//$'\r'/}"
+        [[ -n "$ERR_ARR" ]] && ERR_ARR+=","
+        ERR_ARR+="\"$eline\""
+      done <<< "$ERROR_LOG"
+      echo "{\"status\":\"fail\",\"failed_step\":\"$FAILED_STEP\",\"duration_ms\":$DURATION_MS,\"bypassed_code_gate\":$BYPASSED_NO_CODE,\"errors\":[$ERR_ARR]}"
+    fi
   fi
 else
   if [[ "$OVERALL_PASS" == "true" ]]; then

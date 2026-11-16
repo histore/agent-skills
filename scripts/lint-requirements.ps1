@@ -61,7 +61,7 @@ $scopeMax = [System.Collections.Generic.Dictionary[string, int]]::new() # Scope 
 
 foreach ($rf in $reqFiles) {
     $relName = $rf.Replace($RequirementsPath + "\", "").Replace($RequirementsPath + "/", "")
-    $lines = Get-Content -Path $rf -Encoding UTF8
+    $lines = @(Get-Content -Path $rf -Encoding UTF8)
     
     for ($i = 0; $i -lt $lines.Length; $i++) {
         $line = $lines[$i]

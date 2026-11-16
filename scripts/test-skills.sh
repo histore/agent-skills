@@ -898,6 +898,65 @@ else
     assert_condition 1 "ask-skill-auditor enforces deterministic A1-A10 rules, anti-oscillation saturation gate, and monotonic self-audit" "ask-skill-auditor missing mandatory audit sections"
 fi
 
+# 47. Validate bash script parity, directory segment excludes, MIME/JSON checks, and eval coverage
+echo -e "\n\033[33m47. Validating bash script parity, excludes, MIME/JSON checks, and eval coverage...\033[0m"
+CONTRACT_SKILL_FILE="$REPO_ROOT/skills/ask-contract-specialist/SKILL.md"
+if grep -q -- '-List\b' "$CONTRACT_SKILL_FILE" && grep -q -- '--list\b' "$CONTRACT_SKILL_FILE" && ! grep -qE 'ListAll|--list-all' "$CONTRACT_SKILL_FILE"; then
+    assert_condition 0 "ask-contract-specialist uses valid -List/--list flags" "ask-contract-specialist contains invalid -ListAll/--list-all flag"
+else
+    assert_condition 1 "ask-contract-specialist uses valid -List/--list flags" "ask-contract-specialist contains invalid -ListAll/--list-all flag"
+fi
+
+if grep -q 'clean_release_tagging' "$REPO_ROOT/scripts/run-evals.sh" && grep -q 'targeted_test_first' "$REPO_ROOT/scripts/run-evals.sh"; then
+    assert_condition 0 "run-evals.sh actively asserts clean_release_tagging and targeted_test_first" "run-evals.sh missing active invariant checks"
+else
+    assert_condition 1 "run-evals.sh actively asserts clean_release_tagging and targeted_test_first" "run-evals.sh missing active invariant checks"
+fi
+
+TEMP_PARITY_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'parity')
+mkdir -p "$TEMP_PARITY_DIR/src/object_mapper/domain" "$TEMP_PARITY_DIR/src/App"
+printf 'pub fn hello() -> i32 { 1 }\n' > "$TEMP_PARITY_DIR/src/lib.rs"
+printf 'use crate::infrastructure::db;\npub fn bad() {}\n' > "$TEMP_PARITY_DIR/src/object_mapper/domain/model.rs"
+printf '<Project Sdk="Microsoft.NET.Sdk"></Project>\n' > "$TEMP_PARITY_DIR/src/App/App.csproj"
+printf '{"token":"%s%s"}\n' "ghp_" "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" > "$TEMP_PARITY_DIR/secret.json"
+
+OUTLINE_SH_JSON=$(bash "$REPO_ROOT/scripts/get-code-outline.sh" --json "$TEMP_PARITY_DIR/src/lib.rs" 2>/dev/null || true)
+if echo "$OUTLINE_SH_JSON" | grep -q '"status":"pass"' && echo "$OUTLINE_SH_JSON" | grep -q 'pub fn hello'; then
+    assert_condition 0 "get-code-outline.sh --json handles flag-before-path and extracts signatures" "get-code-outline.sh --json failed: $OUTLINE_SH_JSON"
+else
+    assert_condition 1 "get-code-outline.sh --json handles flag-before-path and extracts signatures" "get-code-outline.sh --json failed: $OUTLINE_SH_JSON"
+fi
+
+ARCH_SH_JSON=$(bash "$REPO_ROOT/scripts/lint-clean-architecture.sh" "$TEMP_PARITY_DIR" --json 2>/dev/null || true)
+if echo "$ARCH_SH_JSON" | grep -q '"status": "fail"' && echo "$ARCH_SH_JSON" | grep -q 'LayerBoundaryViolation'; then
+    assert_condition 0 "lint-clean-architecture.sh scans object_mapper/domain without substring skip" "lint-clean-architecture.sh skipped object_mapper dir: $ARCH_SH_JSON"
+else
+    assert_condition 1 "lint-clean-architecture.sh scans object_mapper/domain without substring skip" "lint-clean-architecture.sh skipped object_mapper dir: $ARCH_SH_JSON"
+fi
+
+GUARD_SH_JSON=$(bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "${TEMP_PARITY_DIR}/" --skip-line-endings --json 2>/dev/null || true)
+if echo "$GUARD_SH_JSON" | grep -q '"status":"fail"' && echo "$GUARD_SH_JSON" | grep -q 'secret.json'; then
+    assert_condition 0 "scan-guardrails.sh handles trailing slash and scans .json files for secrets" "scan-guardrails.sh missed .json secret or trailing slash: $GUARD_SH_JSON"
+else
+    assert_condition 1 "scan-guardrails.sh handles trailing slash and scans .json files for secrets" "scan-guardrails.sh missed .json secret or trailing slash: $GUARD_SH_JSON"
+fi
+
+STACK_DOTNET_SH=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$TEMP_PARITY_DIR" --json 2>/dev/null || true)
+if echo "$STACK_DOTNET_SH" | grep -q '"stack":"dotnet"'; then
+    assert_condition 0 "detect-tech-stack.sh discovers nested .csproj up to depth 2" "detect-tech-stack.sh missed nested .csproj: $STACK_DOTNET_SH"
+else
+    assert_condition 1 "detect-tech-stack.sh discovers nested .csproj up to depth 2" "detect-tech-stack.sh missed nested .csproj: $STACK_DOTNET_SH"
+fi
+
+FAIL_SH_JSON=$(bash "$REPO_ROOT/scripts/collect-test-failures.sh" --log-text "FAIL UserMapperTests" --json 2>/dev/null || true)
+if echo "$FAIL_SH_JSON" | grep -q '"failed_count": 1' && echo "$FAIL_SH_JSON" | grep -q 'UserMapperTests'; then
+    assert_condition 0 "collect-test-failures.sh --log-text extracts failed test diagnostics" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
+else
+    assert_condition 1 "collect-test-failures.sh --log-text extracts failed test diagnostics" "collect-test-failures.sh --log-text failed: $FAIL_SH_JSON"
+fi
+
+rm -rf "$TEMP_PARITY_DIR"
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

@@ -51,7 +51,7 @@ $linkRegex = '\[([^\]]+)\]\(([^)]+)\)'
 foreach ($file in $mdFiles) {
     $fileDir = $file.DirectoryName
     $relSource = $file.FullName.Replace($RepoRoot + "\", "").Replace($RepoRoot + "/", "")
-    $lines = Get-Content -Path $file.FullName -Encoding UTF8
+    $lines = @(Get-Content -Path $file.FullName -Encoding UTF8)
 
     $inCodeBlock = $false
     for ($i = 0; $i -lt $lines.Length; $i++) {

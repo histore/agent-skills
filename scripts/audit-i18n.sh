@@ -28,17 +28,17 @@ fi
 
 if command -v python3 &>/dev/null; then
   python3 - "$RES_DIR" "$JSON_OUTPUT" << 'EOF'
-import os, json, sys
+import os, json, re, sys
 
 base_dir = sys.argv[1]
 json_out = sys.argv[2] == 'true'
 
+ignored_dirs = {'.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj'}
 de_files = []
 for root, dirs, files in os.walk(base_dir):
-    if any(ignored in root for ignored in ['.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj']):
-        continue
+    dirs[:] = [d for d in dirs if d not in ignored_dirs]
     for f in files:
-        if f.lower().endswith('.de.json') or f.lower() == 'de.json':
+        if re.search(r'(^|\.)de(-[a-z]{2})?\.json$', f, re.IGNORECASE):
             de_files.append(os.path.join(root, f))
 
 def flatten(d, prefix=''):
@@ -56,8 +56,12 @@ missing_in_en = []
 pairs_checked = 0
 
 for de_path in de_files:
-    en_path = de_path.replace('.de.json', '.en.json').replace('de.json', 'en.json')
-    if os.path.isfile(en_path):
+    dir_name = os.path.dirname(de_path)
+    base_name = os.path.basename(de_path)
+    en_cand1 = os.path.join(dir_name, re.sub(r'\.de(-[a-z]{2})?\.json$', '.en.json', base_name, flags=re.IGNORECASE))
+    en_cand2 = os.path.join(dir_name, re.sub(r'\bde\b', 'en', base_name, flags=re.IGNORECASE))
+    en_path = en_cand1 if os.path.isfile(en_cand1) else (en_cand2 if os.path.isfile(en_cand2) else None)
+    if en_path and os.path.isfile(en_path):
         pairs_checked += 1
         try:
             with open(de_path, 'r', encoding='utf-8') as f:

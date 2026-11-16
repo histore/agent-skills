@@ -8,27 +8,49 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 TARGET_PATH=""
+RULES_FILE=""
 STAGED_ONLY=false
 WORKING_TREE=false
 JSON_OUTPUT=false
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --rules|--rules-path)
+      RULES_FILE="$2"
+      shift 2
+      ;;
+    --rules=*|--rules-path=*)
+      RULES_FILE="${1#*=}"
+      shift
+      ;;
+    --target)
+      TARGET_PATH="$2"
+      shift 2
+      ;;
+    --target=*)
+      TARGET_PATH="${1#*=}"
+      shift
+      ;;
     --staged)
       STAGED_ONLY=true
+      shift
       ;;
     --working-tree)
       WORKING_TREE=true
+      shift
       ;;
     --json|-j)
       JSON_OUTPUT=true
+      shift
       ;;
     -*)
+      shift
       ;;
     *)
       if [[ -z "$TARGET_PATH" ]]; then
-        TARGET_PATH="$arg"
+        TARGET_PATH="$1"
       fi
+      shift
       ;;
   esac
 done
@@ -37,19 +59,20 @@ if [[ -z "$TARGET_PATH" ]]; then
   TARGET_PATH="$(pwd)"
 fi
 
-RULES_FILE=""
-for candidate in \
-  "${TARGET_PATH}/.agent-lint.json" \
-  "${TARGET_PATH}/rules/clean-architecture.json" \
-  "${REPO_ROOT}/.agent-lint.json" \
-  "${REPO_ROOT}/rules/clean-architecture.json" \
-  "${REPO_ROOT}/_agents/rules/clean-architecture.json" \
-  "${REPO_ROOT}/.agents/rules/clean-architecture.json"; do
-  if [[ -f "$candidate" ]]; then
-    RULES_FILE="$candidate"
-    break
-  fi
-done
+if [[ -z "$RULES_FILE" ]]; then
+  for candidate in \
+    "${TARGET_PATH}/.agent-lint.json" \
+    "${TARGET_PATH}/rules/clean-architecture.json" \
+    "${REPO_ROOT}/.agent-lint.json" \
+    "${REPO_ROOT}/rules/clean-architecture.json" \
+    "${REPO_ROOT}/_agents/rules/clean-architecture.json" \
+    "${REPO_ROOT}/.agents/rules/clean-architecture.json"; do
+    if [[ -f "$candidate" ]]; then
+      RULES_FILE="$candidate"
+      break
+    fi
+  done
+fi
 
 if command -v python3 &>/dev/null; then
   python3 - "$RULES_FILE" "$TARGET_PATH" "$STAGED_ONLY" "$WORKING_TREE" "$JSON_OUTPUT" << 'EOF'
@@ -100,16 +123,16 @@ elif working_tree:
                         seen.add(fp)
                         files_to_scan.append(fp)
     else:
+        ignored_dirs = {'.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj'}
         for root, dirs, files in os.walk(target_path):
-            if any(ignored in root for ignored in ['.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj']):
-                continue
+            dirs[:] = [d for d in dirs if d not in ignored_dirs]
             for f in files:
                 if f.endswith(src_exts):
                     files_to_scan.append(os.path.join(root, f))
 else:
+    ignored_dirs = {'.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj'}
     for root, dirs, files in os.walk(target_path):
-        if any(ignored in root for ignored in ['.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj']):
-            continue
+        dirs[:] = [d for d in dirs if d not in ignored_dirs]
         for f in files:
             if f.endswith(src_exts):
                 files_to_scan.append(os.path.join(root, f))
