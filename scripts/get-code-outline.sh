@@ -249,12 +249,17 @@ FILES=()
 if [[ -f "$TARGET_PATH" ]]; then
     FILES+=("$TARGET_PATH")
 else
-    DEPTH_ARGS=()
-    [[ "$RECURSE" != "true" ]] && DEPTH_ARGS=("-maxdepth" "1")
-    while IFS= read -r -d '' file; do
-        FILES+=("$file")
-    done < <(find "$TARGET_PATH" "${DEPTH_ARGS[@]}" -type f \( -name "*.cs" -o -name "*.rs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" -o -name "*.go" \) \
-        ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" ! -path "*/node_modules/*" ! -path "*/bin/*" ! -path "*/obj/*" ! -path "*/target/*" -print0 2>/dev/null || true)
+    if [[ "$RECURSE" == "true" ]]; then
+        while IFS= read -r -d '' file; do
+            FILES+=("$file")
+        done < <(find "$TARGET_PATH" -type f \( -name "*.cs" -o -name "*.rs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" -o -name "*.go" \) \
+            ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" ! -path "*/node_modules/*" ! -path "*/bin/*" ! -path "*/obj/*" ! -path "*/target/*" -print0 2>/dev/null || true)
+    else
+        while IFS= read -r -d '' file; do
+            FILES+=("$file")
+        done < <(find "$TARGET_PATH" -maxdepth 1 -type f \( -name "*.cs" -o -name "*.rs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" -o -name "*.go" \) \
+            ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" ! -path "*/node_modules/*" ! -path "*/bin/*" ! -path "*/obj/*" ! -path "*/target/*" -print0 2>/dev/null || true)
+    fi
 fi
 
 TOTAL_FILES=${#FILES[@]}

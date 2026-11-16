@@ -1170,11 +1170,22 @@ fi
 TEMP_PROTO_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'proto')
 printf 'syntax = "proto3";\nmessage Item { string id = 1; string dup = 1; }\n' > "$TEMP_PROTO_DIR/test.proto"
 PROTO_SH_OUT=$(bash "$REPO_ROOT/scripts/lint-api-contracts.sh" "$TEMP_PROTO_DIR" --json 2>/dev/null || true)
+git -C "$TEMP_PROTO_DIR" init -q 2>/dev/null || true
+git -C "$TEMP_PROTO_DIR" config user.email "test@example.com"
+git -C "$TEMP_PROTO_DIR" config user.name "Test User"
+git -C "$TEMP_PROTO_DIR" add test.proto
+git -C "$TEMP_PROTO_DIR" commit -q -m "chore: init"
+CLEAN_WT_GUARD=$(bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "$TEMP_PROTO_DIR" --working-tree --json 2>/dev/null || true)
 rm -rf "$TEMP_PROTO_DIR"
 if echo "$PROTO_SH_OUT" | grep -q '"status":"fail"' && echo "$PROTO_SH_OUT" | grep -q 'Duplicate field tag'; then
     assert_condition 0 "lint-api-contracts.sh detects duplicate Protobuf field tags with positional repo root" "lint-api-contracts.sh missed duplicate Protobuf tag: $PROTO_SH_OUT"
 else
     assert_condition 1 "lint-api-contracts.sh detects duplicate Protobuf field tags with positional repo root" "lint-api-contracts.sh missed duplicate Protobuf tag: $PROTO_SH_OUT"
+fi
+if echo "$CLEAN_WT_GUARD" | grep -q '"status":"pass"' && echo "$CLEAN_WT_GUARD" | grep -q '"scanned_files_count":0'; then
+    assert_condition 0 "scan-guardrails.sh --working-tree handles clean repo with 0 files safely under set -u" "scan-guardrails.sh --working-tree failed on 0 files: $CLEAN_WT_GUARD"
+else
+    assert_condition 1 "scan-guardrails.sh --working-tree handles clean repo with 0 files safely under set -u" "scan-guardrails.sh --working-tree failed on 0 files: $CLEAN_WT_GUARD"
 fi
 
 # Summary
