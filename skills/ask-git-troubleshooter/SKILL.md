@@ -81,7 +81,7 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
   - Ensure resolution does not introduce inward-to-outward layer violations or circular dependencies.
 - **Enforce Clean Code**:
   - Deduplicate imported modules and namespaces.
-  - Preserve consistent code formatting, naming conventions, and LF line endings.
+  - Preserve consistent code formatting, naming conventions, and OS-native line endings (`CRLF` on Windows, `LF` on Linux/macOS unless `.gitattributes` or `.editorconfig` specifies otherwise).
 - **Eliminate All Conflict Markers**:
   - Ensure every instance of `<<<<<<<`, `=======`, and `>>>>>>>` is completely removed.
 
@@ -200,11 +200,11 @@ Before executing any state-altering or history-modifying Git command, `GitTroubl
 - Add the sensitive pattern to `.gitignore`.
 
 #### Scenario 3: Line-Ending Normalization (CRLF vs. LF)
-- Ensure `.gitattributes` enforces standard LF endings:
+- Honor the OS-Native Line Endings Invariant (`CRLF` on Windows, `LF` on Linux/macOS) unless the project explicitly specifies fixed line endings via `.gitattributes` (`eol=lf`/`eol=crlf`) or `.editorconfig` (`end_of_line`):
   ```text
-  * text=auto eol=lf
+  * text=auto
   ```
-- Normalize working tree if needed:
+- Normalize working tree safely via `prepare-commit.ps1 -RevertWhitespaceOnly -FixLineEndings` (or `scan-guardrails.ps1 -Fix`), or renormalize git index after `.gitattributes` updates:
   ```powershell
   git add --renormalize .
   ```

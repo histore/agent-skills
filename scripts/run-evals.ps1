@@ -181,7 +181,7 @@ foreach ($tc in $cases) {
     }
 
     if ($caseCategory -eq "git_hygiene" -and $tc.expected.prohibited_staging_paths) {
-        $hasSubmodulePath = ($tc.expected.prohibited_staging_paths | Where-Object { $_ -match '_agents|\.agents' }).Count -gt 0
+        $hasSubmodulePath = @($tc.expected.prohibited_staging_paths | Where-Object { $_ -match '_agents|\.agents' }).Count -gt 0
         if (-not $hasSubmodulePath) {
             $failures.Add("Submodule git hygiene eval must declare prohibited submodule staging paths")
         }

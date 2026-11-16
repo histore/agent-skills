@@ -44,6 +44,8 @@ $auditsRun = [System.Collections.Generic.List[PSObject]]::new()
 $totalVulnerabilities = 0
 $overallStatus = "pass"
 
+Push-Location $RepoRoot
+try {
 # 2. Execute ecosystem audits
 if ($hasCargo) {
     $cargoAuditCmd = Get-Command "cargo-audit" -ErrorAction SilentlyContinue
@@ -143,7 +145,7 @@ if ($hasPython) {
         $pyOut = pip-audit -f json 2>$null
         try {
             $pyJson = $pyOut | ConvertFrom-Json
-            $vulnCount = if ($pyJson.dependencies) { ($pyJson.dependencies | Where-Object { $_.vulns -and $_.vulns.Count -gt 0 }).Count } else { 0 }
+            $vulnCount = if ($pyJson.dependencies) { @($pyJson.dependencies | Where-Object { $_.vulns -and $_.vulns.Count -gt 0 }).Count } else { 0 }
             $totalVulnerabilities += $vulnCount
             $auditsRun.Add([PSCustomObject]@{
                 ecosystem = "Python"
@@ -207,6 +209,9 @@ if ($auditsRun.Count -eq 0) {
         vulnerabilities_count = 0
         details = @("No package manifests or dependencies detected in workspace.")
     })
+}
+} finally {
+    Pop-Location
 }
 
 $outputResult = [ordered]@{

@@ -2,7 +2,7 @@
 # Parses test coverage reports deterministically and verifies coverage thresholds.
 set -euo pipefail
 
-REPO_ROOT="$(pwd)"
+REPO_ROOT=""
 THRESHOLD=80
 REPORT_PATH=""
 JSON_OUTPUT=false
@@ -45,6 +45,10 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ -z "$REPO_ROOT" ]]; then
+    REPO_ROOT="$(pwd)"
+fi
 
 FOUND_FILE=""
 FORMAT="none"

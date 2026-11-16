@@ -285,7 +285,7 @@ while IFS= read -r rel; do
     ws_diff=$(git -C "$REPO_ROOT" diff -w HEAD -- "$rel" 2>/dev/null || true)
     if [[ -n "$raw_diff" && -z "$ws_diff" ]]; then
       if [[ "$DO_REVERT_WS" == "true" ]]; then
-        if git -C "$REPO_ROOT" checkout -- "$rel" 2>/dev/null; then
+        if git -C "$REPO_ROOT" checkout HEAD -- "$rel" 2>/dev/null; then
           REVERTED_WS_FILES+=("$rel")
           continue
         fi
@@ -334,12 +334,13 @@ while IFS= read -r rel; do
       is_ambiguous=false
       if [[ "$has_override" == "false" && "$is_untracked" == "false" ]]; then
         eol_info=$(git -C "$REPO_ROOT" ls-files --eol -- "$rel" 2>/dev/null || true)
+        autocrlf_cfg=$(git -C "$REPO_ROOT" config --get core.autocrlf 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
         if [[ "$eff_eol" == "LF" ]]; then
           if [[ "$eol_info" =~ i/crlf && ! "$eol_info" =~ eol=lf ]]; then
             is_ambiguous=true
           fi
         else
-          if [[ "$eol_info" =~ i/lf && ! "$eol_info" =~ eol=crlf ]]; then
+          if [[ "$eol_info" =~ i/lf && ! "$eol_info" =~ eol=crlf ]] && { [[ "$eol_info" =~ eol=lf ]] || [[ "$autocrlf_cfg" != "true" && ! "$eol_info" =~ text=auto ]]; }; then
             is_ambiguous=true
           fi
         fi

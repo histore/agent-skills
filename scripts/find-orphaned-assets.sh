@@ -2,7 +2,7 @@
 # Identifies unreferenced media assets and orphaned modular documentation files deterministically.
 set -euo pipefail
 
-REPO_ROOT="$(pwd)"
+REPO_ROOT=""
 STRICT=false
 JSON_OUTPUT=false
 
@@ -28,6 +28,10 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ -z "$REPO_ROOT" ]]; then
+    REPO_ROOT="$(pwd)"
+fi
 
 ORPHANED_ASSETS=()
 ORPHANED_DOCS=()

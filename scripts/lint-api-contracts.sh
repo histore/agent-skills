@@ -2,7 +2,7 @@
 # Lints API contract specifications (OpenAPI/Swagger, Protobuf, GraphQL) for syntax and broken references.
 set -euo pipefail
 
-REPO_ROOT="$(pwd)"
+REPO_ROOT=""
 STRICT=false
 JSON_OUTPUT=false
 
@@ -29,6 +29,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [[ -z "$REPO_ROOT" ]]; then
+    REPO_ROOT="$(pwd)"
+fi
+
 CONTRACT_FILES=()
 while IFS= read -r f; do
     [ -n "$f" ] && CONTRACT_FILES+=("$f")
@@ -37,7 +41,8 @@ done < <(find "$REPO_ROOT" -type f \( -name "openapi.json" -o -name "openapi.yam
 ERRORS=()
 WARNINGS=()
 
-for file in "${CONTRACT_FILES[@]}"; do
+for file in "${CONTRACT_FILES[@]:-}"; do
+    [ -z "$file" ] && continue
     base=$(basename "$file")
 
     # 1. OpenAPI JSON
