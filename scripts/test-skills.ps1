@@ -892,6 +892,53 @@ if (Test-Path $setupPs1) {
         Remove-SafeReparsePoint (Join-Path $tempHome ".agents")
         if (Test-Path $tempHome) { Remove-Item -LiteralPath $tempHome -Recurse -Force -ErrorAction SilentlyContinue }
     }
+
+    # 43d. Direct clone into <project>/.agents: parent project works cleanly (even with -Force), self-targeting rejects .agents/.agents
+    $tempDirectProj = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+    $directDotAgents = Join-Path $tempDirectProj ".agents"
+    New-Item -ItemType Directory -Path (Join-Path $directDotAgents "scripts") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $directDotAgents ".github") -Force | Out-Null
+    Copy-Item -LiteralPath $setupPs1 -Destination (Join-Path $directDotAgents "scripts\setup-agent-skills.ps1") -Force
+    Copy-Item -LiteralPath (Join-Path $repoRoot ".github\copilot-instructions.md") -Destination (Join-Path $directDotAgents ".github\copilot-instructions.md") -Force
+    try {
+        $clonedSetupPs1 = Join-Path $directDotAgents "scripts\setup-agent-skills.ps1"
+        & $psExe -NoProfile -ExecutionPolicy Bypass -File $clonedSetupPs1 -TargetProject $tempDirectProj -Client copilot -Force | Out-Null
+        $hasHostInstr = Test-Path (Join-Path $tempDirectProj ".github\copilot-instructions.md")
+        $stillHasSource = Test-Path $clonedSetupPs1
+        $noNestedDotAgents = -not (Test-Path (Join-Path $directDotAgents ".agents"))
+        Assert-Condition ($hasHostInstr -and $stillHasSource -and $noNestedDotAgents) "Direct clone to .agents integrates into parent project without creating .agents/.agents" "Direct clone to .agents integration failed"
+
+        $selfTargetFailed = $false
+        try {
+            & $psExe -NoProfile -ExecutionPolicy Bypass -File $clonedSetupPs1 -TargetProject $directDotAgents -Client copilot 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) { $selfTargetFailed = $true }
+        } catch {
+            $selfTargetFailed = $true
+        }
+        $stillNoNested = -not (Test-Path (Join-Path $directDotAgents ".agents"))
+        Assert-Condition ($selfTargetFailed -and $stillNoNested) "setup-agent-skills.ps1 rejects -TargetProject pointing to .agents itself (prevents .agents/.agents)" "setup-agent-skills.ps1 allowed self-targeting .agents/.agents"
+    } finally {
+        if (Test-Path $tempDirectProj) { Remove-Item -LiteralPath $tempDirectProj -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+
+    # 43e. Direct clone into ~/.agents with trailing/forward slash in -UserHome and -Force preserves repo
+    $tempDirectHome = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+    $directHomeAgents = Join-Path $tempDirectHome ".agents"
+    New-Item -ItemType Directory -Path (Join-Path $directHomeAgents "scripts") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $directHomeAgents ".github") -Force | Out-Null
+    Copy-Item -LiteralPath $setupPs1 -Destination (Join-Path $directHomeAgents "scripts\setup-agent-skills.ps1") -Force
+    Copy-Item -LiteralPath (Join-Path $repoRoot ".github\copilot-instructions.md") -Destination (Join-Path $directHomeAgents ".github\copilot-instructions.md") -Force
+    try {
+        $clonedHomeSetupPs1 = Join-Path $directHomeAgents "scripts\setup-agent-skills.ps1"
+        $slashHome = $tempDirectHome.Replace('\', '/') + '/'
+        & $psExe -NoProfile -ExecutionPolicy Bypass -File $clonedHomeSetupPs1 -Global -Client copilot -UserHome $slashHome -Force | Out-Null
+        $hasGlobalInstr = Test-Path (Join-Path $tempDirectHome ".copilot\instructions\agent-skills.instructions.md")
+        $stillHasHomeRepo = Test-Path $clonedHomeSetupPs1
+        $noNestedHomeAgents = -not (Test-Path (Join-Path $directHomeAgents ".agents"))
+        Assert-Condition ($hasGlobalInstr -and $stillHasHomeRepo -and $noNestedHomeAgents) "Direct clone to ~/.agents with -Global -Force and slash-normalized UserHome preserves repo" "Direct clone to ~/.agents global setup failed"
+    } finally {
+        if (Test-Path $tempDirectHome) { Remove-Item -LiteralPath $tempDirectHome -Recurse -Force -ErrorAction SilentlyContinue }
+    }
 }
 
 # 44. Validate Shift-Left WorkingTree Guardrails (inline/2024 Safe-Rust) and Behavioral Trace Evals

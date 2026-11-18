@@ -4,8 +4,31 @@
 # ==============================================================================
 set -euo pipefail
 
+normalize_path_string() {
+  local p="$1"
+  if [[ "$p" == "/" ]]; then
+    echo "/"
+  else
+    echo "${p%/}"
+  fi
+}
+
+resolve_physical_dir() {
+  local dir_path="$1"
+  (cd "$dir_path" 2>/dev/null && pwd -P)
+}
+
+is_same_or_subpath() {
+  local candidate
+  local base
+  candidate="$(normalize_path_string "$1")"
+  base="$(normalize_path_string "$2")"
+  [[ -n "$candidate" && -n "$base" ]] || return 1
+  [[ "$candidate" == "$base" || "$candidate" == "$base/"* ]]
+}
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(normalize_path_string "$(cd "${SCRIPT_DIR}/.." && pwd -P)")"
 COPILOT_TEMPLATE="${REPO_ROOT}/.github/copilot-instructions.md"
 
 TARGET_PROJECT=""
@@ -87,6 +110,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+USER_HOME="$(normalize_path_string "$USER_HOME")"
+
 SETUP_AGY=false
 SETUP_COPILOT=false
 if [[ "$CLIENT" == "all" || "$CLIENT" == "agy" ]]; then SETUP_AGY=true; fi
@@ -114,12 +139,32 @@ else
 fi
 
 create_symlink() {
-  local link_path="${1%/}"
-  local target_path="${2%/}"
+  local link_path
+  local target_path
+  link_path="$(normalize_path_string "$1")"
+  target_path="$(normalize_path_string "$2")"
 
   if [[ "$link_path" == "$target_path" ]]; then
     echo "  [OK] Path is already the source repository: ${link_path}"
     return 0
+  fi
+
+  local phys_target
+  phys_target="$(resolve_physical_dir "$target_path" || true)"
+  if [[ -d "$link_path" && ! -L "$link_path" ]]; then
+    local phys_link
+    phys_link="$(resolve_physical_dir "$link_path" || true)"
+    if [[ -n "$phys_link" && -n "$phys_target" && "$phys_link" == "$phys_target" ]]; then
+      echo "  [OK] Path is already the source repository: ${link_path}"
+      return 0
+    fi
+  elif [[ -L "$link_path" && -d "$link_path" ]]; then
+    local phys_link
+    phys_link="$(resolve_physical_dir "$link_path" || true)"
+    if [[ -n "$phys_link" && -n "$phys_target" && "$phys_link" == "$phys_target" ]]; then
+      echo "  [OK] Link already points to target: ${link_path} -> ${target_path}"
+      return 0
+    fi
   fi
 
   if [[ -L "$link_path" || -d "$link_path" ]]; then
@@ -202,15 +247,22 @@ EOF
 
 else
   if [[ -z "$TARGET_PROJECT" ]]; then
-    CURRENT_DIR="$(pwd)"
-    if [[ "$CURRENT_DIR" == "$REPO_ROOT" ]]; then
-      echo "Error: Please specify a --project directory or use --global to install globally." >&2
-      exit 1
-    fi
-    TARGET_PROJECT="$CURRENT_DIR"
+    TARGET_PROJECT="$(pwd)"
   fi
 
-  TARGET_DIR="$(cd "$TARGET_PROJECT" && pwd)"
+  if [[ ! -d "$TARGET_PROJECT" ]]; then
+    echo "Error: Target project directory does not exist: ${TARGET_PROJECT}" >&2
+    exit 1
+  fi
+
+  TARGET_DIR="$(normalize_path_string "$(cd "$TARGET_PROJECT" && pwd)")"
+  TARGET_PHYSICAL="$(resolve_physical_dir "$TARGET_PROJECT")"
+
+  if is_same_or_subpath "$TARGET_DIR" "$REPO_ROOT" || is_same_or_subpath "$TARGET_PHYSICAL" "$REPO_ROOT"; then
+    echo "Error: Target project '${TARGET_DIR}' points to (or inside) the agent-skills repository itself ('${REPO_ROOT}'). Specify the host project directory with --project (e.g. '..'), or use --global for user-level installation." >&2
+    exit 1
+  fi
+
   echo ""
   echo "Integrating into Project: ${TARGET_DIR} (Client: ${CLIENT}, Links: ${FOLDER_TYPE})"
 
