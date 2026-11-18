@@ -66,15 +66,18 @@ $scriptDir = $PSScriptRoot
 $results = [System.Collections.Generic.List[PSCustomObject]]::new()
 $swTotal = [System.Diagnostics.Stopwatch]::StartNew()
 
-$psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+$currentPs = (Get-Process -Id $PID).Path
+$psExe = if ($currentPs -match 'pwsh(\.exe)?$') {
+    $currentPs
+} elseif (Get-Command pwsh -ErrorAction SilentlyContinue) {
     $cmd = Get-Command pwsh
-    if ($cmd.Source -notmatch 'WindowsApps\\pwsh\.exe' -or ($cmd.Version -and $cmd.Version.Major -gt 0)) {
+    if ($cmd.Source -notmatch '[\\/]WindowsApps[\\/]' -and ($cmd.Version -and $cmd.Version.Major -gt 0)) {
         $cmd.Source
     } else {
-        (Get-Process -Id $PID).Path
+        $currentPs
     }
 } else {
-    (Get-Process -Id $PID).Path
+    $currentPs
 }
 
 function Run-Gate {

@@ -21,15 +21,18 @@ $skillsDir = Join-Path $repoRoot "skills"
 $rulesDir = Join-Path $repoRoot "rules"
 $modelTiersFile = Join-Path $rulesDir "model-tiers.json"
 
-$psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+$currentPs = (Get-Process -Id $PID).Path
+$psExe = if ($currentPs -match 'pwsh(\.exe)?$') {
+    $currentPs
+} elseif (Get-Command pwsh -ErrorAction SilentlyContinue) {
     $cmd = Get-Command pwsh
-    if ($cmd.Source -notmatch 'WindowsApps\\pwsh\.exe' -or ($cmd.Version -and $cmd.Version.Major -gt 0)) {
+    if ($cmd.Source -notmatch '[\\/]WindowsApps[\\/]' -and ($cmd.Version -and $cmd.Version.Major -gt 0)) {
         $cmd.Source
     } else {
-        (Get-Process -Id $PID).Path
+        $currentPs
     }
 } else {
-    (Get-Process -Id $PID).Path
+    $currentPs
 }
 
 $errors = [System.Collections.Generic.List[string]]::new()
@@ -1157,7 +1160,10 @@ try {
     [System.IO.File]::WriteAllText($stagedDoc, "# Notes`nLine 1`n", (New-Object System.Text.UTF8Encoding($false)))
     git -C $stagedRepo add notes.md
     $stagedRevRes = & $psExe -NoProfile -ExecutionPolicy Bypass -File $prepCommitPs1 -RepoRoot $stagedRepo -RevertWhitespaceOnly -JsonOutput | ConvertFrom-Json
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     $postGitStatus = (git -C $stagedRepo status --porcelain 2>$null)
+    $ErrorActionPreference = $prevEap
     Assert-Condition ($stagedRevRes.status -eq "clean" -and ($stagedRevRes.reverted_whitespace_files -contains "notes.md") -and [string]::IsNullOrWhiteSpace($postGitStatus)) "prepare-commit.ps1 reverts staged whitespace-only diffs cleanly from HEAD" "prepare-commit.ps1 failed to revert staged whitespace-only diff ($postGitStatus)"
 } finally {
     if (Test-Path $tempAuditDir) { Remove-Item -LiteralPath $tempAuditDir -Recurse -Force -ErrorAction SilentlyContinue }
@@ -1186,6 +1192,12 @@ try {
 } finally {
     if (Test-Path $tempGateDir) { Remove-Item -LiteralPath $tempGateDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
+
+$badPwshChecks = @(Get-ChildItem -Path (Join-Path $repoRoot "scripts") -Filter "*.ps1" | Where-Object {
+    $raw = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8
+    $raw -match "WindowsApps\\\\pwsh\\\.exe"
+})
+Assert-Condition ($badPwshChecks.Count -eq 0) "All PowerShell scripts guard full WindowsApps Store-alias paths safely" "Legacy WindowsApps\\pwsh.exe regex found in: $($badPwshChecks.Name -join ', ')"
 
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
