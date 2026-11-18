@@ -1225,6 +1225,11 @@ if echo "$CLEAN_WT_GUARD" | grep -q '"status":"pass"' && echo "$CLEAN_WT_GUARD" 
 else
     assert_condition 1 "scan-guardrails.sh --working-tree handles clean repo with 0 files safely under set -u" "scan-guardrails.sh --working-tree failed on 0 files: $CLEAN_WT_GUARD"
 fi
+if ! grep -Eq "WindowsApps\\\\pwsh\\\.exe" "$REPO_ROOT"/scripts/*.ps1; then
+    assert_condition 0 "All PowerShell scripts guard full WindowsApps Store-alias paths safely" "Legacy WindowsApps\\pwsh.exe regex found"
+else
+    assert_condition 1 "All PowerShell scripts guard full WindowsApps Store-alias paths safely" "Legacy WindowsApps\\pwsh.exe regex found"
+fi
 
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"

@@ -50,15 +50,18 @@ $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $failedStep = $null
 $failureLogs = [System.Collections.Generic.List[string]]::new()
 
-$psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+$currentPs = (Get-Process -Id $PID).Path
+$psExe = if ($currentPs -match 'pwsh(\.exe)?$') {
+    $currentPs
+} elseif (Get-Command pwsh -ErrorAction SilentlyContinue) {
     $cmd = Get-Command pwsh
-    if ($cmd.Source -notmatch 'WindowsApps\\pwsh\.exe' -or ($cmd.Version -and $cmd.Version.Major -gt 0)) {
+    if ($cmd.Source -notmatch '[\\/]WindowsApps[\\/]' -and ($cmd.Version -and $cmd.Version.Major -gt 0)) {
         $cmd.Source
     } else {
-        (Get-Process -Id $PID).Path
+        $currentPs
     }
 } else {
-    (Get-Process -Id $PID).Path
+    $currentPs
 }
 
 # 1. Detect tech stack in-process (zero subprocess spawn overhead)
