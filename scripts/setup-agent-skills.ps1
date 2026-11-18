@@ -61,7 +61,61 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$effectiveHome = if ($UserHome) { $UserHome } else { $HOME }
+
+function Normalize-PathString {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return "" }
+    $full = [System.IO.Path]::GetFullPath($Path)
+    if ($full.Length -gt 3) {
+        $full = $full.TrimEnd('\', '/')
+    }
+    return $full
+}
+
+function Resolve-CanonicalPath {
+    param([string]$Path)
+    $normalized = Normalize-PathString $Path
+    if (-not $normalized) { return "" }
+    try {
+        if (Test-Path -LiteralPath $normalized) {
+            $normalized = Normalize-PathString ((Resolve-Path -LiteralPath $normalized).Path)
+            $item = Get-Item -LiteralPath $normalized -Force -ErrorAction SilentlyContinue
+            if ($item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and $item.Target) {
+                $targetCandidate = if ($item.Target -is [array]) { $item.Target[0] } else { $item.Target }
+                if (-not [System.IO.Path]::IsPathRooted($targetCandidate)) {
+                    $parentDir = Split-Path -Parent $normalized
+                    $targetCandidate = Join-Path $parentDir $targetCandidate
+                }
+                if (Test-Path -LiteralPath $targetCandidate) {
+                    $normalized = Normalize-PathString ((Resolve-Path -LiteralPath $targetCandidate).Path)
+                }
+            }
+        }
+    } catch {}
+    return $normalized
+}
+
+function Test-SameOrSubPath {
+    param(
+        [string]$CandidatePath,
+        [string]$BasePath
+    )
+    $candidates = @((Normalize-PathString $CandidatePath), (Resolve-CanonicalPath $CandidatePath)) | Select-Object -Unique
+    $bases = @((Normalize-PathString $BasePath), (Resolve-CanonicalPath $BasePath)) | Select-Object -Unique
+    foreach ($cand in $candidates) {
+        if (-not $cand) { continue }
+        foreach ($base in $bases) {
+            if (-not $base) { continue }
+            if ($cand -ieq $base) { return $true }
+            $prefix = if ($base.EndsWith('\') -or $base.EndsWith('/')) { $base } else { $base + [System.IO.Path]::DirectorySeparatorChar }
+            if ($cand.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+        }
+    }
+    return $false
+}
+
+$rawHome = if ($UserHome) { $UserHome } else { $HOME }
+$effectiveHome = Normalize-PathString $rawHome
 
 $setupAgy = ($Client -eq 'all' -or $Client -eq 'agy')
 $setupCopilot = ($Client -eq 'all' -or $Client -eq 'copilot') -and (-not $SkipCopilot)
@@ -81,15 +135,7 @@ if ($PSBoundParameters.ContainsKey('FolderType')) {
     $FolderType = if ($setupAgy -and $setupCopilot) { 'both' } elseif ($setupCopilot) { '.agents' } else { '_agents' }
 }
 
-$rawRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$repoItem = Get-Item -LiteralPath $rawRepoRoot -Force
-if (($repoItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and $repoItem.Target) {
-    $targetCandidate = if ($repoItem.Target -is [array]) { $repoItem.Target[0] } else { $repoItem.Target }
-    if (Test-Path $targetCandidate) {
-        $rawRepoRoot = (Resolve-Path $targetCandidate).Path
-    }
-}
-$repoRoot = $rawRepoRoot.TrimEnd('\', '/')
+$repoRoot = Resolve-CanonicalPath (Join-Path $PSScriptRoot "..")
 $copilotTemplate = Join-Path $repoRoot ".github\copilot-instructions.md"
 
 function Create-DirectoryLink {
@@ -99,16 +145,29 @@ function Create-DirectoryLink {
         [bool]$Overwrite
     )
 
-    if ($LinkPath.TrimEnd('\', '/') -ieq $TargetPath.TrimEnd('\', '/')) {
+    $normLink = Normalize-PathString $LinkPath
+    $normTarget = Normalize-PathString $TargetPath
+    $canonTarget = Resolve-CanonicalPath $TargetPath
+
+    if ($normLink -ieq $normTarget) {
         Write-Host "  [OK] Path is already the source repository: $LinkPath" -ForegroundColor Green
         return
     }
 
-    if (Test-Path $LinkPath) {
-        $existingItem = Get-Item -LiteralPath $LinkPath -Force
-        if (($existingItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and $existingItem.Target) {
+    $existingItem = Get-Item -LiteralPath $LinkPath -Force -ErrorAction SilentlyContinue
+    if ($existingItem) {
+        $isReparse = [bool]($existingItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint)
+        if (-not $isReparse -and ((Resolve-CanonicalPath $LinkPath) -ieq $canonTarget)) {
+            Write-Host "  [OK] Path is already the source repository: $LinkPath" -ForegroundColor Green
+            return
+        }
+        if ($isReparse -and $existingItem.Target) {
             $existingTarget = if ($existingItem.Target -is [array]) { $existingItem.Target[0] } else { $existingItem.Target }
-            if ($existingTarget.TrimEnd('\', '/') -ieq $TargetPath.TrimEnd('\', '/')) {
+            if (-not [System.IO.Path]::IsPathRooted($existingTarget)) {
+                $existingTarget = Join-Path (Split-Path -Parent $normLink) $existingTarget
+            }
+            $normExistingTarget = Normalize-PathString $existingTarget
+            if ($normExistingTarget -ieq $normTarget -or $normExistingTarget -ieq $canonTarget) {
                 Write-Host "  [OK] Link already points to target: $LinkPath -> $TargetPath" -ForegroundColor Green
                 return
             }
@@ -118,7 +177,7 @@ function Create-DirectoryLink {
             return
         }
         Write-Host "  [REMOVE] Existing link/directory: $LinkPath" -ForegroundColor DarkGray
-        if ($existingItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        if ($isReparse) {
             $existingItem.Delete()
         } else {
             Remove-Item -LiteralPath $LinkPath -Recurse -Force
@@ -252,15 +311,19 @@ $inlinedBody
 
 } else {
     if (-not $TargetProject) {
-        $currentDir = (Get-Location).Path
-        if ($currentDir -eq $repoRoot) {
-            Write-Error "Please specify a -TargetProject directory or use -Global to install globally."
-            return
-        }
-        $TargetProject = $currentDir
+        $TargetProject = (Get-Location).Path
     }
 
-    $targetFullPath = (Resolve-Path $TargetProject).Path
+    if (-not (Test-Path -LiteralPath $TargetProject)) {
+        Write-Error "Target project directory does not exist: $TargetProject"
+        return
+    }
+
+    $targetFullPath = Normalize-PathString ((Resolve-Path -LiteralPath $TargetProject).Path)
+    if (Test-SameOrSubPath -CandidatePath $targetFullPath -BasePath $repoRoot) {
+        Write-Error "Target project '$targetFullPath' points to (or inside) the agent-skills repository itself ('$repoRoot'). Specify the host project directory with -TargetProject (e.g. '..'), or use -Global to install globally."
+        return
+    }
     Write-Host "`nIntegrating into Project: $targetFullPath (Client: $Client, Links: $FolderType)" -ForegroundColor Yellow
 
     # 1. Create _agents (AGY) and/or .agents (Copilot) directory links

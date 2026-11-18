@@ -829,6 +829,44 @@ if [ -f "$SETUP_SH" ]; then
         fi
     fi
     rm -rf "$TEMP_HOME"
+
+    # 43d. Direct clone into <project>/.agents: parent project works cleanly (even with --force), self-targeting rejects .agents/.agents
+    TEMP_DIRECT_PROJ=$(mktemp -d 2>/dev/null || mktemp -d -t 'direct_proj')
+    DIRECT_DOT_AGENTS="$TEMP_DIRECT_PROJ/.agents"
+    mkdir -p "$DIRECT_DOT_AGENTS/scripts" "$DIRECT_DOT_AGENTS/.github"
+    cp "$SETUP_SH" "$DIRECT_DOT_AGENTS/scripts/setup-agent-skills.sh"
+    cp "$REPO_ROOT/.github/copilot-instructions.md" "$DIRECT_DOT_AGENTS/.github/copilot-instructions.md"
+    if bash "$DIRECT_DOT_AGENTS/scripts/setup-agent-skills.sh" --project "$TEMP_DIRECT_PROJ" --client copilot --force >/dev/null 2>&1 \
+        && [ -f "$TEMP_DIRECT_PROJ/.github/copilot-instructions.md" ] \
+        && [ -f "$DIRECT_DOT_AGENTS/scripts/setup-agent-skills.sh" ] \
+        && [ ! -e "$DIRECT_DOT_AGENTS/.agents" ]; then
+        assert_condition 0 "Direct clone to .agents integrates into parent project without creating .agents/.agents" "Direct clone to .agents integration failed"
+    else
+        assert_condition 1 "Direct clone to .agents integrates into parent project without creating .agents/.agents" "Direct clone to .agents integration failed"
+    fi
+    if ! bash "$DIRECT_DOT_AGENTS/scripts/setup-agent-skills.sh" --project "$DIRECT_DOT_AGENTS" --client copilot >/dev/null 2>&1 \
+        && [ ! -e "$DIRECT_DOT_AGENTS/.agents" ]; then
+        assert_condition 0 "setup-agent-skills.sh rejects --project pointing to .agents itself (prevents .agents/.agents)" "setup-agent-skills.sh allowed self-targeting .agents/.agents"
+    else
+        assert_condition 1 "setup-agent-skills.sh rejects --project pointing to .agents itself (prevents .agents/.agents)" "setup-agent-skills.sh allowed self-targeting .agents/.agents"
+    fi
+    rm -rf "$TEMP_DIRECT_PROJ"
+
+    # 43e. Direct clone into ~/.agents with trailing slash in --user-home and --force preserves repo
+    TEMP_DIRECT_HOME=$(mktemp -d 2>/dev/null || mktemp -d -t 'direct_home')
+    DIRECT_HOME_AGENTS="$TEMP_DIRECT_HOME/.agents"
+    mkdir -p "$DIRECT_HOME_AGENTS/scripts" "$DIRECT_HOME_AGENTS/.github"
+    cp "$SETUP_SH" "$DIRECT_HOME_AGENTS/scripts/setup-agent-skills.sh"
+    cp "$REPO_ROOT/.github/copilot-instructions.md" "$DIRECT_HOME_AGENTS/.github/copilot-instructions.md"
+    if bash "$DIRECT_HOME_AGENTS/scripts/setup-agent-skills.sh" --global --client copilot --user-home "${TEMP_DIRECT_HOME}/" --force >/dev/null 2>&1 \
+        && [ -f "$TEMP_DIRECT_HOME/.copilot/instructions/agent-skills.instructions.md" ] \
+        && [ -f "$DIRECT_HOME_AGENTS/scripts/setup-agent-skills.sh" ] \
+        && [ ! -e "$DIRECT_HOME_AGENTS/.agents" ]; then
+        assert_condition 0 "Direct clone to ~/.agents with --global --force and trailing-slash user-home preserves repo" "Direct clone to ~/.agents global setup failed"
+    else
+        assert_condition 1 "Direct clone to ~/.agents with --global --force and trailing-slash user-home preserves repo" "Direct clone to ~/.agents global setup failed"
+    fi
+    rm -rf "$TEMP_DIRECT_HOME"
 fi
 
 # 44. Validate Shift-Left WorkingTree Guardrails (inline/2024 Safe-Rust) and Behavioral Trace Evals
