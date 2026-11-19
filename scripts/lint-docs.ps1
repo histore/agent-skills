@@ -33,13 +33,12 @@ $ErrorActionPreference = 'SilentlyContinue'
 if (-not $RepoRoot) {
     $RepoRoot = (Get-Location).Path
 }
+$RepoRoot = (Resolve-Path $RepoRoot).Path.TrimEnd('\', '/')
 
-$mdFiles = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter "*.md" | Where-Object {
-    $_.FullName -notmatch '[\\/]\.git[\\/]' -and
-    $_.FullName -notmatch '[\\/](_agents|\.agents)[\\/]' -and
-    $_.FullName -notmatch '[\\/]node_modules[\\/]' -and
-    $_.FullName -notmatch '[\\/](target|bin|obj|\.venv)[\\/]'
-}
+$mdFiles = @(Get-ChildItem -Path $RepoRoot -Recurse -File -Filter "*.md" | Where-Object {
+    $rel = $_.FullName.Substring($RepoRoot.Length)
+    $rel -notmatch '[\\/](\.git|_agents|\.agents|node_modules|target|bin|obj|\.venv)([\\/]|$)'
+})
 
 $brokenLinks = [System.Collections.Generic.List[PSCustomObject]]::new()
 $absoluteViolations = [System.Collections.Generic.List[PSCustomObject]]::new()

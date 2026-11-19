@@ -1199,6 +1199,43 @@ $badPwshChecks = @(Get-ChildItem -Path (Join-Path $repoRoot "scripts") -Filter "
 })
 Assert-Condition ($badPwshChecks.Count -eq 0) "All PowerShell scripts guard full WindowsApps Store-alias paths safely" "Legacy WindowsApps\\pwsh.exe regex found in: $($badPwshChecks.Name -join ', ')"
 
+# 50. Validate parent-path-safe doc linting, non-word Clean Arch imports, and Bash parity hardening
+Write-Host "`n50. Validating parent-path-safe doc linting, non-word Clean Arch imports, and Bash parity hardening..." -ForegroundColor Yellow
+$tempHardeningDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+try {
+    # 50a. lint-docs.ps1 scans markdown files when RepoRoot itself is under a '.agents' parent directory
+    $nestedAgentsRepo = Join-Path $tempHardeningDir ".agents"
+    $nestedIgnored = Join-Path $nestedAgentsRepo "node_modules"
+    New-Item -ItemType Directory -Path $nestedIgnored -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $nestedAgentsRepo "README.md"), "# Root Doc`r`n[Missing](missing.md)`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $nestedIgnored "IGNORED.md"), "# Ignored`r`n[Bad](nope.md)`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $docsParentRaw = $null
+    try { $docsParentRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\lint-docs.ps1") -RepoRoot $nestedAgentsRepo -JsonOutput 2>$null } catch {}
+    $docsParentObj = if ($docsParentRaw) { $docsParentRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $docsParentObj -and $docsParentObj.scanned_markdowns -eq 1 -and $docsParentObj.broken_links_count -eq 1) "lint-docs.ps1 scans repos residing under .agents/ while excluding nested node_modules/" "lint-docs.ps1 failed parent-path scoping ($docsParentRaw)"
+
+    # 50b. lint-clean-architecture.ps1 catches non-word-prefixed forbidden_imports (e.g. @prisma/client)
+    $scopedArchRepo = Join-Path $tempHardeningDir "scoped-arch"
+    New-Item -ItemType Directory -Path (Join-Path $scopedArchRepo "domain") -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $scopedArchRepo ".agent-lint.json"), '{"layer_boundaries":[{"layer":"domain","path_pattern":"(?i)(^|[\\\\/])domain[\\\\/]","forbidden_imports":["@prisma/client"],"message":"No Prisma in domain"}]}', (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $scopedArchRepo "domain\Order.ts"), "import { PrismaClient } from '@prisma/client';`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $scopedArchRaw = $null
+    try { $scopedArchRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\lint-clean-architecture.ps1") -TargetPath $scopedArchRepo -JsonOutput 2>$null } catch {}
+    $scopedArchObj = if ($scopedArchRaw) { $scopedArchRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $scopedArchObj -and $scopedArchObj.status -eq "fail" -and $scopedArchObj.error_count -eq 1) "lint-clean-architecture.ps1 catches non-word-prefixed forbidden_imports (@prisma/client)" "lint-clean-architecture.ps1 missed @prisma/client violation ($scopedArchRaw)"
+} finally {
+    if (Test-Path $tempHardeningDir) { Remove-Item -LiteralPath $tempHardeningDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+$prepShRaw = Get-Content -Path (Join-Path $repoRoot "scripts\prepare-commit.sh") -Raw -Encoding UTF8
+Assert-Condition ($prepShRaw -match 'is_text_file\(\)' -and $prepShRaw -match 'is_text_file "\$full_fmt"' -and $prepShRaw -match 'application/\(json\|xml\|javascript\|x-sh\|x-shellscript\)') "prepare-commit.sh guards binary files during --format and detects .json/.xml/.js text files cleanly" "prepare-commit.sh missing is_text_file guard or MIME allowlist parity"
+
+$detectShRaw = Get-Content -Path (Join-Path $repoRoot "scripts\detect-models.sh") -Raw -Encoding UTF8
+Assert-Condition ($detectShRaw -match '\.gemini/antigravity-cli') "detect-models.sh detects ~/.gemini/antigravity-cli (matching detect-models.ps1)" "detect-models.sh missing .gemini/antigravity-cli detection"
+
+$reqShRaw = Get-Content -Path (Join-Path $repoRoot "scripts\lint-requirements.sh") -Raw -Encoding UTF8
+Assert-Condition ($reqShRaw -match '(?m)^\s*--scope\)') "lint-requirements.sh supports space-separated --scope flag" "lint-requirements.sh missing space-separated --scope support"
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

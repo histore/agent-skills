@@ -9,23 +9,32 @@ NEXT_ID=false
 SCOPE=""
 JSON_OUTPUT=false
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --next-id)
       NEXT_ID=true
+      shift
+      ;;
+    --scope)
+      SCOPE="${2:-}"
+      shift 2
       ;;
     --scope=*)
-      SCOPE="${arg#*=}"
+      SCOPE="${1#*=}"
+      shift
       ;;
     --json|-j)
       JSON_OUTPUT=true
+      shift
       ;;
     -*)
+      shift
       ;;
     *)
       if [[ -z "$REQ_PATH" ]]; then
-        REQ_PATH="$arg"
+        REQ_PATH="$1"
       fi
+      shift
       ;;
   esac
 done
