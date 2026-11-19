@@ -192,7 +192,8 @@ for fp in files_to_scan:
             import_target = m.group(2).lower()
             for r in active_rules:
                 for forbidden in r.get('forbidden_imports', []):
-                    if re.search(r'\b' + forbidden + r'\b', import_target):
+                    pat = (r'\b' + forbidden + r'\b') if (re.match(r'^\w', forbidden) and re.search(r'\w$', forbidden)) else forbidden
+                    if re.search(pat, import_target):
                         violations.append({
                             'Type': 'LayerBoundaryViolation',
                             'File': rel,

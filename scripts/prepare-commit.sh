@@ -262,6 +262,22 @@ PYEOF
   fi
 }
 
+is_text_file() {
+  local target_file="$1"
+  [[ -s "$target_file" ]] || return 1
+  local file_name
+  file_name="$(basename "$target_file")"
+  if [[ "$file_name" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|json|md|yml|yaml|toml|ps1|sh|axaml|props|targets|xml|txt|csproj|sln|editorconfig|gitattributes|gitignore|manifest)$ ]] || \
+     [[ "$file_name" =~ ^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$ ]]; then
+    return 0
+  elif command -v file >/dev/null 2>&1; then
+    if file -b --mime "$target_file" 2>/dev/null | grep -qE 'text/|application/(json|xml|javascript|x-sh|x-shellscript)'; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
 while IFS= read -r rel; do
   [[ -z "$rel" ]] && continue
   if [[ "$rel" =~ ^(\.agents|_agents)(/|$) ]]; then
@@ -297,16 +313,8 @@ while IFS= read -r rel; do
   HOST_FILES+=("$rel")
 
   is_text=false
-  if command -v file >/dev/null 2>&1; then
-    if file -b --mime "$full" 2>/dev/null | grep -q 'text'; then
-      is_text=true
-    fi
-  else
-    file_name="$(basename "$full")"
-    if [[ "$file_name" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|json|md|yml|yaml|toml|ps1|sh|axaml|props|targets|xml|txt|csproj|sln|editorconfig|gitattributes|gitignore|manifest)$ ]] || \
-       [[ "$file_name" =~ ^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$ ]]; then
-      is_text=true
-    fi
+  if is_text_file "$full"; then
+    is_text=true
   fi
 
   if [[ "$is_text" == "true" ]]; then
@@ -416,6 +424,7 @@ EOF
             [[ -z "$rel_fmt" ]] && continue
             full_fmt="${REPO_ROOT}/${rel_fmt}"
             [[ ! -f "$full_fmt" ]] && continue
+            is_text_file "$full_fmt" || continue
             eff_fmt="$DEFAULT_TARGET_EOL"
             if [[ $'\n'"$EOL_SKIP_LIST"$'\n' == *$'\n'"$rel_fmt"$'\n'* ]]; then eff_fmt="SKIP"
             elif [[ $'\n'"$EOL_LF_LIST"$'\n' == *$'\n'"$rel_fmt"$'\n'* ]]; then eff_fmt="LF"

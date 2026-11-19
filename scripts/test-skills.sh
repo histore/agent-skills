@@ -1231,6 +1231,74 @@ else
     assert_condition 1 "All PowerShell scripts guard full WindowsApps Store-alias paths safely" "Legacy WindowsApps\\pwsh.exe regex found"
 fi
 
+# 50. Validate Bash parity hardening (.json EOL, non-word Clean Arch imports, --scope, antigravity-cli, parent-path lint-docs)
+echo -e "\n\033[33m50. Validating Bash parity hardening (.json EOL, non-word imports, --scope, antigravity-cli, lint-docs)...\033[0m"
+TEMP_HARDEN_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'harden')
+
+# 50a. prepare-commit.sh --direct normalizes .json files with non-native EOL (application/json) without failing scan-guardrails.sh
+JSON_PREP_REPO="$TEMP_HARDEN_DIR/json-prep"
+mkdir -p "$JSON_PREP_REPO"
+git -C "$JSON_PREP_REPO" init -q 2>/dev/null || true
+git -C "$JSON_PREP_REPO" config user.email "test@example.com"
+git -C "$JSON_PREP_REPO" config user.name "Test User"
+git -C "$JSON_PREP_REPO" config core.autocrlf false
+if [ "$EXPECTED_OS_EOL" = "CRLF" ]; then
+    H_NAT=$'\r\n'; H_ALT=$'\n'
+else
+    H_NAT=$'\n'; H_ALT=$'\r\n'
+fi
+printf '{"ok":true}%s' "$H_ALT" > "$JSON_PREP_REPO/config.json"
+JSON_PREP_OUT=$(bash "$REPO_ROOT/scripts/prepare-commit.sh" --repo-root "$JSON_PREP_REPO" --direct --json 2>/dev/null || true)
+if echo "$JSON_PREP_OUT" | grep -q '"status":"ready"' && echo "$JSON_PREP_OUT" | grep -q '"normalized_count":1' && grep -q 'is_text_file "\$full_fmt"' "$REPO_ROOT/scripts/prepare-commit.sh"; then
+    assert_condition 0 "prepare-commit.sh --direct normalizes .json EOL cleanly and guards post-format normalization with is_text_file" "prepare-commit.sh failed .json normalization or binary guard: $JSON_PREP_OUT"
+else
+    assert_condition 1 "prepare-commit.sh --direct normalizes .json EOL cleanly and guards post-format normalization with is_text_file" "prepare-commit.sh failed .json normalization or binary guard: $JSON_PREP_OUT"
+fi
+
+# 50b. lint-clean-architecture.sh catches non-word-prefixed forbidden_imports (@prisma/client)
+SCOPED_ARCH_DIR="$TEMP_HARDEN_DIR/scoped-arch"
+mkdir -p "$SCOPED_ARCH_DIR/domain"
+printf '{"layer_boundaries":[{"layer":"domain","path_pattern":"(?i)(^|[\\\\/])domain[\\\\/]","forbidden_imports":["@prisma/client"],"message":"No Prisma in domain"}]}\n' > "$SCOPED_ARCH_DIR/.agent-lint.json"
+printf "import { PrismaClient } from '@prisma/client';\n" > "$SCOPED_ARCH_DIR/domain/Order.ts"
+SCOPED_ARCH_OUT=$(bash "$REPO_ROOT/scripts/lint-clean-architecture.sh" "$SCOPED_ARCH_DIR" --json 2>/dev/null || true)
+if echo "$SCOPED_ARCH_OUT" | grep -q '"status": "fail"' && echo "$SCOPED_ARCH_OUT" | grep -q '"error_count": 1'; then
+    assert_condition 0 "lint-clean-architecture.sh catches non-word-prefixed forbidden_imports (@prisma/client)" "lint-clean-architecture.sh missed @prisma/client violation: $SCOPED_ARCH_OUT"
+else
+    assert_condition 1 "lint-clean-architecture.sh catches non-word-prefixed forbidden_imports (@prisma/client)" "lint-clean-architecture.sh missed @prisma/client violation: $SCOPED_ARCH_OUT"
+fi
+
+# 50c. lint-requirements.sh accepts space-separated --scope AUTH
+REQ_SCOPE_OUT=$(bash "$REPO_ROOT/scripts/lint-requirements.sh" "$TEMP_HARDEN_DIR" --next-id --scope AUTH 2>/dev/null || true)
+if [ "$REQ_SCOPE_OUT" = "REQ-AUTH-001" ]; then
+    assert_condition 0 "lint-requirements.sh accepts space-separated --next-id --scope AUTH" "lint-requirements.sh failed space-separated --scope: '$REQ_SCOPE_OUT'"
+else
+    assert_condition 1 "lint-requirements.sh accepts space-separated --next-id --scope AUTH" "lint-requirements.sh failed space-separated --scope: '$REQ_SCOPE_OUT'"
+fi
+
+# 50d. detect-models.sh detects antigravity when only ~/.gemini/antigravity-cli exists
+AGY_CLI_HOME="$TEMP_HARDEN_DIR/agy-home"
+mkdir -p "$AGY_CLI_HOME/.gemini/antigravity-cli"
+AGY_CLI_OUT=$(HOME="$AGY_CLI_HOME" PATH="/usr/bin:/bin" ANTIGRAVITY_CLI_ALIAS="" bash "$REPO_ROOT/scripts/detect-models.sh" --cache-path "$TEMP_HARDEN_DIR/agy-cache.json" --force 2>/dev/null || true)
+if echo "$AGY_CLI_OUT" | grep -q '"platform": "antigravity"'; then
+    assert_condition 0 "detect-models.sh detects ~/.gemini/antigravity-cli" "detect-models.sh missed ~/.gemini/antigravity-cli: $AGY_CLI_OUT"
+else
+    assert_condition 1 "detect-models.sh detects ~/.gemini/antigravity-cli" "detect-models.sh missed ~/.gemini/antigravity-cli: $AGY_CLI_OUT"
+fi
+
+# 50e. lint-docs.sh scans repos residing under .agents/ while pruning nested node_modules/
+DOCS_PARENT_DIR="$TEMP_HARDEN_DIR/.agents"
+mkdir -p "$DOCS_PARENT_DIR/node_modules"
+printf '# Root Doc\n[Missing](missing.md)\n' > "$DOCS_PARENT_DIR/README.md"
+printf '# Ignored\n[Bad](nope.md)\n' > "$DOCS_PARENT_DIR/node_modules/IGNORED.md"
+DOCS_PARENT_OUT=$(bash "$REPO_ROOT/scripts/lint-docs.sh" "$DOCS_PARENT_DIR" --json 2>/dev/null || true)
+if echo "$DOCS_PARENT_OUT" | grep -q '"scanned_markdowns": 1' && echo "$DOCS_PARENT_OUT" | grep -q '"broken_links_count": 1'; then
+    assert_condition 0 "lint-docs.sh scans repos under .agents/ while pruning nested node_modules/" "lint-docs.sh failed parent-path scoping: $DOCS_PARENT_OUT"
+else
+    assert_condition 1 "lint-docs.sh scans repos under .agents/ while pruning nested node_modules/" "lint-docs.sh failed parent-path scoping: $DOCS_PARENT_OUT"
+fi
+
+rm -rf "$TEMP_HARDEN_DIR"
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

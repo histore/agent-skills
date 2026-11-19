@@ -38,10 +38,10 @@ repo_root = os.path.abspath(sys.argv[1])
 check_parity = sys.argv[2] == 'true'
 json_output = sys.argv[3] == 'true'
 
+ignored_dirs = {'.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj', '.venv'}
 md_files = []
 for root, dirs, files in os.walk(repo_root):
-    if any(part in root.split(os.sep) for part in ('.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj', '.venv')):
-        continue
+    dirs[:] = [d for d in dirs if d not in ignored_dirs]
     for f in files:
         if f.endswith('.md'):
             md_files.append(os.path.join(root, f))

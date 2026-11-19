@@ -68,7 +68,7 @@ fi
 # 3. Perform fresh environment probe
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d "$HOME/.gemini/antigravity" ]]; then
+if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d "$HOME/.gemini/antigravity" ]] || [[ -d "$HOME/.gemini/antigravity-cli" ]]; then
     platform="antigravity"
     execution_mode="multi_agent"
     supports_subagents=true
