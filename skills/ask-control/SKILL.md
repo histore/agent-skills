@@ -46,7 +46,7 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
        for p in ./_agents/scripts/run-fast-gate.sh ./.agents/scripts/run-fast-gate.sh ./scripts/run-fast-gate.sh "$HOME/_agents/scripts/run-fast-gate.sh" "$HOME/.agents/scripts/run-fast-gate.sh"; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
        [ -n "$SCRIPT_PATH" ] && bash "$SCRIPT_PATH"
        ```
-   - **Concise Traceability Gate (Stage 2)**: Audit acceptance criteria, error paths, i18n/a11y, and active `Strictness Level`.
+   - **Concise Traceability Gate (Stage 2)**: Audit acceptance criteria, error paths, i18n/a11y, and active `Strictness Level`. Enforce **Convergent Review Discipline**: require every review finding to prove a concrete failure scenario or contract breach (never stylistic churn), lock confirmed `[K]` fixes with regression tests, scope re-reviews strictly to the fix diff + open findings (Delta-Review), and terminate with **`REVIEW STATUS: CONVERGED`** once zero actionable defects remain.
 
 5. **Lifecycle Git, Deferred Formatting & Submodule Isolation Guardrail**:
    - Execute Git commands strictly when committing, pushing, or creating PRs. Execute only the requested atomic action, resolve state prerequisites automatically, and offer the next logical step.

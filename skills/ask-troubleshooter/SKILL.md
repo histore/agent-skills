@@ -38,12 +38,16 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
   - Ensure the test fails for the right reason prior to applying any code fixes.
   - In Rust codebases, all test fixtures and implementations must adhere to safe Rust without `unsafe` blocks.
 
-### 2. Adversarial Code Review (Devil's Advocate)
+### 2. Adversarial Code Review (Devil's Advocate & Anti-Oscillation Protocol)
 - Inspect diffs, PRs, or critical modules to uncover subtle logic flaws that pass basic test suites:
   - **Adversarial Logic & Semantic Flaws**: Off-by-one errors in ranges/slices, inverted conditions, operator precedence pitfalls, unhandled enum variants or switch branches.
   - **Edge Cases & Boundary Conditions**: Empty collections, zero/negative inputs, null/None propagation, boundary indexing, Unicode multi-byte slicing.
   - **Concurrency & Asynchronous State Hazards**: Unsafe shared mutable state, missing awaits, unhandled background tasks, deadlock risks (sync-over-async or lock inversion), missing cancellation token propagation.
   - **Resource Management**: Unclosed streams, memory leaks, event listener unsubscription leaks, connection pool exhaustion.
+- **Anti-Oscillation & Convergence Rules (No Hard Filters, Zero Churn)**:
+  - **Evidence Gate (`[K]` / `[R]` / `[V]`)**: Every finding must cite exact `file:line` references, classify as `[K]` (Defect/Contract Breach/Concurrency/Security), `[R]` (Dead/Duplicate Code), or `[V]` (Measurable Perf/Resilience Improvement), and prove a concrete failure scenario (`Input/State -> Broken Invariant/Fault`). Reject stylistic rewordings or subjective renames that lack a behavioral or architectural fault.
+  - **Monotonic Ratchet (Regression Lock)**: Anchor every confirmed `[K]` finding with a failing reproduction test (Phase RED) or deterministic linter rule before/during the fix so subsequent edits cannot reintroduce the defect.
+  - **Delta-Scope Re-Reviews & Stop Rule**: On follow-up review passes (Round $\ge 2$), inspect strictly (a) resolution of open `[K]` findings and their regression tests, and (b) newly introduced defects in the fix diff. Never invent cosmetic findings on unchanged code; once zero actionable `[K]`/`[V]` findings remain, terminate explicitly with **`REVIEW STATUS: CONVERGED`**.
 
 ### 3. Safe Fowler Refactoring (Clean Code & Technical Debt Reduction)
 - **Core Invariant: Behavior-Preserving Transformations**:
