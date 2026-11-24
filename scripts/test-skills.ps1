@@ -483,6 +483,47 @@ if (Test-Path $runFastGatePs1) {
     } catch {
         Assert-Condition $false "run-fast-gate.ps1 executes cleanly" "Execution error: $_"
     }
+
+    # FEAT-GOV-002 AC-1, AC-2, AC-3: AC-* Traceability & Diff-Size-Guardrail
+    $fgTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("fg_gov002_" + [guid]::NewGuid().ToString("N"))
+    $prevEap = $ErrorActionPreference
+    try {
+        New-Item -ItemType Directory -Path (Join-Path $fgTmp "docs\features") -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $fgTmp "src") -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $fgTmp "tests") -Force | Out-Null
+        $ErrorActionPreference = 'Continue'
+        git -C $fgTmp init -q 2>$null
+        git -C $fgTmp config user.email "test@example.com" 2>$null
+        git -C $fgTmp config user.name "Test" 2>$null
+        Set-Content -Path (Join-Path $fgTmp "src\app.js") -Value "const a = 1;" -Encoding UTF8
+        git -C $fgTmp add . 2>$null
+        git -C $fgTmp commit -m "init" -q 2>$null
+        $ErrorActionPreference = $prevEap
+
+        # Modify executable code (>5 lines) to trigger code gate & diff-size warning
+        Set-Content -Path (Join-Path $fgTmp "src\app.js") -Value "const a = 1;`nconst b = 2;`nconst c = 3;`nconst d = 4;`nconst e = 5;`nconst f = 6;" -Encoding UTF8
+
+        # AC-2: PROPOSED spec must bypass AC-* traceability
+        Set-Content -Path (Join-Path $fgTmp "docs\features\FEAT-TMP-001.md") -Value "---`nid: FEAT-TMP-001`nstatus: PROPOSED`n---`n- [ ] **AC-1**: test" -Encoding UTF8
+        $outBypass = & $psExe -NoProfile -ExecutionPolicy Bypass -File $runFastGatePs1 -ProjectRoot $fgTmp -SkipLint -MaxDiffLines 2 -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($outBypass.status -eq "pass") "run-fast-gate.ps1 bypasses AC-* traceability for PROPOSED specs (AC-2)" "Expected pass for PROPOSED spec, got $($outBypass.status)"
+        Assert-Condition ($outBypass.warnings.Count -ge 1 -and ($outBypass.warnings -join " ") -match "\[DiffSize\]") "run-fast-gate.ps1 emits [DiffSize] warning without failing (AC-3)" "Expected [DiffSize] warning, got: $($outBypass.warnings -join '; ')"
+
+        # AC-1: IN_PROGRESS spec with uncovered AC-1 must fail Stage-1
+        Set-Content -Path (Join-Path $fgTmp "docs\features\FEAT-TMP-001.md") -Value "---`nid: FEAT-TMP-001`nstatus: IN_PROGRESS`n---`n- [ ] **AC-1**: test" -Encoding UTF8
+        $outFail = & $psExe -NoProfile -ExecutionPolicy Bypass -File $runFastGatePs1 -ProjectRoot $fgTmp -SkipLint -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($outFail.status -eq "fail" -and $outFail.failed_step -eq "ACTraceability") "run-fast-gate.ps1 fails Stage-1 when IN_PROGRESS spec has uncovered AC-1 (AC-1)" "Expected ACTraceability fail, got $($outFail.status) / $($outFail.failed_step)"
+
+        # AC-1: Adding test referencing AC-1 turns Stage-1 green
+        Set-Content -Path (Join-Path $fgTmp "tests\app.test.js") -Value "// AC-1`ntest('AC-1 works', () => {});" -Encoding UTF8
+        $outPass = & $psExe -NoProfile -ExecutionPolicy Bypass -File $runFastGatePs1 -ProjectRoot $fgTmp -SkipLint -JsonOutput | ConvertFrom-Json
+        Assert-Condition ($outPass.status -eq "pass") "run-fast-gate.ps1 passes Stage-1 once AC-1 is referenced in tests (AC-1)" "Expected pass after adding AC-1 test, got $($outPass.status)"
+    } catch {
+        Assert-Condition $false "run-fast-gate.ps1 FEAT-GOV-002 temp repo tests" "Exception: $_"
+    } finally {
+        $ErrorActionPreference = $prevEap
+        Remove-Item -Path $fgTmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # 24. Validate guardrails scanner scripts

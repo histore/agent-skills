@@ -18,7 +18,7 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
 
 1. **Dynamic Stack & 4-Step Codebase Analysis**:
    - Detect language, framework, and test runner dynamically from project manifests (`Cargo.toml`, `Directory.Build.props`, `package.json`, `pyproject.toml`, `go.mod`).
-   - Follow the 4-Step Analysis Protocol (`ARCHITECTURE.md` / `docs/architecture/modules/*.md` -> sync via `get-arch-diff` if needed -> deduce contracts -> targeted code reads via `get-code-outline.ps1`). **Pragmatic Bypass**: Inspect single known files directly for localized queries or isolated fixes.
+   - Follow the 4-Step Analysis Protocol & Progressive Disclosure (`ARCHITECTURE.md` / `docs/architecture/modules/*.md` -> sync via `get-arch-diff` if needed -> deduce contracts -> inspect signatures via `get-code-outline.ps1` first, and load full implementation files **only** when directly modified by the active `AC-*`). **Pragmatic Bypass**: Inspect single known files directly for localized queries or isolated fixes.
 
 2. **Adaptive Execution Profiles & Strictness (`Standard` [Default], `Enterprise`, `Legacy`, `Prototype`)**:
    - **Profile 0 (Size 0 - Read-Only / Q&A)**: Direct concise answer (**Class ECO**). Zero Git commands (`git status`, `git branch`), zero test execution, zero architecture sync.
@@ -46,7 +46,7 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
        for p in ./_agents/scripts/run-fast-gate.sh ./.agents/scripts/run-fast-gate.sh ./scripts/run-fast-gate.sh "$HOME/_agents/scripts/run-fast-gate.sh" "$HOME/.agents/scripts/run-fast-gate.sh"; do [ -f "$p" ] && SCRIPT_PATH="$p" && break; done
        [ -n "$SCRIPT_PATH" ] && bash "$SCRIPT_PATH"
        ```
-   - **Concise Traceability Gate (Stage 2)**: Audit acceptance criteria, error paths, i18n/a11y, and active `Strictness Level`. Enforce **Convergent Review Discipline**: require every review finding to prove a concrete failure scenario or contract breach (never stylistic churn), lock confirmed `[K]` fixes with regression tests, scope re-reviews strictly to the fix diff + open findings (Delta-Review), and terminate with **`REVIEW STATUS: CONVERGED`** once zero actionable defects remain.
+   - **Concise Traceability Gate & Zero-Trust Diff-Report (Stage 2)**: Audit acceptance criteria, error paths, i18n/a11y, and active `Strictness Level`. Enforce **Convergent Review Discipline**: require every review finding to prove a concrete failure scenario or contract breach (never stylistic churn), lock confirmed `[K]` fixes with regression tests, scope re-reviews strictly to the fix diff + open findings (Delta-Review), and terminate with **`REVIEW STATUS: CONVERGED`** once zero actionable defects remain. In **Profile B and C**, conclude Stage 2 with a compact **Zero-Trust Diff-Report** risk matrix (`Modified Files`, `AC-* Status`, `Fast-Gate/Guardrails & [DiffSize] Warnings`, `Open Assumptions / Untested Paths`).
 
 5. **Lifecycle Git, Deferred Formatting & Submodule Isolation Guardrail**:
    - Execute Git commands strictly when committing, pushing, or creating PRs. Execute only the requested atomic action, resolve state prerequisites automatically, and offer the next logical step.
@@ -69,7 +69,7 @@ Act as the unified core lifecycle engineer and central orchestrator. Execute pla
    - **Quota Protection User Gate**: On Profile C / Premium tasks, pause before consuming quota and offer `[1] PREMIUM`, `[2] BALANCED (~70% savings)`, `[3] ECO` (via `ask_question` in Antigravity or chat prompt in Copilot; bypassed if `--eco`, `--balanced`, or `--premium` is in prompt).
 
 8. **Context Compaction, Output Brevity & Telemetry**:
-   - **Output Brevity & Prompt Caching**: Keep phase checkpoints (`### [Phase: ...]`) to max 3–5 bullet points; never echo full modified source files in chat. Maintain Two-Zone Prompt Architecture (Zone 1 Frozen Prefix for governance, Zone 2 Dynamic Tail) to ensure 75–90% KV-cache discounts. Lazy-load only the single active spec (`inspect-feature-specs.ps1`).
+   - **Output Brevity, Prompt Caching & Situative `.agent-state.json`**: Keep phase checkpoints (`### [Phase: ...]`) to max 3–5 bullet points; never echo full modified source files in chat. Maintain Two-Zone Prompt Architecture (Zone 1 Frozen Prefix for governance, Zone 2 Dynamic Tail) to ensure 75–90% KV-cache discounts. Lazy-load only the single active spec (`inspect-feature-specs.ps1`). Never write `.agent-state.json` during regular single-thread runs; write `.agent-state.json` (`decisions`, `touched_files`, `open_ac_ids`, `constraints`) exclusively in the scratch/temp directory **only** on Circuit-Breaker Level 3 (*Context Purge*) or explicit Copilot thread switch.
    - **Telemetry Hook**:
      ```powershell
      $telemetryScript = @("./_agents/scripts/record-telemetry.ps1", "./.agents/scripts/record-telemetry.ps1", "./scripts/record-telemetry.ps1", "$HOME/_agents/scripts/record-telemetry.ps1", "$HOME/.agents/scripts/record-telemetry.ps1") | Where-Object { Test-Path $_ } | Select-Object -First 1

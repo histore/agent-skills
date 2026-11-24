@@ -32,14 +32,15 @@ pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase 0
 | Phase 0 | `FEAT-TOOL-001` | Deterministic Zero-Token Script Toolkit | VERIFIED | `TOOLING` | [features/FEAT-TOOL-001-zero-token-scripts.md](features/FEAT-TOOL-001-zero-token-scripts.md) | `v0.1.0` |
 | Phase 0 | `FEAT-SPEC-001` | Living Modular Documentation & Phased Specs | VERIFIED | `SPEC` | [features/FEAT-SPEC-001-living-modular-docs.md](features/FEAT-SPEC-001-living-modular-docs.md) | `v0.1.0` |
 | Phase 0 | `FEAT-EFF-001` | Next-Gen LLM Efficiency & AST Inspector | VERIFIED | `EFFICIENCY` | [features/FEAT-EFF-001-next-gen-llm-efficiency.md](features/FEAT-EFF-001-next-gen-llm-efficiency.md) | `v0.2.2` |
+| Phase 1 | `FEAT-GOV-002` | Pareto Autonomy & Deterministic Verification | IMPLEMENTED | `GOV` | [features/FEAT-GOV-002-pareto-autonomy-verification.md](features/FEAT-GOV-002-pareto-autonomy-verification.md) | `v0.3.0` |
 
 ---
 
 ## 3. Implementation Progress Summary
 
-- **Total Features Registered**: 5
-- **Completed & Verified (Phase 0 Baseline)**: 5 (100%)
-- **In Progress**: 0
+- **Total Features Registered**: 6
+- **Completed & Verified (Phase 0 Baseline)**: 5 (83%)
+- **Implemented (Phase 1, pending final freeze)**: 1
 - **Proposed / Planned (Phase 1)**: 0
 
 ---

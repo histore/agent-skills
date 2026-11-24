@@ -376,6 +376,35 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'mcp_local_first' missing in AGENTS.md or .github/copilot-instructions.md")
                 }
             }
+            "ac_traceability_gate" {
+                $fgPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.ps1") -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+                $fgSh = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.sh") -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+                if ($fgPs1 -notmatch 'ACTraceability' -or $fgSh -notmatch 'ACTraceability') {
+                    $failures.Add("Invariant 'ac_traceability_gate' missing in run-fast-gate.ps1 or run-fast-gate.sh")
+                }
+            }
+            "diff_size_warning" {
+                $fgPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.ps1") -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+                $fgSh = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.sh") -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+                if ($fgPs1 -notmatch '\[DiffSize\]' -or $fgSh -notmatch '\[DiffSize\]') {
+                    $failures.Add("Invariant 'diff_size_warning' missing in run-fast-gate.ps1 or run-fast-gate.sh")
+                }
+            }
+            "zero_trust_diff_report" {
+                if ($controlContent -notmatch 'Zero-Trust Diff-Report') {
+                    $failures.Add("Invariant 'zero_trust_diff_report' missing in ask-control/SKILL.md")
+                }
+            }
+            "progressive_disclosure_ac_scoped" {
+                if ($agentsContent -notmatch 'directly modified by the active `AC-\*`' -or $controlContent -notmatch 'directly modified by the active `AC-\*`') {
+                    $failures.Add("Invariant 'progressive_disclosure_ac_scoped' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
+            "situative_agent_state_scratch" {
+                if ($agentsContent -notmatch 'scratch/temp directory' -or $controlContent -notmatch 'scratch/temp directory') {
+                    $failures.Add("Invariant 'situative_agent_state_scratch' missing in AGENTS.md or ask-control/SKILL.md")
+                }
+            }
             default {
                 $failures.Add("Unhandled required_invariant '$inv' in eval case '$caseId' (must be explicitly asserted in run-evals.ps1)")
             }

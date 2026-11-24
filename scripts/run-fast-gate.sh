@@ -10,6 +10,7 @@ TEST_FILTER=""
 SKIP_LINT=false
 SKIP_GUARDRAILS=false
 FORCE=false
+MAX_DIFF_LINES=400
 JSON_OUTPUT=false
 
 while [[ $# -gt 0 ]]; do
@@ -28,6 +29,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --force|-f)
       FORCE=true
+      shift
+      ;;
+    --max-diff-lines)
+      MAX_DIFF_LINES="${2:-400}"
+      shift 2
+      ;;
+    --max-diff-lines=*)
+      MAX_DIFF_LINES="${1#*=}"
       shift
       ;;
     --filter)
@@ -109,6 +118,7 @@ get_time_ns() {
 START_TIME=$(get_time_ns)
 FAILED_STEP=""
 ERROR_LOG=""
+WARNINGS_LOG=""
 
 run_step() {
   local step_name="$1"
@@ -229,6 +239,58 @@ EOF
       fi
     fi
   fi
+  # 3b. Diff-Size-Guardrail (FEAT-GOV-002 AC-3: Warning only when executable code diff exceeds MAX_DIFF_LINES)
+  if [[ "$BYPASSED_NO_CODE" != "true" && "$MAX_DIFF_LINES" -gt 0 ]] && command -v git &>/dev/null; then
+    NUMSTAT_OUT=$(git -C "$PROJECT_ROOT" diff --numstat HEAD 2>/dev/null || true)
+    if [[ -n "$NUMSTAT_OUT" ]]; then
+      TOTAL_DIFF_LINES=0
+      while IFS=$'\t' read -r added deleted diff_file; do
+        [[ -z "$added" || "$added" == "-" || "$deleted" == "-" ]] && continue
+        if [[ "$diff_file" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql|ps1|sh)$ ]]; then
+          TOTAL_DIFF_LINES=$(( TOTAL_DIFF_LINES + added + deleted ))
+        fi
+      done <<< "$NUMSTAT_OUT"
+      if [[ "$TOTAL_DIFF_LINES" -gt "$MAX_DIFF_LINES" ]]; then
+        WARNINGS_LOG+="[DiffSize] $TOTAL_DIFF_LINES executable code lines changed in working tree (threshold: $MAX_DIFF_LINES). Consider splitting into smaller atomic commits."$'\n'
+      fi
+    fi
+  fi
+
+  # 3c. AC-* Traceability Check (FEAT-GOV-002 AC-1/AC-2: Stage-1 Fail when active APPROVED/IN_PROGRESS FEAT-*.md has uncovered AC-* IDs)
+  if [[ "$OVERALL_PASS" == "true" && "$BYPASSED_NO_CODE" != "true" && -d "${PROJECT_ROOT}/docs/features" ]]; then
+    ACTIVE_SPECS=()
+    while IFS= read -r -d '' sf; do
+      if grep -qE '^status:[[:space:]]*(APPROVED|IN_PROGRESS)\b' "$sf" 2>/dev/null; then
+        ACTIVE_SPECS+=("$sf")
+      fi
+    done < <(find "${PROJECT_ROOT}/docs/features" -maxdepth 1 -type f -name 'FEAT-*.md' -print0 2>/dev/null)
+
+    if [[ ${#ACTIVE_SPECS[@]} -gt 0 ]]; then
+      TEST_CORPUS_FILE=$(mktemp)
+      while IFS= read -r -d '' tf; do
+        cat "$tf" >> "$TEST_CORPUS_FILE" 2>/dev/null || true
+        echo "" >> "$TEST_CORPUS_FILE"
+      done < <(find "$PROJECT_ROOT" -type f \
+        ! -path '*/node_modules/*' ! -path '*/target/*' ! -path '*/bin/*' ! -path '*/obj/*' \
+        ! -path '*/.git/*' ! -path '*/_agents/*' ! -path '*/.agents/*' ! -path '*/dist/*' ! -path '*/build/*' \
+        \( -ipath '*/tests/*' -o -ipath '*/test/*' -o -ipath '*/specs/*' -o -ipath '*/__tests__/*' -o -ipath '*/evals/*' \
+           -o -iname '*test.*' -o -iname '*spec.*' -o -iname '*_test.*' -o -name 'eval-cases.json' -o -name 'test-skills.ps1' -o -name 'test-skills.sh' \) \
+        -print0 2>/dev/null)
+
+      for sf in "${ACTIVE_SPECS[@]}"; do
+        REL_SPEC="${sf#${PROJECT_ROOT}/}"
+        while IFS= read -r ac_id; do
+          [[ -z "$ac_id" ]] && continue
+          if ! grep -qE "\b${ac_id}\b" "$TEST_CORPUS_FILE" 2>/dev/null; then
+            OVERALL_PASS=false
+            FAILED_STEP="ACTraceability"
+            ERROR_LOG+="[ACTraceability] ${REL_SPEC}: Missing test reference for ${ac_id} (reference ${ac_id} in a test name or comment)"$'\n'
+          fi
+        done < <(grep -E '^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]*\*\*AC-[0-9]+\*\*' "$sf" 2>/dev/null | grep -oE 'AC-[0-9]+' || true)
+      done
+      rm -f "$TEST_CORPUS_FILE"
+    fi
+  fi
 fi
 
 END_TIME=$(get_time_ns)
@@ -238,24 +300,24 @@ if [[ "$END_TIME" =~ ^[0-9]+$ && "$START_TIME" =~ ^[0-9]+$ && ${#END_TIME} -gt 1
 fi
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-  if [[ "$OVERALL_PASS" == "true" ]]; then
-    echo "{\"status\":\"pass\",\"failed_step\":null,\"duration_ms\":$DURATION_MS,\"bypassed_code_gate\":$BYPASSED_NO_CODE,\"errors\":[]}"
-  else
-    if command -v python3 &>/dev/null; then
-      python3 - "$FAILED_STEP" "$DURATION_MS" "$BYPASSED_NO_CODE" "$ERROR_LOG" << 'EOF'
+  if command -v python3 &>/dev/null; then
+    python3 - "$OVERALL_PASS" "$FAILED_STEP" "$DURATION_MS" "$BYPASSED_NO_CODE" "$ERROR_LOG" "$WARNINGS_LOG" << 'EOF'
 import json, sys
-step, dur_s, byp_s, raw_err = sys.argv[1:5]
-errs = [l.strip() for l in raw_err.splitlines() if l.strip()]
+ok_s, step, dur_s, byp_s, raw_err, raw_warn = sys.argv[1:7]
+errs = [l.strip() for l in raw_err.splitlines() if l.strip()] if ok_s != "true" else []
+warns = [l.strip() for l in raw_warn.splitlines() if l.strip()]
 print(json.dumps({
-    "status": "fail",
-    "failed_step": step,
+    "status": "pass" if ok_s == "true" else "fail",
+    "failed_step": None if ok_s == "true" else step,
     "duration_ms": int(dur_s),
     "bypassed_code_gate": byp_s == "true",
     "errors": errs,
+    "warnings": warns,
 }))
 EOF
-    else
-      ERR_ARR=""
+  else
+    ERR_ARR=""
+    if [[ "$OVERALL_PASS" != "true" ]]; then
       while IFS= read -r eline; do
         [[ -z "$eline" ]] && continue
         eline="${eline//\\/\\\\}"
@@ -264,7 +326,20 @@ EOF
         [[ -n "$ERR_ARR" ]] && ERR_ARR+=","
         ERR_ARR+="\"$eline\""
       done <<< "$ERROR_LOG"
-      echo "{\"status\":\"fail\",\"failed_step\":\"$FAILED_STEP\",\"duration_ms\":$DURATION_MS,\"bypassed_code_gate\":$BYPASSED_NO_CODE,\"errors\":[$ERR_ARR]}"
+    fi
+    WARN_ARR=""
+    while IFS= read -r wline; do
+      [[ -z "$wline" ]] && continue
+      wline="${wline//\\/\\\\}"
+      wline="${wline//\"/\\\"}"
+      wline="${wline//$'\r'/}"
+      [[ -n "$WARN_ARR" ]] && WARN_ARR+=","
+      WARN_ARR+="\"$wline\""
+    done <<< "$WARNINGS_LOG"
+    if [[ "$OVERALL_PASS" == "true" ]]; then
+      echo "{\"status\":\"pass\",\"failed_step\":null,\"duration_ms\":$DURATION_MS,\"bypassed_code_gate\":$BYPASSED_NO_CODE,\"errors\":[],\"warnings\":[$WARN_ARR]}"
+    else
+      echo "{\"status\":\"fail\",\"failed_step\":\"$FAILED_STEP\",\"duration_ms\":$DURATION_MS,\"bypassed_code_gate\":$BYPASSED_NO_CODE,\"errors\":[$ERR_ARR],\"warnings\":[$WARN_ARR]}"
     fi
   fi
 else
@@ -277,6 +352,11 @@ else
   else
     echo "Stage-1 Fast-Gate: FAIL at step '$FAILED_STEP'"
     echo "$ERROR_LOG"
+  fi
+  if [[ -n "$WARNINGS_LOG" ]]; then
+    while IFS= read -r wline; do
+      [[ -n "$wline" ]] && echo "  [WARN] $wline"
+    done <<< "$WARNINGS_LOG"
   fi
 fi
 

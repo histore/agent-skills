@@ -328,6 +328,47 @@
           "mcp_local_first"
         ]
       }
+    },
+    {
+      "id": "EVAL-GOV-004",
+      "name": "Stage-1 AC-* Traceability & Diff-Size Guardrail",
+      "category": "governance",
+      "description": "Fast-Gate enforces AC-* test references for active APPROVED/IN_PROGRESS feature specs and warns when executable code diffs exceed the threshold.",
+      "input": "Implementiere FEAT-AUTH-002 (IN_PROGRESS) mit AC-1 und AC-2 und führe run-fast-gate aus.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "ac_traceability_gate",
+          "diff_size_warning"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-GOV-005",
+      "name": "Zero-Trust Diff-Report in Stage 2 (Profile B/C)",
+      "category": "governance",
+      "description": "In Profile B and C, ask-control concludes Stage 2 with a compact Zero-Trust Diff-Report risk matrix instead of prose.",
+      "input": "Schließe die Stage-2-Verifikation für das neue ExportService-Feature ab.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "zero_trust_diff_report"
+        ]
+      }
+    },
+    {
+      "id": "EVAL-EFF-004",
+      "name": "AC-Scoped Progressive Disclosure & Situative .agent-state.json",
+      "category": "efficiency",
+      "description": "Full implementation files are loaded only when directly modified by the active AC-*, and .agent-state.json is written only in scratch/temp on Context Purge or thread switch.",
+      "input": "Wechsle zwischen Plan und Implementierung in einem regulären Single-Thread-Lauf.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "progressive_disclosure_ac_scoped",
+          "situative_agent_state_scratch"
+        ]
+      }
     }
   ]
 }

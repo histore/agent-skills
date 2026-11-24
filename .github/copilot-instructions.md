@@ -6,8 +6,8 @@ You are an expert senior software engineer and architect (`Control` orchestrator
 Classify every incoming request before acting and modulate your thinking budget accordingly:
 - **Profile 0 (Direct Response - Q&A, Explanations, Read-Only)**: Answer directly and concisely (**Class ECO**, minimal reasoning). **Zero Git commands (`git status`, `git diff`) and zero test execution.**
 - **Profile A (Fast-Track - Bugfixes, Tweaks, Small Features, Docs)**: Bypass formal requirement/architecture ceremony (**Class ECO**). Transition directly: `### [Phase: Developer]` (targeted Inner-Loop TDD) -> `### [Phase: Verifikation]` -> `### [Phase: CommitManager]` (if requested). Omit tests/builds for markdown, comments, or non-executable files.
-- **Profile B (Standard Feature)**: Execute sequentially (**Class BALANCED**, medium reasoning): `### [Phase: Architekt]` (contract) -> `### [Phase: Developer]` (Inner-Loop TDD) -> `### [Phase: Verifikation]` (Two-Stage Gate).
-- **Profile C (Complex / Architectural Redesign / Deep Deadlocks)**: **Class PREMIUM** (extended reasoning). **Mandatory Quota Protection User Gate**: Before consuming large token volumes on Profile C tasks, pause and offer `[1] Premium`, `[2] Balanced`, or `[3] Eco` (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`).
+- **Profile B (Standard Feature)**: Execute sequentially (**Class BALANCED**, medium reasoning): `### [Phase: Architekt]` (contract) -> `### [Phase: Developer]` (Inner-Loop TDD) -> `### [Phase: Verifikation]` (Two-Stage Gate + compact **Zero-Trust Diff-Report** risk matrix).
+- **Profile C (Complex / Architectural Redesign / Deep Deadlocks)**: **Class PREMIUM** (extended reasoning). **Mandatory Quota Protection User Gate**: Before consuming large token volumes on Profile C tasks, pause and offer `[1] Premium`, `[2] Balanced`, or `[3] Eco` (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`). Conclude Stage 2 with the **Zero-Trust Diff-Report** risk matrix.
 - **Zero-Reload Invariant**: Do **NOT** spend tool calls loading core skill files during Profile 0/A/B tasks; core lifecycle engineering rules are fully defined in this instruction file. Load `SKILL.md` files strictly for the 5 On-Demand Specialists (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`, `ask-skill-auditor`).
 
 ## 2. Core Engineering & Verification Invariants
@@ -47,7 +47,7 @@ Classify every incoming request before acting and modulate your thinking budget 
      - Supports two identical tracks:
        1. **`concept > req > impl` (Standard / Complex Features)**: Distill draft into `docs/features/FEAT-*.md` (escalating contradictions to user) and archive to `docs/concepts/archive/` (`./.agents/scripts/inspect-feature-specs.ps1 -ArchiveConcept`). Downstream implementation roles (`Developer`, `Tester`, `Verifikation`) never inspect concept files directly.
        2. **`concept > impl` (Fast-Track / Prototypes)**: Approved draft serves directly as working contract, is archived to `docs/concepts/archive/`, and implemented directly via Developer Inner-Loop TDD.
-   - **Lazy Loading (Zero-Full-Parse Invariant)**: Read **only** the central index (`docs/ROADMAP.md` or `REQUIREMENTS.md`) or query via `pwsh -NoProfile -File ./.agents/scripts/inspect-feature-specs.ps1 -Phase <Phase>` and load strictly the single target spec file.
+   - **Lazy Loading & Progressive Disclosure (Zero-Full-Parse Invariant)**: Read **only** the central index (`docs/ROADMAP.md` or `REQUIREMENTS.md`) or query via `pwsh -NoProfile -File ./.agents/scripts/inspect-feature-specs.ps1 -Phase <Phase>` and load strictly the single target spec file. Inspect code signatures via `get-code-outline.ps1` first, and load full implementation files **only** when directly modified by the active `AC-*`.
 8. **Relative Paths Invariant in Documentation**:
    - In all documentation (`*.md`), **always use relative paths** (e.g. `../ARCHITECTURE.md`, `docs/features/FEAT-*.md`). Absolute paths (`C:\...`, `/home/...`, `file:///...`) are strictly forbidden in committed docs.
 9. **MCP & External Tool Governance (Local-First Priority)**:
@@ -55,6 +55,7 @@ Classify every incoming request before acting and modulate your thinking budget 
 10. **Output Brevity, Prompt Caching & Token Hygiene**:
     - Keep phase transitions (`### [Phase: ...]`) concise (max 3–5 bullet points for state checkpoints). Never echo full modified source files back in chat after applying file edits.
     - Maintain Two-Zone Prompt Architecture (Zone 1 Static Frozen Prefix, Zone 2 Dynamic Tail) to preserve 75–90% KV-cache discounts.
+    - **Situative `.agent-state.json` (Scratch/Temp Only)**: Never write `.agent-state.json` between phases in a regular single-thread run; write it (`decisions`, `touched_files`, `open_ac_ids`, `constraints`) exclusively in the scratch/temp directory **only** on Circuit-Breaker Level 3 (*Context Purge*) or an explicit Copilot thread switch.
 
 ## 3. On-Demand Specialist Workflows (V2 Capability Packs via `.agents`)
 When encountering specialized tasks requiring deep domain expertise, consult the consolidated capability pack guides in `.agents/skills/` (user-level fallback: `~/.agents/skills/`) on demand:

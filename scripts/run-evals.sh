@@ -271,6 +271,25 @@ for c in cases:
         elif inv == 'mcp_local_first':
             if 'MCP & External Tool Governance (Local-First Priority)' not in agents_content or 'MCP & External Tool Governance (Local-First Priority)' not in copilot_content:
                 failures.append("Invariant 'mcp_local_first' missing in AGENTS.md or .github/copilot-instructions.md")
+        elif inv == 'ac_traceability_gate':
+            fg_ps1 = read_file(os.path.join(repo_root, 'scripts', 'run-fast-gate.ps1'))
+            fg_sh = read_file(os.path.join(repo_root, 'scripts', 'run-fast-gate.sh'))
+            if 'ACTraceability' not in fg_ps1 or 'ACTraceability' not in fg_sh:
+                failures.append("Invariant 'ac_traceability_gate' missing in run-fast-gate.ps1 or run-fast-gate.sh")
+        elif inv == 'diff_size_warning':
+            fg_ps1 = read_file(os.path.join(repo_root, 'scripts', 'run-fast-gate.ps1'))
+            fg_sh = read_file(os.path.join(repo_root, 'scripts', 'run-fast-gate.sh'))
+            if '[DiffSize]' not in fg_ps1 or '[DiffSize]' not in fg_sh:
+                failures.append("Invariant 'diff_size_warning' missing in run-fast-gate.ps1 or run-fast-gate.sh")
+        elif inv == 'zero_trust_diff_report':
+            if 'Zero-Trust Diff-Report' not in control_content:
+                failures.append("Invariant 'zero_trust_diff_report' missing in ask-control/SKILL.md")
+        elif inv == 'progressive_disclosure_ac_scoped':
+            if 'directly modified by the active `AC-*`' not in agents_content or 'directly modified by the active `AC-*`' not in control_content:
+                failures.append("Invariant 'progressive_disclosure_ac_scoped' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'situative_agent_state_scratch':
+            if 'scratch/temp directory' not in agents_content or 'scratch/temp directory' not in control_content:
+                failures.append("Invariant 'situative_agent_state_scratch' missing in AGENTS.md or ask-control/SKILL.md")
         else:
             failures.append(f"Unhandled required_invariant '{inv}' in eval case '{cid}' (must be explicitly asserted in run-evals.sh)")
 

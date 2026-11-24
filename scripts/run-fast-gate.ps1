@@ -36,6 +36,9 @@ param(
     [switch]$Force,
 
     [Parameter(Mandatory = $false)]
+    [int]$MaxDiffLines = 400,
+
+    [Parameter(Mandatory = $false)]
     [switch]$JsonOutput
 )
 
@@ -49,6 +52,7 @@ if (-not $ProjectRoot) {
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $failedStep = $null
 $failureLogs = [System.Collections.Generic.List[string]]::new()
+$warnings = [System.Collections.Generic.List[string]]::new()
 
 $currentPs = (Get-Process -Id $PID).Path
 $psExe = if ($currentPs -match 'pwsh(\.exe)?$') {
@@ -218,6 +222,69 @@ if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails)
             }
         } catch {}
     }
+
+    # 3b. Diff-Size-Guardrail (FEAT-GOV-002 AC-3: Warning only when executable code diff exceeds MaxDiffLines)
+    if (-not $bypassedNoCode -and $MaxDiffLines -gt 0) {
+        try {
+            $numstatLines = git -C $ProjectRoot diff --numstat HEAD 2>$null
+            if ($LASTEXITCODE -eq 0 -and $numstatLines) {
+                $totalDiffLines = 0
+                $codeExtPattern = '\.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql|ps1|sh)$'
+                foreach ($nline in ($numstatLines -split "`r?`n")) {
+                    if ($nline -match '^(\d+)\s+(\d+)\s+(.+)$') {
+                        $added = [int]$Matches[1]
+                        $deleted = [int]$Matches[2]
+                        $diffFile = $Matches[3].Trim()
+                        if ($diffFile -match $codeExtPattern) {
+                            $totalDiffLines += ($added + $deleted)
+                        }
+                    }
+                }
+                if ($totalDiffLines -gt $MaxDiffLines) {
+                    $warnings.Add("[DiffSize] $totalDiffLines executable code lines changed in working tree (threshold: $MaxDiffLines). Consider splitting into smaller atomic commits.")
+                }
+            }
+        } catch {}
+    }
+
+    # 3c. AC-* Traceability Check (FEAT-GOV-002 AC-1/AC-2: Stage-1 Fail when active APPROVED/IN_PROGRESS FEAT-*.md has uncovered AC-* IDs)
+    if ($guardrailsSuccess -and -not $bypassedNoCode) {
+        $featuresDir = Join-Path $ProjectRoot "docs\features"
+        if (Test-Path $featuresDir) {
+            $activeSpecs = Get-ChildItem -Path $featuresDir -Filter "FEAT-*.md" -File -ErrorAction SilentlyContinue | Where-Object {
+                $rawSpec = Get-Content -Path $_.FullName -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+                $rawSpec -match '(?m)^status:\s*(APPROVED|IN_PROGRESS)\b'
+            }
+            if ($activeSpecs) {
+                $testFiles = Get-ChildItem -Path $ProjectRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+                    $_.FullName -notmatch '[\\/](node_modules|target|bin|obj|\.git|_agents|\.agents|dist|build)[\\/]' -and
+                    ($_.FullName -match '(?i)([\\/](tests?|specs?|__tests__|evals)[\\/]|(test|spec)\.[a-z0-9]+$|_test\.[a-z0-9]+$|eval-cases\.json$|test-skills\.(ps1|sh)$)')
+                }
+                $testCorpus = ""
+                if ($testFiles) {
+                    $sb = [System.Text.StringBuilder]::new()
+                    foreach ($tf in $testFiles) {
+                        $tContent = Get-Content -Path $tf.FullName -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+                        if ($tContent) { [void]$sb.AppendLine($tContent) }
+                    }
+                    $testCorpus = $sb.ToString()
+                }
+                foreach ($specFile in $activeSpecs) {
+                    $specContent = Get-Content -Path $specFile.FullName -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+                    $acMatches = [regex]::Matches($specContent, '(?m)^\s*-\s*\[[ xX]\]\s*\*\*(AC-\d+)\*\*')
+                    $relSpec = $specFile.FullName.Substring($ProjectRoot.Length).TrimStart('\', '/')
+                    foreach ($m in $acMatches) {
+                        $acId = $m.Groups[1].Value
+                        if ($testCorpus -notmatch "\b$([regex]::Escape($acId))\b") {
+                            $guardrailsSuccess = $false
+                            $failedStep = "ACTraceability"
+                            $failureLogs.Add("[ACTraceability] ${relSpec}: Missing test reference for $acId (reference $acId in a test name or comment)")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 $sw.Stop()
@@ -229,6 +296,7 @@ $result = [ordered]@{
     duration_ms = $sw.ElapsedMilliseconds
     bypassed_code_gate = $bypassedNoCode
     errors = if (-not $overallPass) { $failureLogs.ToArray() } else { @() }
+    warnings = $warnings.ToArray()
 }
 
 if ($JsonOutput) {
@@ -240,10 +308,16 @@ if ($JsonOutput) {
         } else {
             Write-Host "Stage-1 Fast-Gate: PASS ($($sw.ElapsedMilliseconds)ms) - Zero errors" -ForegroundColor Green
         }
+        foreach ($warn in $warnings) {
+            Write-Host "  [WARN] $warn" -ForegroundColor Yellow
+        }
     } else {
         Write-Host "Stage-1 Fast-Gate: FAIL at step '$failedStep' ($($sw.ElapsedMilliseconds)ms)" -ForegroundColor Red
         foreach ($err in $failureLogs) {
             Write-Host "  - $err" -ForegroundColor Yellow
+        }
+        foreach ($warn in $warnings) {
+            Write-Host "  [WARN] $warn" -ForegroundColor DarkYellow
         }
     }
 }
