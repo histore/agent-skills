@@ -152,8 +152,8 @@ if [[ "$FORCE" != "true" && -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && "$STACK"
         FILE_PATH="${FILE_PATH%\"}"
         FILE_PATH="${FILE_PATH#\"}"
         FILE_NAME="$(basename "$FILE_PATH")"
-        if [[ "$FILE_NAME" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$ ]] || \
-           [[ "$FILE_NAME" =~ ^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|(build|settings)\.gradle(\.kts)?|libs\.versions\.toml|AndroidManifest\.xml|CMakeLists\.txt|Makefile)$ ]]; then
+        if [[ "$FILE_NAME" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|qml|qrc|ui|swift|rb|php|scala|dart|zig|sql)$ ]] || \
+           [[ "$FILE_NAME" =~ ^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|(build|settings)\.gradle(\.kts)?|libs\.versions\.toml|AndroidManifest\.xml|CMakeLists\.txt|CMakePresets\.json|.*\.vcxproj|Makefile)$ ]]; then
           HAS_CODE=true
           break
         fi
@@ -260,6 +260,27 @@ EOF
       fi
     fi
   fi
+  if [[ "$OVERALL_PASS" == "true" && ( "$LANG" == "cpp" || "$STACK" =~ cmake|msbuild ) && -f "${SCRIPT_DIR}/lint-cpp-qt-contracts.sh" ]]; then
+    CPPQT_OUT=""
+    if ! CPPQT_OUT=$(bash "${SCRIPT_DIR}/lint-cpp-qt-contracts.sh" --project-root "$PROJECT_ROOT" --working-tree --json 2>&1); then
+      OVERALL_PASS=false
+      FAILED_STEP="CppQtContracts"
+      if command -v python3 &>/dev/null; then
+        ERROR_LOG=$(python3 - "$CPPQT_OUT" << 'EOF' 2>/dev/null || printf '%s\n' "$CPPQT_OUT"
+import json, sys
+try:
+    d = json.loads(sys.argv[1])
+    lines = [f"[{v.get('Rule', 'CppQtContracts')}] {v.get('File', '')}:{v.get('Line', 0)} - {v.get('Message', '')}" for v in d.get('errors', [])]
+    print('\n'.join(lines) if lines else sys.argv[1])
+except Exception:
+    print(sys.argv[1])
+EOF
+        )
+      else
+        ERROR_LOG="$CPPQT_OUT"
+      fi
+    fi
+  fi
   # 3b. Diff-Size-Guardrail (FEAT-GOV-002 AC-3: Warning only when executable code diff exceeds MAX_DIFF_LINES)
   if [[ "$BYPASSED_NO_CODE" != "true" && "$MAX_DIFF_LINES" -gt 0 ]] && command -v git &>/dev/null; then
     NUMSTAT_OUT=$(git -C "$PROJECT_ROOT" diff --numstat HEAD 2>/dev/null || true)
@@ -295,7 +316,7 @@ EOF
         ! -path '*/node_modules/*' ! -path '*/target/*' ! -path '*/bin/*' ! -path '*/obj/*' \
         ! -path '*/.git/*' ! -path '*/_agents/*' ! -path '*/.agents/*' ! -path '*/dist/*' ! -path '*/build/*' \
         \( -ipath '*/tests/*' -o -ipath '*/test/*' -o -ipath '*/androidTest/*' -o -ipath '*/specs/*' -o -ipath '*/__tests__/*' -o -ipath '*/evals/*' \
-           -o -iname '*test.*' -o -name '*Test.kt' -o -name '*Test.java' -o -iname '*spec.*' -o -iname '*_test.*' -o -name 'eval-cases.json' -o -name 'test-skills.ps1' -o -name 'test-skills.sh' \) \
+           -o -iname '*test.*' -o -name '*Test.kt' -o -name '*Test.java' -o -name '*Test.cpp' -o -name 'tst_*.cpp' -o -name 'tst_*.qml' -o -iname '*spec.*' -o -iname '*_test.*' -o -name 'eval-cases.json' -o -name 'test-skills.ps1' -o -name 'test-skills.sh' \) \
         -print0 2>/dev/null)
 
       for sf in "${ACTIVE_SPECS[@]}"; do

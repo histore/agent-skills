@@ -64,6 +64,7 @@ if ($ReportPath) {
         "jacoco.xml",
         "coverage/lcov.info",
         "lcov.info",
+        "coverage.info",
         "coverage/coverage-summary.json",
         "tarpaulin-report.json"
     )
@@ -107,7 +108,7 @@ if ($foundFile -and (Test-Path $foundFile)) {
         }
     }
     # LCOV
-    elseif ($fileName -match '(?i)lcov\.info$') {
+    elseif ($fileName -match '(?i)(lcov|coverage)\.info$') {
         $format = "lcov"
         $linesFound = 0
         $linesHit = 0

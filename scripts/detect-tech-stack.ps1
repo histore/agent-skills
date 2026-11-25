@@ -59,8 +59,8 @@ if (Test-Path (Join-Path $ProjectRoot "Cargo.toml")) {
     $detected.format_fix_cmd = "cargo fmt"
     $detected.manifest_file = "Cargo.toml"
 }
-# 2. .NET (Directory.Build.props, *.sln, *.csproj)
-elseif ((Test-Path (Join-Path $ProjectRoot "Directory.Build.props")) -or @(Get-ChildItem -Path $ProjectRoot -Filter "*.sln" -File -Depth 1).Count -gt 0 -or @(Get-ChildItem -Path $ProjectRoot -Filter "*.*proj" -File -Depth 2).Count -gt 0) {
+# 2. .NET (Directory.Build.props, *.sln, *.csproj, *.fsproj)
+elseif ((Test-Path (Join-Path $ProjectRoot "Directory.Build.props")) -or (@(Get-ChildItem -Path $ProjectRoot -Filter "*.sln" -File -Depth 1).Count -gt 0 -and @(Get-ChildItem -Path $ProjectRoot -Filter "*.vcxproj" -File -Depth 2).Count -eq 0) -or @(Get-ChildItem -Path $ProjectRoot -Include "*.csproj", "*.fsproj" -File -Depth 2).Count -gt 0) {
     $detected.stack = "dotnet"
     $detected.language = "csharp"
     $detected.build_cmd = "dotnet build -v quiet"
@@ -177,6 +177,36 @@ elseif (Test-Path (Join-Path $ProjectRoot "pom.xml")) {
         $detected.format_fix_cmd = "$mvnCmd spotless:apply -q"
     }
     $detected.manifest_file = "pom.xml"
+}
+# 8. C++ / CMake / MinGW / MSVC / Qt (CMakeLists.txt, CMakePresets.json, *.vcxproj)
+elseif ((Test-Path (Join-Path $ProjectRoot "CMakeLists.txt")) -or (Test-Path (Join-Path $ProjectRoot "CMakePresets.json")) -or @(Get-ChildItem -Path $ProjectRoot -Filter "*.vcxproj" -File -Depth 2).Count -gt 0) {
+    $hasCMake = (Test-Path (Join-Path $ProjectRoot "CMakeLists.txt")) -or (Test-Path (Join-Path $ProjectRoot "CMakePresets.json"))
+    $hasClangTidy = ($null -ne (Get-Command clang-tidy -ErrorAction SilentlyContinue))
+    $hasCppcheck = ($null -ne (Get-Command cppcheck -ErrorAction SilentlyContinue))
+    $hasClangFormat = ($null -ne (Get-Command clang-format -ErrorAction SilentlyContinue))
+    $detected.language = "cpp"
+    if ($hasCMake) {
+        $cmakeRaw = ""
+        if (Test-Path (Join-Path $ProjectRoot "CMakeLists.txt")) { $cmakeRaw += (Get-Content -Path (Join-Path $ProjectRoot "CMakeLists.txt") -Raw -Encoding UTF8) }
+        if (Test-Path (Join-Path $ProjectRoot "CMakePresets.json")) { $cmakeRaw += "`n" + (Get-Content -Path (Join-Path $ProjectRoot "CMakePresets.json") -Raw -Encoding UTF8) }
+        $isMingw = ($cmakeRaw -match '(?i)mingw|g\+\+|gcc') -or (($null -ne (Get-Command g++ -ErrorAction SilentlyContinue)) -and ($null -eq (Get-Command cl -ErrorAction SilentlyContinue)))
+        $detected.stack = if ($isMingw) { "cmake-mingw" } else { "cmake-msvc" }
+        $detected.build_cmd = "cmake --build build"
+        $detected.test_cmd = "ctest --test-dir build --output-on-failure"
+        $detected.test_filter_syntax = "ctest --test-dir build --output-on-failure -R {filter}"
+        $detected.manifest_file = if (Test-Path (Join-Path $ProjectRoot "CMakePresets.json")) { "CMakePresets.json" } else { "CMakeLists.txt" }
+    } else {
+        $detected.stack = "msbuild"
+        $detected.build_cmd = "msbuild -v:quiet"
+        $detected.test_cmd = "ctest --output-on-failure"
+        $detected.test_filter_syntax = "ctest --output-on-failure -R {filter}"
+        $detected.manifest_file = "*.vcxproj"
+    }
+    $detected.lint_cmd = if ($hasClangTidy) { "clang-tidy" } elseif ($hasCppcheck) { "cppcheck --quiet ." } else { "" }
+    if ($hasClangFormat) {
+        $detected.format_check_cmd = "clang-format --dry-run --Werror"
+        $detected.format_fix_cmd = "clang-format -i"
+    }
 }
 
 $jsonStr = $detected | ConvertTo-Json -Compress

@@ -5,6 +5,12 @@
                                                                   "id":  "FEAT-EFF-001",
                                                                   "hash":  "4124b07ccc607ba4f11b06fc98ca74965deadc9db2cca43f692a9e37b000d154"
                                                               },
+    "docs/features/FEAT-TOOL-003-cpp-qt-qml-guardrails.md":  {
+                                                                 "phase":  "1",
+                                                                 "status":  "IMPLEMENTED",
+                                                                 "id":  "FEAT-TOOL-003",
+                                                                 "hash":  "8c231c5f4af0989f82ed8dc5c30b5a84c40cac99a7b8f12b44059d93a62ffcaa"
+                                                             },
     "docs/features/FEAT-ROLE-001-subagent-role-system.md":  {
                                                                 "phase":  "0",
                                                                 "status":  "VERIFIED",

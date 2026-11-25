@@ -129,6 +129,8 @@ else:
         os.path.join(repo_root, 'test-results'),
         os.path.join(repo_root, 'target/surefire-reports'),
         os.path.join(repo_root, 'build/test-results'),
+        os.path.join(repo_root, 'Testing'),
+        os.path.join(repo_root, 'build/Testing'),
         os.path.join(repo_root, '.pytest_cache')
     ]
     for c in candidates:

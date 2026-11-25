@@ -92,6 +92,8 @@ if ($ResultsPath) {
         (Join-Path $RepoRoot "test-results"),
         (Join-Path $RepoRoot "target/surefire-reports"),
         (Join-Path $RepoRoot "build/test-results"),
+        (Join-Path $RepoRoot "Testing"),
+        (Join-Path $RepoRoot "build/Testing"),
         (Join-Path $RepoRoot ".pytest_cache")
     )
 

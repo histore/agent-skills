@@ -96,6 +96,14 @@ ext_lang = {
     ".py": "python",
     ".go": "go",
     ".kt": "kotlin",
+    ".c": "cpp",
+    ".cpp": "cpp",
+    ".cc": "cpp",
+    ".cxx": "cpp",
+    ".h": "cpp",
+    ".hpp": "cpp",
+    ".hxx": "cpp",
+    ".qml": "qml",
 }
 ignored_dirs = {".git", "_agents", ".agents", "node_modules", "bin", "obj", "target", ".vs", ".pytest_cache"}
 
@@ -220,6 +228,38 @@ def parse_signatures(filepath):
                     kind = "composable" if m2.group(1) else "fun"
                     sig = trimmed.rstrip("{=").strip()
                     vis = m2.group(2) or "public"
+        elif lang == "cpp":
+            m = re.match(r'^(namespace|class|struct|enum\s+class|enum)\s+([A-Za-z0-9_]+)', trimmed)
+            if m:
+                kind = m.group(1)
+                sig = trimmed.rstrip("{;").strip()
+                vis = "public"
+            elif re.match(r'^(Q_OBJECT|Q_PROPERTY\s*\(|Q_INVOKABLE\b|signals:|slots:|public\s+slots:|private\s+slots:)', trimmed):
+                kind = "qt_meta"
+                sig = trimmed.rstrip("{").strip()
+                vis = "public"
+            else:
+                m2 = re.match(r'^(?:(?:virtual|static|inline|explicit|constexpr)\s+)*[\w:<>~*&]+\s+([A-Za-z0-9_:~]+)\s*\([^)]*\)', trimmed)
+                if m2 and not re.match(r'^(if|while|for|switch|catch|return)\b', trimmed):
+                    kind = "function"
+                    sig = trimmed.rstrip("{;").strip()
+                    vis = "public"
+        elif lang == "qml":
+            m = re.match(r'^([A-Z][A-Za-z0-9_.]*)\s*\{$', trimmed)
+            if m:
+                kind = "component"
+                sig = m.group(1)
+                vis = "public"
+            elif re.match(r'^(?:readonly\s+)?property\s+[\w<>]+\s+\w+', trimmed):
+                kind = "property"
+                sig = trimmed
+                vis = "public"
+            else:
+                m2 = re.match(r'^(signal|function)\s+([A-Za-z0-9_]+)\s*\(', trimmed)
+                if m2:
+                    kind = m2.group(1)
+                    sig = trimmed.rstrip("{").strip()
+                    vis = "public"
 
         if kind and sig:
             sigs.append({"line": idx, "kind": kind, "visibility": vis, "signature": sig})

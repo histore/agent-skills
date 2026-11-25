@@ -64,7 +64,7 @@ if (-not (Test-Path $targetPath)) {
 }
 
 # 2. Collect Candidate Files
-$supportedExts = @('.cs', '.rs', '.ts', '.tsx', '.js', '.py', '.go', '.kt')
+$supportedExts = @('.cs', '.rs', '.ts', '.tsx', '.js', '.py', '.go', '.kt', '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx', '.qml')
 $filesToScan = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
 
 if ((Get-Item $targetPath) -is [System.IO.FileInfo]) {
@@ -95,6 +95,14 @@ function Parse-Signatures {
         '.py'   { 'python' }
         '.go'   { 'go' }
         '.kt'   { 'kotlin' }
+        '.c'    { 'cpp' }
+        '.cpp'  { 'cpp' }
+        '.cc'   { 'cpp' }
+        '.cxx'  { 'cpp' }
+        '.h'    { 'cpp' }
+        '.hpp'  { 'cpp' }
+        '.hxx'  { 'cpp' }
+        '.qml'  { 'qml' }
         default { 'unknown' }
     }
 
@@ -194,6 +202,36 @@ function Parse-Signatures {
                     $kind = if ($trimmed -match '@Composable') { "composable" } else { "fun" }
                     $sig = $trimmed.TrimEnd('{', '=').Trim()
                     $vis = if ($matches[2]) { $matches[2] } else { "public" }
+                }
+            }
+            'cpp' {
+                if ($trimmed -match '^(namespace|class|struct|enum\s+class|enum)\s+([A-Za-z0-9_]+)') {
+                    $kind = $matches[1]
+                    $sig = $trimmed.TrimEnd('{', ';').Trim()
+                    $vis = "public"
+                } elseif ($trimmed -match '^(Q_OBJECT|Q_PROPERTY\s*\(|Q_INVOKABLE\b|signals:|slots:|public\s+slots:|private\s+slots:)') {
+                    $kind = "qt_meta"
+                    $sig = $trimmed.TrimEnd('{').Trim()
+                    $vis = "public"
+                } elseif ($trimmed -match '^((virtual|static|inline|explicit|constexpr)\s+)*[\w:<>~*&]+\s+([A-Za-z0-9_:~]+)\s*\([^)]*\)' -and $trimmed -notmatch '^(if|while|for|switch|catch|return)\b') {
+                    $kind = "function"
+                    $sig = $trimmed.TrimEnd('{', ';').Trim()
+                    $vis = "public"
+                }
+            }
+            'qml' {
+                if ($trimmed -match '^([A-Z][A-Za-z0-9_.]*)\s*\{$') {
+                    $kind = "component"
+                    $sig = $matches[1]
+                    $vis = "public"
+                } elseif ($trimmed -match '^(readonly\s+)?property\s+[\w<>]+\s+\w+') {
+                    $kind = "property"
+                    $sig = $trimmed
+                    $vis = "public"
+                } elseif ($trimmed -match '^(signal|function)\s+([A-Za-z0-9_]+)\s*\(') {
+                    $kind = $matches[1]
+                    $sig = $trimmed.TrimEnd('{').Trim()
+                    $vis = "public"
                 }
             }
         }

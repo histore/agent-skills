@@ -150,8 +150,8 @@ if ($stackInfo.stack -ne "unknown") {
                 } else {
                     $statusLines = $gitStatus -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
                     $hasExecutableCode = $false
-                    $codeExtRegex = '\.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|swift|rb|php|scala|dart|zig|sql)$'
-                    $manifestRegex = '^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|(build|settings)\.gradle(\.kts)?|libs\.versions\.toml|AndroidManifest\.xml|CMakeLists\.txt|Makefile)$'
+                    $codeExtRegex = '\.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|qml|qrc|ui|swift|rb|php|scala|dart|zig|sql)$'
+                    $manifestRegex = '^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|(build|settings)\.gradle(\.kts)?|libs\.versions\.toml|AndroidManifest\.xml|CMakeLists\.txt|CMakePresets\.json|.*\.vcxproj|Makefile)$'
 
                     foreach ($line in $statusLines) {
                         $rawPath = $line.Substring(2).Trim()
@@ -240,6 +240,23 @@ if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails)
         } catch {}
     }
 
+    $cppQtScript = Join-Path $scriptDir "lint-cpp-qt-contracts.ps1"
+    if ($guardrailsSuccess -and ($stackInfo.language -eq "cpp" -or $stackInfo.stack -match 'cmake|msbuild') -and (Test-Path $cppQtScript)) {
+        try {
+            $cppQtRes = & $cppQtScript -ProjectRoot $ProjectRoot -WorkingTree -JsonOutput | ConvertFrom-Json
+            foreach ($w in $cppQtRes.warnings) {
+                $warnings.Add("[$($w.Rule)] $($w.File):$($w.Line) - $($w.Message)")
+            }
+            if ($cppQtRes.status -eq "fail") {
+                $guardrailsSuccess = $false
+                $failedStep = "CppQtContracts"
+                foreach ($v in $cppQtRes.errors) {
+                    $failureLogs.Add("[$($v.Rule)] $($v.File):$($v.Line) - $($v.Message)")
+                }
+            }
+        } catch {}
+    }
+
     # 3b. Diff-Size-Guardrail (FEAT-GOV-002 AC-3: Warning only when executable code diff exceeds MaxDiffLines)
     if (-not $bypassedNoCode -and $MaxDiffLines -gt 0) {
         try {
@@ -275,7 +292,7 @@ if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails)
             if ($activeSpecs) {
                 $testFiles = Get-ChildItem -Path $ProjectRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
                     $_.FullName -notmatch '[\\/](node_modules|target|bin|obj|\.git|_agents|\.agents|dist|build)[\\/]' -and
-                    ($_.FullName -match '(?i)([\\/](tests?|androidTest|specs?|__tests__|evals)[\\/]|(test|spec)\.[a-z0-9]+$|Test\.(kt|java)$|_test\.[a-z0-9]+$|eval-cases\.json$|test-skills\.(ps1|sh)$)')
+                    ($_.FullName -match '(?i)([\\/](tests?|androidTest|specs?|__tests__|evals)[\\/]|(test|spec)\.[a-z0-9]+$|Test\.(kt|java|cpp|cc|cxx)$|tst_.*\.(cpp|qml)$|_test\.[a-z0-9]+$|eval-cases\.json$|test-skills\.(ps1|sh)$)')
                 }
                 $testCorpus = ""
                 if ($testFiles) {

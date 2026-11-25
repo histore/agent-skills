@@ -29,7 +29,13 @@
         "android\\.",
         "androidx\\.compose",
         "android\\.content\\.ContentProvider",
-        "android\\.database\\.Cursor"
+        "android\\.database\\.Cursor",
+        "qtquick",
+        "qtwidgets",
+        "qtqml",
+        "qquickitem",
+        "qwidget",
+        "windows\\.h"
       ],
       "message": "Domain layer must remain strictly decoupled from Infrastructure, Database, and UI delivery mechanisms."
     },
@@ -44,7 +50,12 @@
         "vue",
         "avalonia",
         "wpf",
-        "androidx\\.compose"
+        "androidx\\.compose",
+        "qtquick",
+        "qtwidgets",
+        "qtqml",
+        "qquickitem",
+        "qwidget"
       ],
       "message": "Application / Use Cases layer must remain UI- and presenter-agnostic."
     }

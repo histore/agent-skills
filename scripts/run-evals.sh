@@ -315,6 +315,31 @@ for c in cases:
             ac_sh = open(os.path.join(repo_root, 'scripts', 'lint-android-contracts.sh'), encoding='utf-8', errors='ignore').read()
             if 'MissingNotifyChange' not in ac_ps1 or 'MissingNotifyChange' not in ac_sh:
                 failures.append("Invariant 'content_provider_notify_change' missing in lint-android-contracts")
+        elif inv == 'cpp_cmake_toolchain_detection':
+            dt_ps1 = open(os.path.join(repo_root, 'scripts', 'detect-tech-stack.ps1'), encoding='utf-8', errors='ignore').read()
+            dt_sh = open(os.path.join(repo_root, 'scripts', 'detect-tech-stack.sh'), encoding='utf-8', errors='ignore').read()
+            if 'cmake-mingw' not in dt_ps1 or 'cmake-mingw' not in dt_sh:
+                failures.append("Invariant 'cpp_cmake_toolchain_detection' missing in detect-tech-stack")
+        elif inv == 'cpp_qml_clean_architecture':
+            la_ps1 = open(os.path.join(repo_root, 'scripts', 'lint-clean-architecture.ps1'), encoding='utf-8', errors='ignore').read()
+            la_sh = open(os.path.join(repo_root, 'scripts', 'lint-clean-architecture.sh'), encoding='utf-8', errors='ignore').read()
+            if '.qml' not in la_ps1 or '.qml' not in la_sh:
+                failures.append("Invariant 'cpp_qml_clean_architecture' missing .qml/.cpp support in lint-clean-architecture")
+        elif inv == 'cpp_qml_code_outline':
+            co_ps1 = open(os.path.join(repo_root, 'scripts', 'get-code-outline.ps1'), encoding='utf-8', errors='ignore').read()
+            co_sh = open(os.path.join(repo_root, 'scripts', 'get-code-outline.sh'), encoding='utf-8', errors='ignore').read()
+            if '.qml' not in co_ps1 or '.qml' not in co_sh:
+                failures.append("Invariant 'cpp_qml_code_outline' missing .qml/.cpp support in get-code-outline")
+        elif inv == 'qt_meta_object_guard':
+            cq_ps1 = open(os.path.join(repo_root, 'scripts', 'lint-cpp-qt-contracts.ps1'), encoding='utf-8', errors='ignore').read()
+            cq_sh = open(os.path.join(repo_root, 'scripts', 'lint-cpp-qt-contracts.sh'), encoding='utf-8', errors='ignore').read()
+            if 'MissingQObjectMacro' not in cq_ps1 or 'MissingQObjectMacro' not in cq_sh:
+                failures.append("Invariant 'qt_meta_object_guard' missing in lint-cpp-qt-contracts")
+        elif inv == 'qml_qt6_connections_guard':
+            cq_ps1 = open(os.path.join(repo_root, 'scripts', 'lint-cpp-qt-contracts.ps1'), encoding='utf-8', errors='ignore').read()
+            cq_sh = open(os.path.join(repo_root, 'scripts', 'lint-cpp-qt-contracts.sh'), encoding='utf-8', errors='ignore').read()
+            if 'Qt6ConnectionsSyntax' not in cq_ps1 or 'Qt6ConnectionsSyntax' not in cq_sh:
+                failures.append("Invariant 'qml_qt6_connections_guard' missing in lint-cpp-qt-contracts")
         else:
             failures.append(f"Unhandled required_invariant '{inv}' in eval case '{cid}' (must be explicitly asserted in run-evals.sh)")
 

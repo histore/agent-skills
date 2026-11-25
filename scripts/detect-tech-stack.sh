@@ -58,7 +58,7 @@ elif [[ -f "${PROJECT_ROOT}/Directory.Build.props" ]] || compgen -G "${PROJECT_R
     FORMAT_CHECK_CMD="dotnet format \"$(basename "$SLN_FILE")\" --verify-no-changes"
     FORMAT_FIX_CMD="dotnet format \"$(basename "$SLN_FILE")\""
   else
-    PROJ_FILE=$(find "$PROJECT_ROOT" -maxdepth 3 -name "*.*proj" -type f 2>/dev/null | head -n 1 || true)
+    PROJ_FILE=$(find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.csproj" -o -name "*.fsproj" \) -type f 2>/dev/null | head -n 1 || true)
     if [[ -n "$PROJ_FILE" ]]; then
       REL_PROJ="${PROJ_FILE#"${PROJECT_ROOT%/}"/}"
       FORMAT_CHECK_CMD="dotnet format \"${REL_PROJ}\" --verify-no-changes"
@@ -165,6 +165,35 @@ elif [[ -f "${PROJECT_ROOT}/pom.xml" ]]; then
     FORMAT_FIX_CMD="${MVN_CMD} spotless:apply -q"
   fi
   MANIFEST="pom.xml"
+elif [[ -f "${PROJECT_ROOT}/CMakeLists.txt" ]] || [[ -f "${PROJECT_ROOT}/CMakePresets.json" ]] || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 -name "*.vcxproj" -type f 2>/dev/null | head -n 1)" ]]; then
+  LANG="cpp"
+  if [[ -f "${PROJECT_ROOT}/CMakeLists.txt" ]] || [[ -f "${PROJECT_ROOT}/CMakePresets.json" ]]; then
+    CMAKE_RAW=""
+    [[ -f "${PROJECT_ROOT}/CMakeLists.txt" ]] && CMAKE_RAW+=$(cat "${PROJECT_ROOT}/CMakeLists.txt" 2>/dev/null || true)
+    [[ -f "${PROJECT_ROOT}/CMakePresets.json" ]] && CMAKE_RAW+=$(cat "${PROJECT_ROOT}/CMakePresets.json" 2>/dev/null || true)
+    if echo "$CMAKE_RAW" | grep -qiE "mingw|g\+\+|gcc" || (command -v g++ &>/dev/null && ! command -v cl &>/dev/null); then
+      STACK="cmake-mingw"
+    else
+      STACK="cmake-msvc"
+    fi
+    BUILD_CMD="cmake --build build"
+    TEST_CMD="ctest --test-dir build --output-on-failure"
+    FILTER_SYNTAX="ctest --test-dir build --output-on-failure -R {filter}"
+    [[ -f "${PROJECT_ROOT}/CMakePresets.json" ]] && MANIFEST="CMakePresets.json" || MANIFEST="CMakeLists.txt"
+  else
+    STACK="msbuild"
+    BUILD_CMD="msbuild -v:quiet"
+    TEST_CMD="ctest --output-on-failure"
+    FILTER_SYNTAX="ctest --output-on-failure -R {filter}"
+    MANIFEST="*.vcxproj"
+  fi
+  if command -v clang-tidy &>/dev/null; then LINT_CMD="clang-tidy"
+  elif command -v cppcheck &>/dev/null; then LINT_CMD="cppcheck --quiet ."
+  else LINT_CMD=""; fi
+  if command -v clang-format &>/dev/null; then
+    FORMAT_CHECK_CMD="clang-format --dry-run --Werror"
+    FORMAT_FIX_CMD="clang-format -i"
+  fi
 fi
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then

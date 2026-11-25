@@ -1322,6 +1322,49 @@ try {
     if (Test-Path $tempAndroidDir) { Remove-Item -LiteralPath $tempAndroidDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+# 52. Validate FEAT-TOOL-003 C++ (MinGW/MSVC) & Qt / QtQuick (QML) Toolchain Guardrails (AC-1 through AC-7)
+Write-Host "`n52. Validating FEAT-TOOL-003 C++/Qt/QML Toolchain Guardrails..." -ForegroundColor Yellow
+$tempCppDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+try {
+    New-Item -ItemType Directory -Path (Join-Path $tempCppDir "domain") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $tempCppDir "src") -Force | Out-Null
+
+    # AC-1: CMake MinGW detection
+    [System.IO.File]::WriteAllText((Join-Path $tempCppDir "CMakeLists.txt"), "cmake_minimum_required(VERSION 3.20)`n# MinGW toolchain`nproject(QtApp)`n", (New-Object System.Text.UTF8Encoding($false)))
+    $cmakeStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $tempCppDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($cmakeStack.stack -eq "cmake-mingw" -and $cmakeStack.language -eq "cpp" -and $cmakeStack.test_cmd -match 'ctest') "FEAT-TOOL-003 AC-1: detect-tech-stack.ps1 detects CMake MinGW and ctest" "FEAT-TOOL-003 AC-1 failed: $($cmakeStack | ConvertTo-Json -Compress)"
+
+    # AC-2: C++/QML Clean Architecture violation
+    [System.IO.File]::WriteAllText((Join-Path $tempCppDir "domain\Engine.hpp"), "#include <QtQuick/QQuickItem>`nclass Engine {};`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $cppArchRaw = $null
+    try { $cppArchRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\lint-clean-architecture.ps1") -TargetPath $tempCppDir -JsonOutput 2>$null } catch {}
+    $cppArchObj = if ($cppArchRaw) { $cppArchRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $cppArchObj -and $cppArchObj.status -eq "fail" -and $cppArchObj.error_count -ge 1) "FEAT-TOOL-003 AC-2: lint-clean-architecture.ps1 blocks QtQuick in domain/" "FEAT-TOOL-003 AC-2 failed ($cppArchRaw)"
+
+    # AC-3: C++/QML AST code outline
+    [System.IO.File]::WriteAllText((Join-Path $tempCppDir "src\MainView.qml"), "import QtQuick`r`nItem {`r`n  property string title: ''`r`n  function refresh() {}`r`n}`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $qmlOutline = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\get-code-outline.ps1") -Path (Join-Path $tempCppDir "src\MainView.qml") -RepoRoot $tempCppDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($qmlOutline.files.Count -eq 1 -and $qmlOutline.files[0].signatures.Count -ge 2) "FEAT-TOOL-003 AC-3: get-code-outline.ps1 extracts QML component, property, and function signatures" "FEAT-TOOL-003 AC-3 failed"
+
+    # AC-6: lint-cpp-qt-contracts detects MissingQObjectMacro and Qt6ConnectionsSyntax
+    [System.IO.File]::WriteAllText((Join-Path $tempCppDir "src\BadVm.hpp"), "class BadVm : public QObject {`r`n  Q_PROPERTY(int count READ count)`r`n};`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $tempCppDir "src\BadConn.qml"), "Connections {`r`n  onClicked: console.log('hi')`r`n}`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $cppQtRaw = $null
+    try { $cppQtRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\lint-cpp-qt-contracts.ps1") -ProjectRoot $tempCppDir -JsonOutput 2>$null } catch {}
+    $cppQtObj = if ($cppQtRaw) { $cppQtRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $cppQtObj -and $cppQtObj.status -eq "fail" -and $cppQtObj.errors.Count -ge 3) "FEAT-TOOL-003 AC-6: lint-cpp-qt-contracts.ps1 flags MissingQObjectMacro, MissingNotifySignal, and Qt6ConnectionsSyntax" "FEAT-TOOL-003 AC-6 failed ($cppQtRaw)"
+
+    # AC-4, AC-5, AC-7 checks
+    $fgRaw = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.ps1") -Raw -Encoding UTF8
+    Assert-Condition ($fgRaw -match '\|qml\|' -and $fgRaw -match 'tst_\.') "FEAT-TOOL-003 AC-4: run-fast-gate.ps1 supports .qml and C++/QML test discovery" "FEAT-TOOL-003 AC-4 failed"
+    $ctfRaw = Get-Content -Path (Join-Path $repoRoot "scripts\collect-test-failures.ps1") -Raw -Encoding UTF8
+    $covRaw = Get-Content -Path (Join-Path $repoRoot "scripts\check-test-coverage.ps1") -Raw -Encoding UTF8
+    Assert-Condition ($ctfRaw -match 'Testing' -and $covRaw -match 'coverage') "FEAT-TOOL-003 AC-5: CTest/QTest XML and coverage.info discovery enabled" "FEAT-TOOL-003 AC-5 failed"
+    Assert-Condition (Test-Path (Join-Path $repoRoot "scripts\lint-cpp-qt-contracts.sh")) "FEAT-TOOL-003 AC-7: lint-cpp-qt-contracts.sh parity script exists" "FEAT-TOOL-003 AC-7 failed"
+} finally {
+    if (Test-Path $tempCppDir) { Remove-Item -LiteralPath $tempCppDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

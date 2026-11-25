@@ -98,7 +98,7 @@ max_func_lines = int(metrics.get('max_function_lines', 60))
 max_nesting = int(metrics.get('max_nesting_depth', 4))
 layer_boundaries = rules.get('layer_boundaries', [])
 
-src_exts = ('.rs', '.cs', '.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.kt', '.kts', '.java')
+src_exts = ('.rs', '.cs', '.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.kt', '.kts', '.java', '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx', '.qml')
 files_to_scan = []
 
 if staged_only:
@@ -138,8 +138,8 @@ else:
                 files_to_scan.append(os.path.join(root, f))
 
 violations = []
-import_pattern = re.compile(r'^\s*(use\s+|import\s+|using\s+|from\s+)([^;]+)', re.IGNORECASE)
-func_pattern = re.compile(r'^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|(@Composable\s+)?((public|private|protected|internal)\s+)?(override\s+)?(suspend\s+)?fun\s+\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\()')
+import_pattern = re.compile(r'^\s*(#include\s+[<"]|use\s+|import\s+|using\s+|from\s+)([^;>"]+)', re.IGNORECASE)
+func_pattern = re.compile(r'^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|function\s+\w+\s*\(|(@Composable\s+)?((public|private|protected|internal)\s+)?(override\s+)?(suspend\s+)?fun\s+\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\(|(virtual\s+|static\s+|inline\s+|explicit\s+)*[\w:<>~*&]+\s+[\w:~]+\s*\([^;]*$)')
 ctrl_pattern = re.compile(r'^\s*(if|for|while|match|switch)\b')
 
 for fp in files_to_scan:

@@ -34,14 +34,15 @@ pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase 0
 | Phase 0 | `FEAT-EFF-001` | Next-Gen LLM Efficiency & AST Inspector | VERIFIED | `EFFICIENCY` | [features/FEAT-EFF-001-next-gen-llm-efficiency.md](features/FEAT-EFF-001-next-gen-llm-efficiency.md) | `v0.2.2` |
 | Phase 1 | `FEAT-GOV-002` | Pareto Autonomy & Deterministic Verification | IMPLEMENTED | `GOV` | [features/FEAT-GOV-002-pareto-autonomy-verification.md](features/FEAT-GOV-002-pareto-autonomy-verification.md) | `v0.3.0` |
 | Phase 1 | `FEAT-TOOL-002` | Android & Kotlin Toolchain Guardrails | IMPLEMENTED | `TOOLING` | [features/FEAT-TOOL-002-android-kotlin-guardrails.md](features/FEAT-TOOL-002-android-kotlin-guardrails.md) | `v0.4.0` |
+| Phase 1 | `FEAT-TOOL-003` | C++ (MinGW / MSVC) & Qt / QtQuick (QML) Toolchain Guardrails | IMPLEMENTED | `TOOLING` | [features/FEAT-TOOL-003-cpp-qt-qml-guardrails.md](features/FEAT-TOOL-003-cpp-qt-qml-guardrails.md) | `v0.4.0` |
 
 ---
 
 ## 3. Implementation Progress Summary
 
-- **Total Features Registered**: 7
+- **Total Features Registered**: 8
 - **Completed & Verified (Phase 0 Baseline)**: 5 (83%)
-- **Implemented (Phase 1, pending final freeze)**: 2
+- **Implemented (Phase 1, pending final freeze)**: 3
 - **Proposed / Planned (Phase 1)**: 0
 
 ---

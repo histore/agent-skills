@@ -440,6 +440,41 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'content_provider_notify_change' missing in lint-android-contracts")
                 }
             }
+            "cpp_cmake_toolchain_detection" {
+                $dtPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -Raw -Encoding UTF8
+                $dtSh = Get-Content -Path (Join-Path $repoRoot "scripts\detect-tech-stack.sh") -Raw -Encoding UTF8
+                if ($dtPs1 -notmatch 'cmake-mingw' -or $dtSh -notmatch 'cmake-mingw') {
+                    $failures.Add("Invariant 'cpp_cmake_toolchain_detection' missing in detect-tech-stack")
+                }
+            }
+            "cpp_qml_clean_architecture" {
+                $laPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\lint-clean-architecture.ps1") -Raw -Encoding UTF8
+                $laSh = Get-Content -Path (Join-Path $repoRoot "scripts\lint-clean-architecture.sh") -Raw -Encoding UTF8
+                if ($laPs1 -notmatch '\.qml' -or $laSh -notmatch '\.qml') {
+                    $failures.Add("Invariant 'cpp_qml_clean_architecture' missing .qml/.cpp support in lint-clean-architecture")
+                }
+            }
+            "cpp_qml_code_outline" {
+                $coPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\get-code-outline.ps1") -Raw -Encoding UTF8
+                $coSh = Get-Content -Path (Join-Path $repoRoot "scripts\get-code-outline.sh") -Raw -Encoding UTF8
+                if ($coPs1 -notmatch '\.qml' -or $coSh -notmatch '\.qml') {
+                    $failures.Add("Invariant 'cpp_qml_code_outline' missing .qml/.cpp support in get-code-outline")
+                }
+            }
+            "qt_meta_object_guard" {
+                $cqPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\lint-cpp-qt-contracts.ps1") -Raw -Encoding UTF8
+                $cqSh = Get-Content -Path (Join-Path $repoRoot "scripts\lint-cpp-qt-contracts.sh") -Raw -Encoding UTF8
+                if ($cqPs1 -notmatch 'MissingQObjectMacro' -or $cqSh -notmatch 'MissingQObjectMacro') {
+                    $failures.Add("Invariant 'qt_meta_object_guard' missing in lint-cpp-qt-contracts")
+                }
+            }
+            "qml_qt6_connections_guard" {
+                $cqPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\lint-cpp-qt-contracts.ps1") -Raw -Encoding UTF8
+                $cqSh = Get-Content -Path (Join-Path $repoRoot "scripts\lint-cpp-qt-contracts.sh") -Raw -Encoding UTF8
+                if ($cqPs1 -notmatch 'Qt6ConnectionsSyntax' -or $cqSh -notmatch 'Qt6ConnectionsSyntax') {
+                    $failures.Add("Invariant 'qml_qt6_connections_guard' missing in lint-cpp-qt-contracts")
+                }
+            }
             default {
                 $failures.Add("Unhandled required_invariant '$inv' in eval case '$caseId' (must be explicitly asserted in run-evals.ps1)")
             }

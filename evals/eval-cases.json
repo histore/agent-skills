@@ -386,6 +386,23 @@
           "content_provider_notify_change"
         ]
       }
+    },
+    {
+      "id": "EVAL-TOOL-003",
+      "name": "C++ (MinGW / MSVC) & Qt / QtQuick (QML) Toolchain Guardrails",
+      "category": "governance",
+      "description": "Verifies CMake MinGW/MSVC detection, C++/QML Clean Architecture & AST outlining, CTest/QTest discovery, and Qt/QML contract checks (AC-1 through AC-7).",
+      "input": "Erstelle ein neues QtQuick ViewModel mit Q_PROPERTY und QML-View unter CMake/MinGW.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "cpp_cmake_toolchain_detection",
+          "cpp_qml_clean_architecture",
+          "cpp_qml_code_outline",
+          "qt_meta_object_guard",
+          "qml_qt6_connections_guard"
+        ]
+      }
     }
   ]
 }

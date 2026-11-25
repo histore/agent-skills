@@ -61,7 +61,7 @@ if [ -n "$REPORT_PATH" ]; then
     fi
 else
     # Scan for common reports (use basename matching; -name cannot contain '/')
-    for pattern in "coverage.cobertura.xml" "cobertura.xml" "jacocoTestReport.xml" "jacoco.xml" "lcov.info" "coverage-summary.json" "tarpaulin-report.json"; do
+    for pattern in "coverage.cobertura.xml" "cobertura.xml" "jacocoTestReport.xml" "jacoco.xml" "lcov.info" "coverage.info" "coverage-summary.json" "tarpaulin-report.json"; do
         match=$(find "$REPO_ROOT" -maxdepth 6 -type f -name "$pattern" -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/node_modules/*" 2>/dev/null | head -1 || true)
         if [ -n "$match" ] && [ -f "$match" ]; then
             FOUND_FILE="$match"
@@ -88,7 +88,7 @@ if [ -n "$FOUND_FILE" ] && [ -f "$FOUND_FILE" ]; then
         if [ -n "$BRATE" ]; then
             BRANCH_PCT=$(awk -v r="$BRATE" 'BEGIN { printf "%.2f", r * 100 }')
         fi
-    elif echo "$BASE" | grep -iq "lcov\.info$"; then
+    elif echo "$BASE" | grep -iqE "(lcov|coverage)\.info$"; then
         FORMAT="lcov"
         LF=$(grep -o '^LF:[0-9]*' "$FOUND_FILE" | awk -F: '{s+=$2} END {print s+0}')
         LH=$(grep -o '^LH:[0-9]*' "$FOUND_FILE" | awk -F: '{s+=$2} END {print s+0}')
