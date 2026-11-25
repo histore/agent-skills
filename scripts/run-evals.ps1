@@ -405,6 +405,41 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'situative_agent_state_scratch' missing in AGENTS.md or ask-control/SKILL.md")
                 }
             }
+            "android_agp_detection" {
+                $dtPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -Raw -Encoding UTF8
+                $dtSh = Get-Content -Path (Join-Path $repoRoot "scripts\detect-tech-stack.sh") -Raw -Encoding UTF8
+                if ($dtPs1 -notmatch 'android-gradle' -or $dtSh -notmatch 'android-gradle') {
+                    $failures.Add("Invariant 'android_agp_detection' missing in detect-tech-stack.ps1 or detect-tech-stack.sh")
+                }
+            }
+            "kotlin_clean_architecture" {
+                $laPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\lint-clean-architecture.ps1") -Raw -Encoding UTF8
+                $laSh = Get-Content -Path (Join-Path $repoRoot "scripts\lint-clean-architecture.sh") -Raw -Encoding UTF8
+                if ($laPs1 -notmatch '\.kt' -or $laSh -notmatch '\.kt') {
+                    $failures.Add("Invariant 'kotlin_clean_architecture' missing .kt support in lint-clean-architecture")
+                }
+            }
+            "kotlin_code_outline" {
+                $coPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\get-code-outline.ps1") -Raw -Encoding UTF8
+                $coSh = Get-Content -Path (Join-Path $repoRoot "scripts\get-code-outline.sh") -Raw -Encoding UTF8
+                if ($coPs1 -notmatch '\.kt' -or $coSh -notmatch '\.kt') {
+                    $failures.Add("Invariant 'kotlin_code_outline' missing .kt support in get-code-outline")
+                }
+            }
+            "android_cursor_leak_guard" {
+                $acPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\lint-android-contracts.ps1") -Raw -Encoding UTF8
+                $acSh = Get-Content -Path (Join-Path $repoRoot "scripts\lint-android-contracts.sh") -Raw -Encoding UTF8
+                if ($acPs1 -notmatch 'CursorLeak' -or $acSh -notmatch 'CursorLeak') {
+                    $failures.Add("Invariant 'android_cursor_leak_guard' missing in lint-android-contracts")
+                }
+            }
+            "content_provider_notify_change" {
+                $acPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\lint-android-contracts.ps1") -Raw -Encoding UTF8
+                $acSh = Get-Content -Path (Join-Path $repoRoot "scripts\lint-android-contracts.sh") -Raw -Encoding UTF8
+                if ($acPs1 -notmatch 'MissingNotifyChange' -or $acSh -notmatch 'MissingNotifyChange') {
+                    $failures.Add("Invariant 'content_provider_notify_change' missing in lint-android-contracts")
+                }
+            }
             default {
                 $failures.Add("Unhandled required_invariant '$inv' in eval case '$caseId' (must be explicitly asserted in run-evals.ps1)")
             }

@@ -11,6 +11,12 @@
                                                                 "id":  "FEAT-ROLE-001",
                                                                 "hash":  "07b3a5b3725326c895cb5cc5fb953c368efcf199ff193aeebf549bf96cd69ee0"
                                                             },
+    "docs/features/FEAT-TOOL-002-android-kotlin-guardrails.md":  {
+                                                                     "phase":  "1",
+                                                                     "status":  "IMPLEMENTED",
+                                                                     "id":  "FEAT-TOOL-002",
+                                                                     "hash":  "f009ce627f870226b61d1ec19aaba1982fb52d0149b64c2848fa58cf0b360293"
+                                                                 },
     "docs/features/FEAT-TOOL-001-zero-token-scripts.md":  {
                                                               "phase":  "0",
                                                               "status":  "VERIFIED",

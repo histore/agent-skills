@@ -25,7 +25,11 @@
         "http",
         "actix",
         "axum",
-        "express"
+        "express",
+        "android\\.",
+        "androidx\\.compose",
+        "android\\.content\\.ContentProvider",
+        "android\\.database\\.Cursor"
       ],
       "message": "Domain layer must remain strictly decoupled from Infrastructure, Database, and UI delivery mechanisms."
     },
@@ -39,7 +43,8 @@
         "react",
         "vue",
         "avalonia",
-        "wpf"
+        "wpf",
+        "androidx\\.compose"
       ],
       "message": "Application / Use Cases layer must remain UI- and presenter-agnostic."
     }

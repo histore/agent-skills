@@ -138,21 +138,26 @@ elseif ((Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) -or (Test-Path (
         try { $gradleRaw += "`n" + (Get-Content -Path $gf.FullName -Raw -Encoding UTF8) } catch {}
     }
     $hasSpotless = ($gradleRaw -match '(?i)spotless')
+    $isAndroid = ($gradleRaw -match '(?i)com\.android\.(application|library)')
     $isKotlinLang = ($gradleRaw -match '(?i)kotlin') -or (@(Get-ChildItem -Path $ProjectRoot -Filter "*.kt" -File -Depth 3 -ErrorAction SilentlyContinue).Count -gt 0)
-    $detected.stack = "gradle"
+    $detected.stack = if ($isAndroid) { "android-gradle" } else { "gradle" }
     $detected.language = if ($isKotlinLang) { "kotlin" } else { "java" }
+    $spotlessExcl = if ($hasSpotless) { " -x spotlessCheck" } else { "" }
+    if ($isAndroid) {
+        $detected.build_cmd = "$gradleCmd testDebugUnitTestClasses$spotlessExcl -q"
+        $detected.test_cmd = "$gradleCmd testDebugUnitTest$spotlessExcl -q"
+        $detected.test_filter_syntax = "$gradleCmd testDebugUnitTest --tests {filter}$spotlessExcl -q"
+        $detected.lint_cmd = "$gradleCmd lintDebug -q"
+    } else {
+        $detected.build_cmd = "$gradleCmd classes testClasses$spotlessExcl -q"
+        $detected.test_cmd = "$gradleCmd test$spotlessExcl -q"
+        $detected.test_filter_syntax = "$gradleCmd test --tests {filter}$spotlessExcl -q"
+        $detected.lint_cmd = ""
+    }
     if ($hasSpotless) {
-        $detected.build_cmd = "$gradleCmd classes testClasses -x spotlessCheck -q"
-        $detected.test_cmd = "$gradleCmd test -x spotlessCheck -q"
-        $detected.test_filter_syntax = "$gradleCmd test --tests {filter} -x spotlessCheck -q"
         $detected.format_check_cmd = "$gradleCmd spotlessCheck -q"
         $detected.format_fix_cmd = "$gradleCmd spotlessApply -q"
-    } else {
-        $detected.build_cmd = "$gradleCmd classes testClasses -q"
-        $detected.test_cmd = "$gradleCmd test -q"
-        $detected.test_filter_syntax = "$gradleCmd test --tests {filter} -q"
     }
-    $detected.lint_cmd = ""
     $detected.manifest_file = if (Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) { "build.gradle.kts" } elseif (Test-Path (Join-Path $ProjectRoot "build.gradle")) { "build.gradle" } elseif ($isKts) { "settings.gradle.kts" } else { "settings.gradle" }
 }
 # 7. Maven (pom.xml)

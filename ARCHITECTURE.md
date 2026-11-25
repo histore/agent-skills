@@ -40,7 +40,7 @@ The toolkit is structured in strict accordance with Clean Architecture principle
                                 v
 +---------------------------------------------------------------+
 | Layer 4: Evaluation & Observability (evals/, telemetry)       |
-|   - 22 Synthetic Scenario Benchmarks (eval-cases.json)        |
+|   - 23 Synthetic Scenario Benchmarks (eval-cases.json)        |
 |   - Local Telemetry Logging & Reporting                       |
 +---------------------------------------------------------------+
 ```

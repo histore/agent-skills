@@ -91,6 +91,7 @@ if ($ResultsPath) {
         (Join-Path $RepoRoot "TestResults"),
         (Join-Path $RepoRoot "test-results"),
         (Join-Path $RepoRoot "target/surefire-reports"),
+        (Join-Path $RepoRoot "build/test-results"),
         (Join-Path $RepoRoot ".pytest_cache")
     )
 
@@ -101,6 +102,13 @@ if ($ResultsPath) {
                 Select-Object -First 3 |
                 ForEach-Object { $reportFiles.Add($_.FullName) }
         }
+    }
+    if ($reportFiles.Count -eq 0) {
+        Get-ChildItem -Path $RepoRoot -Include "TEST-*.xml" -Recurse -Depth 6 -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '[\\/]build[\\/]test-results[\\/]' } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 5 |
+            ForEach-Object { $reportFiles.Add($_.FullName) }
     }
 }
 

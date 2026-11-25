@@ -61,8 +61,8 @@ if [ -n "$REPORT_PATH" ]; then
     fi
 else
     # Scan for common reports (use basename matching; -name cannot contain '/')
-    for pattern in "coverage.cobertura.xml" "cobertura.xml" "lcov.info" "coverage-summary.json" "tarpaulin-report.json"; do
-        match=$(find "$REPO_ROOT" -maxdepth 4 -type f -name "$pattern" -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/node_modules/*" 2>/dev/null | head -1 || true)
+    for pattern in "coverage.cobertura.xml" "cobertura.xml" "jacocoTestReport.xml" "jacoco.xml" "lcov.info" "coverage-summary.json" "tarpaulin-report.json"; do
+        match=$(find "$REPO_ROOT" -maxdepth 6 -type f -name "$pattern" -not -path "*/.git/*" -not -path "*/_agents/*" -not -path "*/.agents/*" -not -path "*/node_modules/*" 2>/dev/null | head -1 || true)
         if [ -n "$match" ] && [ -f "$match" ]; then
             FOUND_FILE="$match"
             break
@@ -99,6 +99,24 @@ if [ -n "$FOUND_FILE" ] && [ -f "$FOUND_FILE" ]; then
         BRH=$(grep -o '^BRH:[0-9]*' "$FOUND_FILE" | awk -F: '{s+=$2} END {print s+0}')
         if [ "$BRF" -gt 0 ]; then
             BRANCH_PCT=$(awk -v h="$BRH" -v f="$BRF" 'BEGIN { printf "%.2f", (h/f)*100 }')
+        fi
+    elif echo "$BASE" | grep -iq "jacoco.*\.xml$"; then
+        FORMAT="jacoco"
+        if command -v python3 >/dev/null 2>&1; then
+            read -r LINE_PCT BRANCH_PCT < <(python3 - "$FOUND_FILE" << 'PYEOF' 2>/dev/null | tr -d '\r' || echo "0 null"
+import sys, xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+lp, bp = 0.0, 'null'
+for c in root.findall('counter'):
+    ctype = c.attrib.get('type')
+    cov = float(c.attrib.get('covered', 0))
+    mis = float(c.attrib.get('missed', 0))
+    if (cov + mis) > 0:
+        if ctype == 'LINE': lp = round((cov / (cov + mis)) * 100, 2)
+        elif ctype == 'BRANCH': bp = round((cov / (cov + mis)) * 100, 2)
+print(lp, bp)
+PYEOF
+            )
         fi
     elif echo "$BASE" | grep -iq "coverage-summary\.json$"; then
         FORMAT="istanbul-json"

@@ -112,30 +112,41 @@ elif [[ -f "${PROJECT_ROOT}/go.mod" ]]; then
   FORMAT_FIX_CMD="gofmt -w ."
   MANIFEST="go.mod"
 elif [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/build.gradle" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle" ]]; then
-  STACK="gradle"
-  GRADLE_CMD="gradle"
-  [[ -f "${PROJECT_ROOT}/gradlew" ]] && GRADLE_CMD="./gradlew"
   HAS_SPOTLESS=false
   if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qi "spotless" {} + 2>/dev/null; then
     HAS_SPOTLESS=true
+  fi
+  IS_ANDROID=false
+  if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qiE "com\.android\.(application|library)" {} + 2>/dev/null; then
+    IS_ANDROID=true
+  fi
+  if [[ "$IS_ANDROID" == "true" ]]; then
+    STACK="android-gradle"
+  else
+    STACK="gradle"
   fi
   if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qi "kotlin" {} + 2>/dev/null || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -name "*.kt" -type f 2>/dev/null | head -n 1)" ]]; then
     LANG="kotlin"
   else
     LANG="java"
   fi
+  SPOTLESS_EXCL=""
   if [[ "$HAS_SPOTLESS" == "true" ]]; then
-    BUILD_CMD="${GRADLE_CMD} classes testClasses -x spotlessCheck -q"
-    TEST_CMD="${GRADLE_CMD} test -x spotlessCheck -q"
-    FILTER_SYNTAX="${GRADLE_CMD} test --tests {filter} -x spotlessCheck -q"
+    SPOTLESS_EXCL=" -x spotlessCheck"
     FORMAT_CHECK_CMD="${GRADLE_CMD} spotlessCheck -q"
     FORMAT_FIX_CMD="${GRADLE_CMD} spotlessApply -q"
-  else
-    BUILD_CMD="${GRADLE_CMD} classes testClasses -q"
-    TEST_CMD="${GRADLE_CMD} test -q"
-    FILTER_SYNTAX="${GRADLE_CMD} test --tests {filter} -q"
   fi
-  LINT_CMD=""
+  if [[ "$IS_ANDROID" == "true" ]]; then
+    BUILD_CMD="${GRADLE_CMD} testDebugUnitTestClasses${SPOTLESS_EXCL} -q"
+    TEST_CMD="${GRADLE_CMD} testDebugUnitTest${SPOTLESS_EXCL} -q"
+    FILTER_SYNTAX="${GRADLE_CMD} testDebugUnitTest --tests {filter}${SPOTLESS_EXCL} -q"
+    LINT_CMD="${GRADLE_CMD} lintDebug -q"
+  else
+    BUILD_CMD="${GRADLE_CMD} classes testClasses${SPOTLESS_EXCL} -q"
+    TEST_CMD="${GRADLE_CMD} test${SPOTLESS_EXCL} -q"
+    FILTER_SYNTAX="${GRADLE_CMD} test --tests {filter}${SPOTLESS_EXCL} -q"
+    LINT_CMD=""
+  fi
   if [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]]; then MANIFEST="build.gradle.kts"
   elif [[ -f "${PROJECT_ROOT}/build.gradle" ]]; then MANIFEST="build.gradle"
   elif [[ -f "${PROJECT_ROOT}/settings.gradle.kts" ]]; then MANIFEST="settings.gradle.kts"

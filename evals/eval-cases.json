@@ -369,6 +369,23 @@
           "situative_agent_state_scratch"
         ]
       }
+    },
+    {
+      "id": "EVAL-TOOL-002",
+      "name": "Android & Kotlin Toolchain Guardrails (AGP, CursorLeak, notifyChange, Compose)",
+      "category": "governance",
+      "description": "Verifies Android Gradle detection, Kotlin Clean Architecture & AST outlining, Manifest/Test discovery, JaCoCo/JUnit discovery, and Android contract checks (AC-1 through AC-7).",
+      "input": "Erweitere den StyleContentProvider um eine neue URI inklusive Client-Wrapper und Compose-Integration.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "android_agp_detection",
+          "kotlin_clean_architecture",
+          "kotlin_code_outline",
+          "android_cursor_leak_guard",
+          "content_provider_notify_change"
+        ]
+      }
     }
   ]
 }

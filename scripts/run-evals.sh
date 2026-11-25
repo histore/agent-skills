@@ -290,6 +290,31 @@ for c in cases:
         elif inv == 'situative_agent_state_scratch':
             if 'scratch/temp directory' not in agents_content or 'scratch/temp directory' not in control_content:
                 failures.append("Invariant 'situative_agent_state_scratch' missing in AGENTS.md or ask-control/SKILL.md")
+        elif inv == 'android_agp_detection':
+            dt_ps1 = open(os.path.join(repo_root, 'scripts', 'detect-tech-stack.ps1'), encoding='utf-8', errors='ignore').read()
+            dt_sh = open(os.path.join(repo_root, 'scripts', 'detect-tech-stack.sh'), encoding='utf-8', errors='ignore').read()
+            if 'android-gradle' not in dt_ps1 or 'android-gradle' not in dt_sh:
+                failures.append("Invariant 'android_agp_detection' missing in detect-tech-stack.ps1 or detect-tech-stack.sh")
+        elif inv == 'kotlin_clean_architecture':
+            la_ps1 = open(os.path.join(repo_root, 'scripts', 'lint-clean-architecture.ps1'), encoding='utf-8', errors='ignore').read()
+            la_sh = open(os.path.join(repo_root, 'scripts', 'lint-clean-architecture.sh'), encoding='utf-8', errors='ignore').read()
+            if '.kt' not in la_ps1 or '.kt' not in la_sh:
+                failures.append("Invariant 'kotlin_clean_architecture' missing .kt support in lint-clean-architecture")
+        elif inv == 'kotlin_code_outline':
+            co_ps1 = open(os.path.join(repo_root, 'scripts', 'get-code-outline.ps1'), encoding='utf-8', errors='ignore').read()
+            co_sh = open(os.path.join(repo_root, 'scripts', 'get-code-outline.sh'), encoding='utf-8', errors='ignore').read()
+            if '.kt' not in co_ps1 or '.kt' not in co_sh:
+                failures.append("Invariant 'kotlin_code_outline' missing .kt support in get-code-outline")
+        elif inv == 'android_cursor_leak_guard':
+            ac_ps1 = open(os.path.join(repo_root, 'scripts', 'lint-android-contracts.ps1'), encoding='utf-8', errors='ignore').read()
+            ac_sh = open(os.path.join(repo_root, 'scripts', 'lint-android-contracts.sh'), encoding='utf-8', errors='ignore').read()
+            if 'CursorLeak' not in ac_ps1 or 'CursorLeak' not in ac_sh:
+                failures.append("Invariant 'android_cursor_leak_guard' missing in lint-android-contracts")
+        elif inv == 'content_provider_notify_change':
+            ac_ps1 = open(os.path.join(repo_root, 'scripts', 'lint-android-contracts.ps1'), encoding='utf-8', errors='ignore').read()
+            ac_sh = open(os.path.join(repo_root, 'scripts', 'lint-android-contracts.sh'), encoding='utf-8', errors='ignore').read()
+            if 'MissingNotifyChange' not in ac_ps1 or 'MissingNotifyChange' not in ac_sh:
+                failures.append("Invariant 'content_provider_notify_change' missing in lint-android-contracts")
         else:
             failures.append(f"Unhandled required_invariant '{inv}' in eval case '{cid}' (must be explicitly asserted in run-evals.sh)")
 

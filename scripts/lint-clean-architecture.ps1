@@ -77,7 +77,7 @@ $layerBoundaries = if ($rules -and $rules.layer_boundaries) { $rules.layer_bound
 
 # 2. Collect files
 $filesToScan = [System.Collections.Generic.List[string]]::new()
-$srcExts = @(".rs", ".cs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go")
+$srcExts = @(".rs", ".cs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".kt", ".kts", ".java")
 
 if ($StagedOnly) {
     $staged = git -C $TargetPath diff --name-only --cached 2>$null
@@ -136,7 +136,7 @@ $violations = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # Import regex patterns across languages (use, import, using, from)
 $importRegex = '^\s*(use\s+|import\s+|using\s+|from\s+)([^;]+)'
-$funcRegex = '^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\()'
+$funcRegex = '^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|(@Composable\s+)?((public|private|protected|internal)\s+)?(override\s+)?(suspend\s+)?fun\s+\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\()'
 
 foreach ($filePath in $filesToScan) {
     $relPath = $filePath.Replace($TargetPath + "\", "").Replace($TargetPath + "/", "")

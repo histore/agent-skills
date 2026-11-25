@@ -1277,6 +1277,51 @@ Assert-Condition ($detectShRaw -match '\.gemini/antigravity-cli') "detect-models
 $reqShRaw = Get-Content -Path (Join-Path $repoRoot "scripts\lint-requirements.sh") -Raw -Encoding UTF8
 Assert-Condition ($reqShRaw -match '(?m)^\s*--scope\)') "lint-requirements.sh supports space-separated --scope flag" "lint-requirements.sh missing space-separated --scope support"
 
+# 51. Validate FEAT-TOOL-002 Android & Kotlin Toolchain Guardrails (AC-1 through AC-7)
+Write-Host "`n51. Validating FEAT-TOOL-002 Android & Kotlin Toolchain Guardrails..." -ForegroundColor Yellow
+$tempAndroidDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+try {
+    New-Item -ItemType Directory -Path (Join-Path $tempAndroidDir "domain") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $tempAndroidDir "app\src\main\kotlin") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $tempAndroidDir "app\src\test\kotlin") -Force | Out-Null
+
+    # AC-1: Android Gradle Plugin detection
+    [System.IO.File]::WriteAllText((Join-Path $tempAndroidDir "build.gradle.kts"), "plugins { id(`"com.android.library`") }`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $agpStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $tempAndroidDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($agpStack.stack -eq "android-gradle" -and $agpStack.test_cmd -match 'testDebugUnitTest') "FEAT-TOOL-002 AC-1: detect-tech-stack.ps1 detects Android Gradle Plugin and testDebugUnitTest" "FEAT-TOOL-002 AC-1 failed: $($agpStack | ConvertTo-Json -Compress)"
+
+    # AC-2: Kotlin Clean Architecture violation
+    [System.IO.File]::WriteAllText((Join-Path $tempAndroidDir "domain\StyleRepo.kt"), "import android.database.Cursor`r`nclass StyleRepo`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $ktArchRaw = $null
+    try { $ktArchRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\lint-clean-architecture.ps1") -TargetPath $tempAndroidDir -JsonOutput 2>$null } catch {}
+    $ktArchObj = if ($ktArchRaw) { $ktArchRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $ktArchObj -and $ktArchObj.status -eq "fail" -and $ktArchObj.error_count -ge 1) "FEAT-TOOL-002 AC-2: lint-clean-architecture.ps1 blocks android.database.Cursor in domain/" "FEAT-TOOL-002 AC-2 failed ($ktArchRaw)"
+
+    # AC-3: Kotlin AST code outline
+    [System.IO.File]::WriteAllText((Join-Path $tempAndroidDir "app\src\main\kotlin\StyleUi.kt"), "@Composable`r`nfun StyleBadge(modifier: Modifier = Modifier) {`r`n}`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $ktOutline = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\get-code-outline.ps1") -Path (Join-Path $tempAndroidDir "app\src\main\kotlin\StyleUi.kt") -RepoRoot $tempAndroidDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($ktOutline.files.Count -eq 1 -and $ktOutline.files[0].signatures.Count -ge 1) "FEAT-TOOL-002 AC-3: get-code-outline.ps1 extracts Kotlin/@Composable signatures" "FEAT-TOOL-002 AC-3 failed"
+
+    # AC-6: lint-android-contracts detects CursorLeak and MissingNotifyChange
+    [System.IO.File]::WriteAllText((Join-Path $tempAndroidDir "app\src\main\kotlin\BadProvider.kt"), "class BadProvider : ContentProvider() {`r`n  override fun insert(uri: Uri, v: ContentValues?) {`r`n    val c = contentResolver.query(uri, null, null, null, null)`r`n  }`r`n}`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $androidLintRaw = $null
+    try { $androidLintRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\lint-android-contracts.ps1") -ProjectRoot $tempAndroidDir -JsonOutput 2>$null } catch {}
+    $androidLintObj = if ($androidLintRaw) { $androidLintRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $androidLintObj -and $androidLintObj.status -eq "fail" -and $androidLintObj.errors.Count -ge 2) "FEAT-TOOL-002 AC-6: lint-android-contracts.ps1 flags CursorLeak and MissingNotifyChange" "FEAT-TOOL-002 AC-6 failed ($androidLintRaw)"
+
+    # AC-4 & AC-5: Manifest code-gate regex & Gradle JUnit XML discovery
+    $fgRaw = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.ps1") -Raw -Encoding UTF8
+    Assert-Condition ($fgRaw -match 'AndroidManifest\\\.xml' -and $fgRaw -match 'androidTest') "FEAT-TOOL-002 AC-4: run-fast-gate.ps1 includes AndroidManifest.xml and androidTest discovery" "FEAT-TOOL-002 AC-4 failed"
+    $ctfRaw = Get-Content -Path (Join-Path $repoRoot "scripts\collect-test-failures.ps1") -Raw -Encoding UTF8
+    $covRaw = Get-Content -Path (Join-Path $repoRoot "scripts\check-test-coverage.ps1") -Raw -Encoding UTF8
+    Assert-Condition ($ctfRaw -match 'build/test-results' -and $covRaw -match 'jacoco') "FEAT-TOOL-002 AC-5: Gradle JUnit XML and JaCoCo XML auto-discovery enabled" "FEAT-TOOL-002 AC-5 failed"
+
+    # AC-7: .ps1 / .sh parity for lint-android-contracts
+    Assert-Condition (Test-Path (Join-Path $repoRoot "scripts\lint-android-contracts.sh")) "FEAT-TOOL-002 AC-7: lint-android-contracts.sh parity script exists" "FEAT-TOOL-002 AC-7 failed"
+} finally {
+    if (Test-Path $tempAndroidDir) { Remove-Item -LiteralPath $tempAndroidDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

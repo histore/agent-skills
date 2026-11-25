@@ -128,6 +128,7 @@ else:
         os.path.join(repo_root, 'TestResults'),
         os.path.join(repo_root, 'test-results'),
         os.path.join(repo_root, 'target/surefire-reports'),
+        os.path.join(repo_root, 'build/test-results'),
         os.path.join(repo_root, '.pytest_cache')
     ]
     for c in candidates:
@@ -135,6 +136,10 @@ else:
             found = glob.glob(os.path.join(c, '**/*.trx'), recursive=True) + glob.glob(os.path.join(c, '**/*.xml'), recursive=True)
             found.sort(key=lambda p: os.path.getmtime(p), reverse=True)
             files.extend(found[:3])
+    if not files:
+        gradle_xmls = glob.glob(os.path.join(repo_root, '**/build/test-results/**/TEST-*.xml'), recursive=True)
+        gradle_xmls.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+        files.extend(gradle_xmls[:5])
 
 failures = []
 total_tests = 0

@@ -95,6 +95,7 @@ ext_lang = {
     ".js": "javascript",
     ".py": "python",
     ".go": "go",
+    ".kt": "kotlin",
 }
 ignored_dirs = {".git", "_agents", ".agents", "node_modules", "bin", "obj", "target", ".vs", ".pytest_cache"}
 
@@ -207,6 +208,18 @@ def parse_signatures(filepath):
                     kind = "func"
                     sig = trimmed.rstrip("{").strip()
                     vis = "exported" if m2.group(1)[0].isupper() else "package"
+        elif lang == "kotlin":
+            m = re.match(r'^(public|internal|protected|private)?\s*(?:sealed|data|open|abstract|value|enum|annotation)?\s*(class|interface|object|enum\s+class)\s+([A-Za-z0-9_<>]+)', trimmed)
+            if m:
+                kind = m.group(2)
+                sig = trimmed.rstrip("{").strip()
+                vis = m.group(1) or "public"
+            else:
+                m2 = re.match(r'^(@Composable\s+)?(public|internal|protected|private)?\s*(?:override\s+|inline\s+|suspend\s+)*fun\s+(?:<[^>]+>\s*)?([A-Za-z0-9_.<>]+)\s*\(', trimmed)
+                if m2:
+                    kind = "composable" if m2.group(1) else "fun"
+                    sig = trimmed.rstrip("{=").strip()
+                    vis = m2.group(2) or "public"
 
         if kind and sig:
             sigs.append({"line": idx, "kind": kind, "visibility": vis, "signature": sig})

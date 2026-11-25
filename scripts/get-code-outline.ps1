@@ -64,7 +64,7 @@ if (-not (Test-Path $targetPath)) {
 }
 
 # 2. Collect Candidate Files
-$supportedExts = @('.cs', '.rs', '.ts', '.tsx', '.js', '.py', '.go')
+$supportedExts = @('.cs', '.rs', '.ts', '.tsx', '.js', '.py', '.go', '.kt')
 $filesToScan = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
 
 if ((Get-Item $targetPath) -is [System.IO.FileInfo]) {
@@ -94,6 +94,7 @@ function Parse-Signatures {
         '.js'   { 'javascript' }
         '.py'   { 'python' }
         '.go'   { 'go' }
+        '.kt'   { 'kotlin' }
         default { 'unknown' }
     }
 
@@ -182,6 +183,17 @@ function Parse-Signatures {
                     $sig = $trimmed.TrimEnd('{').Trim()
                     $funcName = if ($matches[2]) { $matches[2] } else { $matches[1] }
                     $vis = if ($funcName -cmatch '^[A-Z]') { "exported" } else { "package" }
+                }
+            }
+            'kotlin' {
+                if ($trimmed -match '^(public|internal|protected|private)?\s*(sealed|data|open|abstract|value|enum|annotation)?\s*(class|interface|object|enum\s+class)\s+([A-Za-z0-9_<>]+)') {
+                    $kind = $matches[3]
+                    $sig = $trimmed.TrimEnd('{').Trim()
+                    $vis = if ($matches[1]) { $matches[1] } else { "public" }
+                } elseif ($trimmed -match '^(@Composable\s+)?(public|internal|protected|private)?\s*(override\s+|inline\s+|suspend\s+)*fun\s+(<[^>]+>\s*)?([A-Za-z0-9_.<>]+)\s*\(') {
+                    $kind = if ($trimmed -match '@Composable') { "composable" } else { "fun" }
+                    $sig = $trimmed.TrimEnd('{', '=').Trim()
+                    $vis = if ($matches[2]) { $matches[2] } else { "public" }
                 }
             }
         }

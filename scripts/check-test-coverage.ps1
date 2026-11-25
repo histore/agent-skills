@@ -60,6 +60,8 @@ if ($ReportPath) {
         "coverage.cobertura.xml",
         "cobertura.xml",
         "TestResults/**/coverage.cobertura.xml",
+        "jacocoTestReport.xml",
+        "jacoco.xml",
         "coverage/lcov.info",
         "lcov.info",
         "coverage/coverage-summary.json",
@@ -67,7 +69,7 @@ if ($ReportPath) {
     )
 
     foreach ($pattern in $candidates) {
-        $match = Get-ChildItem -Path $RepoRoot -Filter (Split-Path $pattern -Leaf) -Recurse -Depth 4 -ErrorAction SilentlyContinue |
+        $match = Get-ChildItem -Path $RepoRoot -Filter (Split-Path $pattern -Leaf) -Recurse -Depth 6 -ErrorAction SilentlyContinue |
                  Where-Object { $_.FullName -notmatch '[\\/](\.git|_agents|\.agents)[\\/]' } |
                  Select-Object -First 1
         if ($match) {
@@ -125,6 +127,32 @@ if ($foundFile -and (Test-Path $foundFile)) {
         if ($branchesFound -gt 0) {
             $branchCoveragePct = [Math]::Round(($branchesHit / $branchesFound) * 100, 2)
             $hasBranch = $true
+        }
+    }
+    # JaCoCo XML
+    elseif ($fileName -match '(?i)jacoco.*\.xml$') {
+        $format = "jacoco"
+        try {
+            [xml]$xml = Get-Content -Path $foundFile -Raw
+            $lineCounter = $xml.report.counter | Where-Object { $_.type -eq "LINE" } | Select-Object -First 1
+            if ($lineCounter) {
+                $covered = [double]$lineCounter.covered
+                $missed = [double]$lineCounter.missed
+                if (($covered + $missed) -gt 0) {
+                    $lineCoveragePct = [Math]::Round(($covered / ($covered + $missed)) * 100, 2)
+                }
+            }
+            $branchCounter = $xml.report.counter | Where-Object { $_.type -eq "BRANCH" } | Select-Object -First 1
+            if ($branchCounter) {
+                $bCov = [double]$branchCounter.covered
+                $bMis = [double]$branchCounter.missed
+                if (($bCov + $bMis) -gt 0) {
+                    $branchCoveragePct = [Math]::Round(($bCov / ($bCov + $bMis)) * 100, 2)
+                    $hasBranch = $true
+                }
+            }
+        } catch {
+            $format = "corrupt"
         }
     }
     # JSON Summary (Istanbul / Jest)
