@@ -1184,10 +1184,11 @@ else
     assert_condition 1 "ask-git-troubleshooter aligns with OS-Native Line Endings Invariant" "ask-git-troubleshooter contradicts OS-Native Line Endings Invariant"
 fi
 
-if grep -q '19 Synthetic Scenario Benchmarks' "$REPO_ROOT/ARCHITECTURE.md"; then
-    assert_condition 0 "ARCHITECTURE.md benchmark count reflects 19 eval cases" "ARCHITECTURE.md benchmark count is stale"
+EVAL_COUNT=$(python3 -c "import json; print(len(json.load(open('$REPO_ROOT/evals/eval-cases.json', encoding='utf-8'))['eval_cases']))" 2>/dev/null || echo "0")
+if grep -q "${EVAL_COUNT} Synthetic Scenario Benchmarks" "$REPO_ROOT/ARCHITECTURE.md"; then
+    assert_condition 0 "ARCHITECTURE.md benchmark count reflects ${EVAL_COUNT} eval cases" "ARCHITECTURE.md benchmark count is stale"
 else
-    assert_condition 1 "ARCHITECTURE.md benchmark count reflects 19 eval cases" "ARCHITECTURE.md benchmark count is stale"
+    assert_condition 1 "ARCHITECTURE.md benchmark count reflects ${EVAL_COUNT} eval cases" "ARCHITECTURE.md benchmark count is stale"
 fi
 
 # 49. Validate cross-OS spec drift stability, ROADMAP count, and bash parity checks

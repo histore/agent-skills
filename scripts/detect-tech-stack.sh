@@ -113,11 +113,11 @@ elif [[ -f "${PROJECT_ROOT}/go.mod" ]]; then
   MANIFEST="go.mod"
 elif [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/build.gradle" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle" ]]; then
   HAS_SPOTLESS=false
-  if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qi "spotless" {} + 2>/dev/null; then
+  if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -li "spotless" {} + 2>/dev/null | head -n 1)" ]]; then
     HAS_SPOTLESS=true
   fi
   IS_ANDROID=false
-  if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qiE "com\.android\.(application|library)" {} + 2>/dev/null; then
+  if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -liE "com\.android\.(application|library)" {} + 2>/dev/null | head -n 1)" ]]; then
     IS_ANDROID=true
   fi
   if [[ "$IS_ANDROID" == "true" ]]; then
@@ -125,7 +125,7 @@ elif [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/build
   else
     STACK="gradle"
   fi
-  if find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -qi "kotlin" {} + 2>/dev/null || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -name "*.kt" -type f 2>/dev/null | head -n 1)" ]]; then
+  if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -li "kotlin" {} + 2>/dev/null | head -n 1)" ]] || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -name "*.kt" -type f 2>/dev/null | head -n 1)" ]]; then
     LANG="kotlin"
   else
     LANG="java"

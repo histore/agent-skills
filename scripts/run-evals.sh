@@ -272,13 +272,13 @@ for c in cases:
             if 'MCP & External Tool Governance (Local-First Priority)' not in agents_content or 'MCP & External Tool Governance (Local-First Priority)' not in copilot_content:
                 failures.append("Invariant 'mcp_local_first' missing in AGENTS.md or .github/copilot-instructions.md")
         elif inv == 'ac_traceability_gate':
-            fg_ps1 = read_file(os.path.join(repo_root, 'scripts', 'run-fast-gate.ps1'))
-            fg_sh = read_file(os.path.join(repo_root, 'scripts', 'run-fast-gate.sh'))
+            fg_ps1 = open(os.path.join(repo_root, 'scripts', 'run-fast-gate.ps1'), encoding='utf-8', errors='ignore').read()
+            fg_sh = open(os.path.join(repo_root, 'scripts', 'run-fast-gate.sh'), encoding='utf-8', errors='ignore').read()
             if 'ACTraceability' not in fg_ps1 or 'ACTraceability' not in fg_sh:
                 failures.append("Invariant 'ac_traceability_gate' missing in run-fast-gate.ps1 or run-fast-gate.sh")
         elif inv == 'diff_size_warning':
-            fg_ps1 = read_file(os.path.join(repo_root, 'scripts', 'run-fast-gate.ps1'))
-            fg_sh = read_file(os.path.join(repo_root, 'scripts', 'run-fast-gate.sh'))
+            fg_ps1 = open(os.path.join(repo_root, 'scripts', 'run-fast-gate.ps1'), encoding='utf-8', errors='ignore').read()
+            fg_sh = open(os.path.join(repo_root, 'scripts', 'run-fast-gate.sh'), encoding='utf-8', errors='ignore').read()
             if '[DiffSize]' not in fg_ps1 or '[DiffSize]' not in fg_sh:
                 failures.append("Invariant 'diff_size_warning' missing in run-fast-gate.ps1 or run-fast-gate.sh")
         elif inv == 'zero_trust_diff_report':
