@@ -196,11 +196,53 @@ elif [[ -f "${PROJECT_ROOT}/CMakeLists.txt" ]] || [[ -f "${PROJECT_ROOT}/CMakePr
   fi
 fi
 
+SUPPORT_LEVEL="full"
+SUPPORT_GAPS_JSON="[]"
+ARCH_LANGS="rust csharp typescript javascript python go kotlin java cpp"
+GAPS=()
+
+if [[ "$STACK" == "unknown" ]]; then
+  SAMPLE_CODE=$(find "$PROJECT_ROOT" -maxdepth 3 -type f \
+    ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" ! -path "*/node_modules/*" ! -path "*/build/*" ! -path "*/target/*" \
+    \( -name "*.dart" -o -name "*.swift" -o -name "*.php" -o -name "*.rb" -o -name "*.zig" -o -name "*.scala" -o -name "*.ex" -o -name "*.exs" \) 2>/dev/null | head -n 1 || true)
+  if [[ -n "$SAMPLE_CODE" ]]; then
+    case "${SAMPLE_CODE##*.}" in
+      dart) LANG="dart" ;; swift) LANG="swift" ;; php) LANG="php" ;; rb) LANG="ruby" ;;
+      zig) LANG="zig" ;; scala) LANG="scala" ;; ex|exs) LANG="elixir" ;;
+    esac
+    GAPS+=("no_build_or_test_runner")
+    if [[ ! " $ARCH_LANGS " =~ " $LANG " ]]; then
+      GAPS+=("unsupported_clean_arch_or_outline:$LANG")
+    fi
+    SUPPORT_LEVEL="unsupported"
+  fi
+else
+  if [[ -z "$LINT_CMD" && "$STACK" != "dotnet" ]]; then
+    GAPS+=("lint_cmd_missing")
+  fi
+  if [[ -z "$FORMAT_CHECK_CMD" ]]; then
+    GAPS+=("format_check_cmd_missing")
+  fi
+  if [[ ! " $ARCH_LANGS " =~ " $LANG " ]]; then
+    GAPS+=("unsupported_clean_arch_or_outline:$LANG")
+  fi
+  [[ ${#GAPS[@]} -gt 0 ]] && SUPPORT_LEVEL="partial"
+fi
+
+if [[ ${#GAPS[@]} -gt 0 ]]; then
+  SUPPORT_GAPS_JSON="["
+  for i in "${!GAPS[@]}"; do
+    [[ $i -gt 0 ]] && SUPPORT_GAPS_JSON+=","
+    SUPPORT_GAPS_JSON+="\"${GAPS[$i]}\""
+  done
+  SUPPORT_GAPS_JSON+="]"
+fi
+
 if [[ "$JSON_OUTPUT" == "true" ]]; then
   ESC_FMT_CHECK="${FORMAT_CHECK_CMD//\"/\\\"}"
   ESC_FMT_FIX="${FORMAT_FIX_CMD//\"/\\\"}"
   cat <<EOF
-{"stack":"$STACK","language":"$LANG","build_cmd":"$BUILD_CMD","test_cmd":"$TEST_CMD","test_filter_syntax":"$FILTER_SYNTAX","lint_cmd":"$LINT_CMD","format_check_cmd":"$ESC_FMT_CHECK","format_fix_cmd":"$ESC_FMT_FIX","manifest_file":"$MANIFEST"}
+{"stack":"$STACK","language":"$LANG","build_cmd":"$BUILD_CMD","test_cmd":"$TEST_CMD","test_filter_syntax":"$FILTER_SYNTAX","lint_cmd":"$LINT_CMD","format_check_cmd":"$ESC_FMT_CHECK","format_fix_cmd":"$ESC_FMT_FIX","manifest_file":"$MANIFEST","support_level":"$SUPPORT_LEVEL","support_gaps":$SUPPORT_GAPS_JSON}
 EOF
 else
   echo "============================================="

@@ -73,31 +73,40 @@ fi
 
 DETECT_SCRIPT="${SCRIPT_DIR}/detect-tech-stack.sh"
 STACK="unknown"
+LANG="unknown"
 BUILD_CMD=""
 TEST_CMD=""
 FILTER_SYNTAX=""
 LINT_CMD=""
+SUPPORT_LEVEL="full"
+SUPPORT_GAPS=""
 
 if [[ -f "$DETECT_SCRIPT" ]]; then
   STACK_JSON=$(bash "$DETECT_SCRIPT" "$PROJECT_ROOT" --json 2>/dev/null || echo '{}')
   if command -v python3 &>/dev/null; then
     {
       IFS= read -r STACK || true
+      IFS= read -r LANG || true
       IFS= read -r BUILD_CMD || true
       IFS= read -r TEST_CMD || true
       IFS= read -r FILTER_SYNTAX || true
       IFS= read -r LINT_CMD || true
+      IFS= read -r SUPPORT_LEVEL || true
+      IFS= read -r SUPPORT_GAPS || true
     } < <(python3 - "$STACK_JSON" << 'EOF' 2>/dev/null | tr -d '\r' || true
 import json, sys
 try:
     d = json.loads(sys.argv[1])
     print(d.get('stack', 'unknown'))
+    print(d.get('language', 'unknown'))
     print(d.get('build_cmd', ''))
     print(d.get('test_cmd', ''))
     print(d.get('test_filter_syntax', ''))
     print(d.get('lint_cmd', ''))
+    print(d.get('support_level', 'full'))
+    print(', '.join(d.get('support_gaps', [])))
 except Exception:
-    print('unknown\n\n\n\n')
+    print('unknown\nunknown\n\n\n\n\nfull\n')
 EOF
     )
   fi
@@ -189,9 +198,14 @@ if [[ "$STACK" != "unknown" && "$BYPASSED_NO_CODE" != "true" ]]; then
       OVERALL_PASS=false
     fi
   fi
+elif [[ "${SUPPORT_LEVEL:-full}" == "unsupported" ]]; then
+  WARNINGS_LOG+="[ToolchainGap] Stack '${STACK}' / Language '${LANG:-unknown}' is unsupported (${SUPPORT_GAPS:-no_build_or_test_runner}). Automated Build/Test/Architecture gates were skipped."$'\n'
 fi
 
 if [[ "$OVERALL_PASS" == "true" && "$SKIP_GUARDRAILS" == "false" ]]; then
+  if [[ "$BYPASSED_NO_CODE" != "true" && "${SUPPORT_LEVEL:-full}" == "partial" && -n "${SUPPORT_GAPS:-}" ]]; then
+    WARNINGS_LOG+="[ToolchainGap] Partial support for '${STACK}': ${SUPPORT_GAPS}."$'\n'
+  fi
   if [[ -f "${SCRIPT_DIR}/lint-clean-architecture.sh" ]]; then
     ARCH_OUT=""
     if ! ARCH_OUT=$(bash "${SCRIPT_DIR}/lint-clean-architecture.sh" "$PROJECT_ROOT" --working-tree --json 2>&1); then

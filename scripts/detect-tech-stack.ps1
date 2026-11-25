@@ -45,6 +45,8 @@ $detected = [ordered]@{
     format_check_cmd   = ""
     format_fix_cmd     = ""
     manifest_file      = ""
+    support_level      = "full"
+    support_gaps       = @()
 }
 
 # 1. Rust (Cargo.toml)
@@ -208,6 +210,39 @@ elseif ((Test-Path (Join-Path $ProjectRoot "CMakeLists.txt")) -or (Test-Path (Jo
         $detected.format_fix_cmd = "clang-format -i"
     }
 }
+
+# Compute deterministic support_level & support_gaps (FEAT-TOOL-004)
+$gaps = [System.Collections.Generic.List[string]]::new()
+$archSupportedLangs = @("rust", "csharp", "typescript", "javascript", "python", "go", "kotlin", "java", "cpp")
+if ($detected.stack -eq "unknown") {
+    $codeSample = Get-ChildItem -Path $ProjectRoot -Recurse -Depth 3 -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '[\\/](\.git|_agents|\.agents|node_modules|build|target)[\\/]' -and $_.Extension -match '^\.(dart|swift|php|rb|zig|scala|ex|exs|rs|cs|ts|js|py|go|kt|java|cpp|c|qml)$' } |
+        Select-Object -First 1
+    if ($codeSample) {
+        $extLangMap = @{ ".dart" = "dart"; ".swift" = "swift"; ".php" = "php"; ".rb" = "ruby"; ".zig" = "zig"; ".scala" = "scala"; ".ex" = "elixir"; ".exs" = "elixir" }
+        $extKey = $codeSample.Extension.ToLowerInvariant()
+        if ($extLangMap.ContainsKey($extKey)) { $detected.language = $extLangMap[$extKey] }
+        $gaps.Add("no_build_or_test_runner")
+        if ($archSupportedLangs -notcontains $detected.language) {
+            $gaps.Add("unsupported_clean_arch_or_outline:$($detected.language)")
+        }
+        $detected.support_level = "unsupported"
+    } else {
+        $detected.support_level = "full"
+    }
+} else {
+    if ([string]::IsNullOrWhiteSpace($detected.lint_cmd) -and $detected.stack -ne "dotnet") {
+        $gaps.Add("lint_cmd_missing")
+    }
+    if ([string]::IsNullOrWhiteSpace($detected.format_check_cmd)) {
+        $gaps.Add("format_check_cmd_missing")
+    }
+    if ($archSupportedLangs -notcontains $detected.language) {
+        $gaps.Add("unsupported_clean_arch_or_outline:$($detected.language)")
+    }
+    $detected.support_level = if ($gaps.Count -gt 0) { "partial" } else { "full" }
+}
+$detected.support_gaps = $gaps.ToArray()
 
 $jsonStr = $detected | ConvertTo-Json -Compress
 

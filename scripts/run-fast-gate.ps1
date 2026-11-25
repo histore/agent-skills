@@ -190,11 +190,17 @@ if ($stackInfo.stack -ne "unknown") {
             $lintSuccess = Invoke-GateStep -StepName "Lint" -CommandLine $stackInfo.lint_cmd
         }
     }
+} elseif ($stackInfo.support_level -eq "unsupported") {
+    $gapList = if ($stackInfo.support_gaps) { $stackInfo.support_gaps -join ", " } else { "no_build_or_test_runner" }
+    $warnings.Add("[ToolchainGap] Stack '$($stackInfo.stack)' / Language '$($stackInfo.language)' is unsupported ($gapList). Automated Build/Test/Architecture gates were skipped.")
 }
 
 # 3. Consolidated Guardrails & Clean Architecture Check (in-process across working-tree changes, zero extra tool roundtrips)
 $guardrailsSuccess = $true
 if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails) {
+    if (-not $bypassedNoCode -and $stackInfo.support_level -eq "partial" -and $stackInfo.support_gaps -and $stackInfo.support_gaps.Count -gt 0) {
+        $warnings.Add("[ToolchainGap] Partial support for '$($stackInfo.stack)': $($stackInfo.support_gaps -join ', ').")
+    }
     $archScript = Join-Path $scriptDir "lint-clean-architecture.ps1"
     if (Test-Path $archScript) {
         try {

@@ -340,6 +340,17 @@ for c in cases:
             cq_sh = open(os.path.join(repo_root, 'scripts', 'lint-cpp-qt-contracts.sh'), encoding='utf-8', errors='ignore').read()
             if 'Qt6ConnectionsSyntax' not in cq_ps1 or 'Qt6ConnectionsSyntax' not in cq_sh:
                 failures.append("Invariant 'qml_qt6_connections_guard' missing in lint-cpp-qt-contracts")
+        elif inv == 'toolchain_gap_detection':
+            dt_ps1 = open(os.path.join(repo_root, 'scripts', 'detect-tech-stack.ps1'), encoding='utf-8', errors='ignore').read()
+            dt_sh = open(os.path.join(repo_root, 'scripts', 'detect-tech-stack.sh'), encoding='utf-8', errors='ignore').read()
+            fg_ps1 = open(os.path.join(repo_root, 'scripts', 'run-fast-gate.ps1'), encoding='utf-8', errors='ignore').read()
+            fg_sh = open(os.path.join(repo_root, 'scripts', 'run-fast-gate.sh'), encoding='utf-8', errors='ignore').read()
+            if 'support_level' not in dt_ps1 or 'support_level' not in dt_sh or '[ToolchainGap]' not in fg_ps1 or '[ToolchainGap]' not in fg_sh:
+                failures.append("Invariant 'toolchain_gap_detection' missing in detect-tech-stack or run-fast-gate")
+        elif inv == 'toolchain_gap_reactive_rule':
+            cop_content = open(os.path.join(repo_root, '.github', 'copilot-instructions.md'), encoding='utf-8', errors='ignore').read()
+            if '[ToolchainGap]' not in control_content or '[ToolchainGap]' not in cop_content:
+                failures.append("Invariant 'toolchain_gap_reactive_rule' missing in ask-control/SKILL.md or copilot-instructions.md")
         else:
             failures.append(f"Unhandled required_invariant '{inv}' in eval case '{cid}' (must be explicitly asserted in run-evals.sh)")
 

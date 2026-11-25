@@ -41,6 +41,12 @@
                                                                "id":  "FEAT-SPEC-001",
                                                                "hash":  "7f6998594f0f7692c435d8011988a291aaceac21de27b30585212ec7a898c38c"
                                                            },
+    "docs/features/FEAT-TOOL-004-toolchain-gap-detection.md":  {
+                                                                   "phase":  "1",
+                                                                   "status":  "IMPLEMENTED",
+                                                                   "id":  "FEAT-TOOL-004",
+                                                                   "hash":  "72433ba602dc17e1e2945182275ae2ffe75f64063ef562f64cf8977b99c5adc4"
+                                                               },
     "docs/features/FEAT-GOV-001-governance-and-orchestration.md":  {
                                                                        "phase":  "0",
                                                                        "status":  "VERIFIED",

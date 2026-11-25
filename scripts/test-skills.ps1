@@ -1365,6 +1365,37 @@ try {
     if (Test-Path $tempCppDir) { Remove-Item -LiteralPath $tempCppDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+# 53. Validate FEAT-TOOL-004 Deterministic Toolchain Gap Detection (AC-1 through AC-5)
+Write-Host "`n53. Validating FEAT-TOOL-004 Toolchain Gap Detection..." -ForegroundColor Yellow
+$tempGapDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+try {
+    New-Item -ItemType Directory -Path (Join-Path $tempGapDir "lib") -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $tempGapDir "lib\main.dart"), "void main() {}`r`n", (New-Object System.Text.UTF8Encoding($false)))
+
+    # AC-1: Unsupported stack emits support_level = unsupported
+    $dartStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $tempGapDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($dartStack.stack -eq "unknown" -and $dartStack.language -eq "dart" -and $dartStack.support_level -eq "unsupported") "FEAT-TOOL-004 AC-1: detect-tech-stack.ps1 flags unsupported dart stack" "FEAT-TOOL-004 AC-1 failed: $($dartStack | ConvertTo-Json -Compress)"
+
+    # AC-2: run-fast-gate emits [ToolchainGap] warning on unsupported stack
+    $gapGate = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\run-fast-gate.ps1") -ProjectRoot $tempGapDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition (($gapGate.warnings -join "`n") -match '\[ToolchainGap\]') "FEAT-TOOL-004 AC-2: run-fast-gate.ps1 emits [ToolchainGap] warning for unsupported stack" "FEAT-TOOL-004 AC-2 failed"
+
+    # AC-3: Docs-only repo has support_level = full and zero [ToolchainGap] warnings
+    $docsOnlyDir = Join-Path $tempGapDir "docs-only"
+    New-Item -ItemType Directory -Path $docsOnlyDir -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $docsOnlyDir "README.md"), "# Docs`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    $docsStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $docsOnlyDir -JsonOutput | ConvertFrom-Json
+    $docsGate = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\run-fast-gate.ps1") -ProjectRoot $docsOnlyDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($docsStack.support_level -eq "full" -and (($docsGate.warnings -join "`n") -notmatch '\[ToolchainGap\]')) "FEAT-TOOL-004 AC-3: Docs-only repo produces zero [ToolchainGap] warnings" "FEAT-TOOL-004 AC-3 failed"
+
+    # AC-4 & AC-5: Reactive rule & .sh parity
+    $ctrlRaw = Get-Content -Path (Join-Path $repoRoot "skills\ask-control\SKILL.md") -Raw -Encoding UTF8
+    $fgShRaw = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.sh") -Raw -Encoding UTF8
+    Assert-Condition ($ctrlRaw -match '\[ToolchainGap\]' -and $fgShRaw -match '\[ToolchainGap\]') "FEAT-TOOL-004 AC-4/AC-5: Reactive rule and Bash parity verified" "FEAT-TOOL-004 AC-4/AC-5 failed"
+} finally {
+    if (Test-Path $tempGapDir) { Remove-Item -LiteralPath $tempGapDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

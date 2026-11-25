@@ -403,6 +403,20 @@
           "qml_qt6_connections_guard"
         ]
       }
+    },
+    {
+      "id": "EVAL-TOOL-004",
+      "name": "Deterministic Toolchain Gap Detection ([ToolchainGap])",
+      "category": "governance",
+      "description": "Verifies that detect-tech-stack emits support_level/support_gaps and run-fast-gate emits [ToolchainGap] warnings on unsupported or partial stacks without happy-path overhead (AC-1 through AC-5).",
+      "input": "Erweitere die Flutter-App um ein neues Theme-Widget.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "toolchain_gap_detection",
+          "toolchain_gap_reactive_rule"
+        ]
+      }
     }
   ]
 }

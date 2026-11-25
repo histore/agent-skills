@@ -475,6 +475,21 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'qml_qt6_connections_guard' missing in lint-cpp-qt-contracts")
                 }
             }
+            "toolchain_gap_detection" {
+                $dtPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -Raw -Encoding UTF8
+                $dtSh = Get-Content -Path (Join-Path $repoRoot "scripts\detect-tech-stack.sh") -Raw -Encoding UTF8
+                $fgPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.ps1") -Raw -Encoding UTF8
+                $fgSh = Get-Content -Path (Join-Path $repoRoot "scripts\run-fast-gate.sh") -Raw -Encoding UTF8
+                if ($dtPs1 -notmatch 'support_level' -or $dtSh -notmatch 'support_level' -or $fgPs1 -notmatch '\[ToolchainGap\]' -or $fgSh -notmatch '\[ToolchainGap\]') {
+                    $failures.Add("Invariant 'toolchain_gap_detection' missing in detect-tech-stack or run-fast-gate")
+                }
+            }
+            "toolchain_gap_reactive_rule" {
+                $copContent = Get-Content -Path (Join-Path $repoRoot ".github\copilot-instructions.md") -Raw -Encoding UTF8
+                if ($controlContent -notmatch '\[ToolchainGap\]' -or $copContent -notmatch '\[ToolchainGap\]') {
+                    $failures.Add("Invariant 'toolchain_gap_reactive_rule' missing in ask-control/SKILL.md or copilot-instructions.md")
+                }
+            }
             default {
                 $failures.Add("Unhandled required_invariant '$inv' in eval case '$caseId' (must be explicitly asserted in run-evals.ps1)")
             }
