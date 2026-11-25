@@ -112,6 +112,8 @@ elif [[ -f "${PROJECT_ROOT}/go.mod" ]]; then
   FORMAT_FIX_CMD="gofmt -w ."
   MANIFEST="go.mod"
 elif [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/build.gradle" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle" ]]; then
+  GRADLE_CMD="gradle"
+  [[ -f "${PROJECT_ROOT}/gradlew" ]] && GRADLE_CMD="./gradlew"
   HAS_SPOTLESS=false
   if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -li "spotless" {} + 2>/dev/null | head -n 1)" ]]; then
     HAS_SPOTLESS=true
