@@ -18,96 +18,96 @@ created: "2026-11-24"
 ---
 
 ## 1. Problem Statement & Motivation
-- **Context & Need**: Um maximale agentische Autonomie ohne manuelles Zeilen-Review, minimale Rework-Schleifen und konsistente Ergebnisqualität über Plattformgrenzen hinweg (Antigravity Multi-Agent + GitHub Copilot Sequential Persona) zu erreichen, reichen rein sprachliche Regeln ("LLM-Appelle") nicht aus. Gleichzeitig dürfen neue Mechanismen weder die KV-Cache-Kontinuität (75–90 % Discount), die Inner-Loop-Geschwindigkeit noch den Anti-Ceremony-Guardrail aus [AGENTS.md](../../../AGENTS.md) verletzen.
-- **Desired Outcome**: Einführung ausschließlich echter **Pareto-Optimierungen** – also deterministischer Skript-Checks, kompakter Output-Schemata und situativer Kontext-Hygiene, die Verifikationssicherheit und Autonomie messbar erhöhen, ohne zusätzliche Token-Kosten, Latenz-Spitzen oder False-Positive-Ceremony zu verursachen.
+- **Context & Need**: To achieve maximum agentic autonomy without manual line-by-line reviews, minimal rework loops, and consistent result quality across platforms (Antigravity Multi-Agent + GitHub Copilot Sequential Persona), purely linguistic rules ("LLM appeals") are not enough. At the same time, new mechanisms must not violate KV-cache continuity (75–90% discount), inner-loop speed, or the Anti-Ceremony Guardrail from [AGENTS.md](../../../AGENTS.md).
+- **Desired Outcome**: Introduce exclusively genuine **Pareto optimizations**—meaning deterministic script checks, compact output schemas, and situative context hygiene that measurably increase verification reliability and autonomy without causing additional token costs, latency spikes, or false-positive ceremony.
 
 ---
 
 ## 2. Solution Approaches & Trade-Offs
 Compare viable approaches before solidifying requirements:
 
-### Approach A (Recommended): Strikte Pareto-Optimierungen (Zero-Token-Gates + Situative Hygiene)
-- **Description**: Umsetzung von 6 gezielten, risikoarmen Erweiterungen in `scripts/`, `skills/ask-control/`, `AGENTS.md` und `evals/`:
-  1. **Deterministischer `AC-*`-Traceability-Check** in `run-fast-gate.ps1`/`.sh` (nur aktiv, wenn aktive Feature-Specs mit `AC-*` existieren).
-  2. **Diff-Size-Guardrail** in `run-fast-gate.ps1`/`.sh` (`git diff --numstat`-Schwellenwert-Warnung/-Flag gegen ausufernde Edits).
-  3. **Zero-Trust Diff-Report** als kompaktes Stage-2-Abschlussformat in `ask-control` (Dateien, `AC-*`-Status, Guardrails, offene Annahmen).
-  4. **Verschärfte Progressive-Disclosure-Regel** (Signaturen via `get-code-outline` zuerst; Full-Read erst bei direkter `AC-*`-Änderung).
-  5. **Situatives `.agent-state.json`** ausschließlich bei Context-Purge (Circuit-Breaker Level 3) oder explizitem Copilot-Thread-Wechsel.
-  6. **Regression-Evals** in `evals/eval-cases.json` für reale Governance- und Autonomie-Fehlerklassen.
+### Approach A (Recommended): Strict Pareto Optimizations (Zero-Token Gates + Situative Hygiene)
+- **Description**: Implementation of 6 targeted, low-risk extensions in `scripts/`, `skills/ask-control/`, `AGENTS.md`, and `evals/`:
+  1. **Deterministic `AC-*` Traceability Check** in `run-fast-gate.ps1`/`.sh` (active only when active feature specs with `AC-*` exist).
+  2. **Diff-Size Guardrail** in `run-fast-gate.ps1`/`.sh` (`git diff --numstat` threshold warning/flag against sprawling edits).
+  3. **Zero-Trust Diff-Report** as a compact Stage-2 completion format in `ask-control` (files, `AC-*` status, guardrails, open assumptions).
+  4. **Stricter Progressive Disclosure Rule** (signatures via `get-code-outline` first; full read only on direct `AC-*` edits).
+  5. **Situative `.agent-state.json`** exclusively on Context Purge (Circuit-Breaker Level 3) or explicit Copilot thread switch.
+  6. **Regression Evals** in `evals/eval-cases.json` for real governance and autonomy failure classes.
 - **Pros**:
-  - Nahezu 0 zusätzliche LLM-Tokens und < 20 ms Zusatzlaufzeit im Fast-Gate.
-  - Volle Wahrung von *Compound Phased Execution* und *Two-Zone Prompt Cache Architecture*.
-  - Kein Eingriff in Profile 0 / Profile A (Anti-Ceremony bleibt 100 % intakt).
+  - Virtually 0 additional LLM tokens and < 20 ms added runtime in the fast-gate.
+  - Full preservation of *Compound Phased Execution* and *Two-Zone Prompt Cache Architecture*.
+  - Zero impact on Profile 0 / Profile A (Anti-Ceremony remains 100% intact).
 - **Cons / Risks**:
-  - Deckt keine semantischen Logikfehler ab, die *innerhalb* grüner Alibi-Tests liegen (Mutation-Testing bleibt bewusst außen vor bzw. On-Demand).
-  - Cross-Platform-Parität zwischen `.ps1` und `.sh` muss für neue Fast-Gate-Checks gepflegt werden.
+  - Does not cover semantic logic bugs that lie *inside* passing alibi tests (mutation testing remains intentionally excluded / on-demand).
+  - Cross-platform parity between `.ps1` and `.sh` must be maintained for new fast-gate checks.
 
-### Approach B (Alternative): Maximale Verification mit Non-Pareto-Trade-Offs
-- **Description**: Zusätzlich verpflichtender Fresh-Context-Subagent-Review (`ask-troubleshooter`) nach jedem Profile-B/C-Task, Regex-Mutation-Testing im Fast-Gate und permanentes `HANDOVER.md` nach jeder Phase.
-- **Pros / Cons**: Höhere theoretische Prüftiefe, aber abgelehnt, da es KV-Cache-Reuse bricht, Latenz und Token-Verbrauch deutlich erhöht und im Inner-Loop zu False Positives sowie Git-Noise führt.
+### Approach B (Alternative): Maximum Verification with Non-Pareto Trade-Offs
+- **Description**: Additional mandatory fresh-context subagent review (`ask-troubleshooter`) after every Profile-B/C task, regex mutation testing in the fast-gate, and permanent `HANDOVER.md` after every phase.
+- **Pros / Cons**: Higher theoretical verification depth, but rejected because it breaks KV-cache reuse, significantly increases latency and token consumption, and leads to false positives and Git noise in the inner loop.
 
 ---
 
 ## 3. High-Level Architecture & Clean Architecture Boundaries
 - **Target Layer**: Infrastructure / Deterministic Tooling (`scripts/`) + Governance Contracts (`AGENTS.md`, `skills/ask-control/SKILL.md`, `evals/eval-cases.json`)
-- **Clean Architecture Invariants**: Alle deterministischen Checks leben als sprachagnostische, zustandslose Skripte in `scripts/` (PowerShell `.ps1` + Bash `.sh` Parität) und liefern kompaktes JSON bzw. einzeilige Gate-Ausgaben ohne LLM-Abhängigkeit.
-- **Safety Invariants**: Skripte arbeiten strikt read-only auf dem Working-Tree (Ausnahme: explizit situatives `.agent-state.json` im `.gitignore`-Bereich). Submodule (`_agents/`, `.agents/`) bleiben isoliert.
+- **Clean Architecture Invariants**: All deterministic checks live as language-agnostic, stateless scripts in `scripts/` (PowerShell `.ps1` + Bash `.sh` parity) and return compact JSON or single-line gate outputs without LLM dependencies.
+- **Safety Invariants**: Scripts operate strictly read-only on the working tree (exception: explicitly situative `.agent-state.json` in the `.gitignore` / scratch area). Submodules (`_agents/`, `.agents/`) remain isolated.
 - **Data Flow & Components**:
-  - `docs/features/FEAT-*.md` (`AC-*`-IDs) $\rightarrow$ `run-fast-gate.ps1/.sh` (Regex-Traceability + `git diff --numstat` Guardrail) $\rightarrow$ JSON/CLI-Status.
+  - `docs/features/FEAT-*.md` (`AC-*` IDs) $\rightarrow$ `run-fast-gate.ps1/.sh` (regex traceability + `git diff --numstat` guardrail) $\rightarrow$ JSON/CLI status.
   - `run-fast-gate` + `git diff --stat` $\rightarrow$ `ask-control` Stage 2 $\rightarrow$ **Zero-Trust Diff-Report**.
-  - Circuit-Breaker Level 3 / Thread-Wechsel $\rightarrow$ `.agent-state.json` (kompakter State-Snapshot) $\rightarrow$ nächster Thread.
+  - Circuit-Breaker Level 3 / thread switch $\rightarrow$ `.agent-state.json` (compact state snapshot) $\rightarrow$ next thread.
 
 ---
 
-## 4. Phased Implementation Plan (Phasenweise Umsetzung)
+## 4. Phased Implementation Plan
 
-### Phase 1: Deterministic Fast-Gate Extensions (`AC-*` Traceability & Diff-Size-Guardrail)
+### Phase 1: Deterministic Fast-Gate Extensions (`AC-*` Traceability & Diff-Size Guardrail)
 - **Scope & Deliverables**:
-  - Erweiterung von `scripts/run-fast-gate.ps1` und `scripts/run-fast-gate.sh` um:
-    1. `AC-*`-Traceability-Prüfung (nur wenn aktive/geänderte `docs/features/FEAT-*.md` mit `AC-*` vorhanden sind).
-    2. `git diff --numstat`-Diff-Size-Check (konfigurierbarer Schwellenwert, z. B. 400 geänderte Code-Zeilen).
-  - Unit-/Smoke-Verifikation über `scripts/test-skills.ps1` / `scripts/run-evals.ps1`.
+  - Extend `scripts/run-fast-gate.ps1` and `scripts/run-fast-gate.sh` with:
+    1. `AC-*` traceability check (only when active/modified `docs/features/FEAT-*.md` with `AC-*` exist).
+    2. `git diff --numstat` diff-size check (configurable threshold, e.g., 400 changed code lines).
+  - Unit/smoke verification via `scripts/test-skills.ps1` / `scripts/run-evals.ps1`.
 - **Target Feature(s)**: `FEAT-GOV-002`
-- **Exit Criteria / DoD**: `.ps1` und `.sh` liefern identisches JSON-Schema, Profile-A-Workflows ohne Feature-Spec werden automatisch gebypasst, `test-skills.ps1` grün.
+- **Exit Criteria / DoD**: `.ps1` and `.sh` produce identical JSON schemas, Profile-A workflows without a feature spec are automatically bypassed, `test-skills.ps1` green.
 
-### Phase 2: Governance, Output-Schema & Context Hygiene (`ask-control` & `AGENTS.md`)
+### Phase 2: Governance, Output Schema & Context Hygiene (`ask-control` & `AGENTS.md`)
 - **Scope & Deliverables**:
-  - Integration des kompakten **Zero-Trust Diff-Reports** in Stage 2 von `skills/ask-control/SKILL.md`.
-  - Präzisierung der **Progressive-Disclosure-Regel** in `AGENTS.md` und `skills/ask-control/SKILL.md` (Full-Read erst bei direkter `AC-*`-Betroffenheit).
-  - Definition des situativen **`.agent-state.json`**-Schemas für Circuit-Breaker Level 3 und Copilot-Thread-Wechsel (inkl. `.gitignore`-Empfehlung).
+  - Integrate the compact **Zero-Trust Diff-Report** into Stage 2 of `skills/ask-control/SKILL.md`.
+  - Clarify the **Progressive Disclosure Rule** in `AGENTS.md` and `skills/ask-control/SKILL.md` (full read only when directly affected by `AC-*`).
+  - Define the situative **`.agent-state.json`** schema for Circuit-Breaker Level 3 and Copilot thread switches (including `.gitignore` recommendation).
 - **Target Feature(s)**: `FEAT-GOV-002`
-- **Exit Criteria / DoD**: Cross-File-Sync über `scripts/test-skills.ps1` zu 100 % bestanden, keine Widersprüche zu bestehenden Invarianten.
+- **Exit Criteria / DoD**: Cross-file sync passes 100% via `scripts/test-skills.ps1`, zero contradictions with existing invariants.
 
-### Phase 3: Regression-Evals & Hardening
+### Phase 3: Regression Evals & Hardening
 - **Scope & Deliverables**:
-  - Ergänzung von `evals/eval-cases.json` um Regression-Cases für `AC-*`-Traceability, Diff-Size-Guardrail, Zero-Trust Diff-Report und situatives `.agent-state.json`.
-  - Anpassung von `scripts/run-evals.ps1` / `scripts/run-evals.sh`, falls neue Invarianten-Typen geprüft werden müssen.
+  - Add regression cases to `evals/eval-cases.json` for `AC-*` traceability, diff-size guardrail, Zero-Trust Diff-Report, and situative `.agent-state.json`.
+  - Update `scripts/run-evals.ps1` / `scripts/run-evals.sh` if new invariant types must be verified.
 - **Target Feature(s)**: `FEAT-GOV-002`
-- **Exit Criteria / DoD**: `run-evals.ps1` und `test-skills.ps1` bestehen 100 %, `lint-docs.ps1` meldet 0 defekte Links.
+- **Exit Criteria / DoD**: `run-evals.ps1` and `test-skills.ps1` pass 100%, `lint-docs.ps1` reports 0 broken links.
 
 ---
 
 ## 5. Open Questions, Edge Cases & Clarifications (Resolved)
-- [x] **Q-1 (Diff-Size-Limit)**: **Warnung** – Das Überschreiten des Diff-Size-Limits (z. B. > 400 geänderte Code-Zeilen) erzeugt eine Warnung im Fast-Gate-Output sowie im Zero-Trust Diff-Report (kein harter Fail).
-- [x] **Q-2 (`AC-*`-Traceability-Strenge)**: **Option A (Stage-1 Fail)** – Bei aktiver Feature-Spec (`FEAT-*.md` mit `AC-*`) setzt fehlende Test-Abdeckung `run-fast-gate` direkt auf `fail` (Exit-Code `1`), sodass der Fehler maschinell blockiert wird und nicht untergehen kann. Bei Profile A ohne Feature-Spec wird der Check übersprungen.
-- [x] **Q-3 (`.agent-state.json` Speicherort)**: **Scratch-Verzeichnis** – Ablage ausschließlich im jeweiligen Scratch-/Temp-Verzeichnis (kein File im Repo-Root, kein Git-Noise).
+- [x] **Q-1 (Diff-Size Limit)**: **Warning** – Exceeding the diff-size limit (e.g., > 400 changed code lines) emits a warning in the fast-gate output and in the Zero-Trust Diff-Report (no hard fail).
+- [x] **Q-2 (`AC-*` Traceability Strictness)**: **Option A (Stage-1 Fail)** – When an active feature spec (`FEAT-*.md` with `AC-*`) exists, missing test coverage sets `run-fast-gate` directly to `fail` (exit code `1`), ensuring the gap is mechanically blocked and cannot go unnoticed. In Profile A without a feature spec, the check is skipped.
+- [x] **Q-3 (`.agent-state.json` Storage Location)**: **Scratch Directory** – Stored exclusively in the respective scratch/temp directory (no file in repo root, no Git noise).
 
 ---
 
 ## 6. Distillation Target & Proposed Acceptance Criteria Preview
 Preliminary preview of acceptance criteria to be extracted into `docs/features/FEAT-GOV-002-pareto-autonomy-verification.md`:
-- **Preview AC-1 (`AC-*`-Traceability)**: Given eine aktive oder geänderte Feature-Spec mit `AC-1` und `AC-2`, When `run-fast-gate` ausgeführt wird, Then prüft das Skript per Regex, ob beide IDs in Testdateien referenziert sind, und meldet fehlende Abdeckung kompakt.
-- **Preview AC-2 (Anti-Ceremony Bypass)**: Given ein Profile-A-Bugfix ohne aktive Feature-Spec, When `run-fast-gate` ausgeführt wird, Then wird der `AC-*`-Traceability-Check ohne Overhead übersprungen.
-- **Preview AC-3 (Diff-Size-Guardrail)**: Given mehr als der konfigurierte Schwellenwert an geänderten Code-Zeilen im Working-Tree, When `run-fast-gate` läuft, Then wird ein eindeutiger Diff-Size-Hinweis/-Flag ausgegeben.
-- **Preview AC-4 (Zero-Trust Diff-Report)**: Given abgeschlossene Stage 1 in Profile B oder C, When `ask-control` Stage 2 abschließt, Then wird die kompakte Risiko-Matrix (Dateien, `AC-*`-Status, Guardrails, offene Annahmen) ausgegeben.
-- **Preview AC-5 (Situatives `.agent-state.json`)**: Given ein regulärer Single-Thread-Durchlauf ohne Context-Purge, When Phasen wechseln, Then wird **kein** `.agent-state.json` geschrieben (nur bei Circuit-Breaker Level 3 oder Thread-Wechsel).
-- **Preview AC-6 (Regression-Evals)**: Given die neuen Eval-Cases in `evals/eval-cases.json`, When `run-evals.ps1` ausgeführt wird, Then bestehen 100 % der Fälle ohne Fehler.
+- **Preview AC-1 (`AC-*` Traceability)**: Given an active or modified feature spec with `AC-1` and `AC-2`, When `run-fast-gate` is executed, Then the script checks via regex whether both IDs are referenced in test files and reports missing coverage compactly.
+- **Preview AC-2 (Anti-Ceremony Bypass)**: Given a Profile-A bugfix without an active feature spec, When `run-fast-gate` is executed, Then the `AC-*` traceability check is skipped without overhead.
+- **Preview AC-3 (Diff-Size Guardrail)**: Given more than the configured threshold of changed code lines in the working tree, When `run-fast-gate` runs, Then a clear diff-size warning/flag is emitted.
+- **Preview AC-4 (Zero-Trust Diff-Report)**: Given completed Stage 1 in Profile B or C, When `ask-control` completes Stage 2, Then the compact risk matrix (files, `AC-*` status, guardrails, open assumptions) is output.
+- **Preview AC-5 (Situative `.agent-state.json`)**: Given a regular single-thread run without Context Purge, When switching phases, Then **no** `.agent-state.json` is written (only on Circuit-Breaker Level 3 or thread switch).
+- **Preview AC-6 (Regression Evals)**: Given the new eval cases in `evals/eval-cases.json`, When `run-evals.ps1` is executed, Then 100% of cases pass without errors.
 
 ---
 
 ## 7. Revision & Discussion History
 | Date | Status | Changes & Decision Notes | Author / Approver |
 | :--- | :--- | :--- | :--- |
-| 2026-11-24 | `DRAFT` | Initiales Konzept für die 6 Pareto-Optimierungen erstellt | User / Agent |
-| 2026-11-24 | `APPROVED` | Q-1 (Warnung), Q-2 (Option A: Stage-1 Fail) und Q-3 (Scratch-Verzeichnis) geklärt und freigegeben | User / Agent |
-| 2026-11-24 | `ARCHIVED` | Destilliert nach `docs/features/FEAT-GOV-002-pareto-autonomy-verification.md` | User / Agent |
+| 2026-11-24 | `DRAFT` | Created initial concept for the 6 Pareto optimizations | User / Agent |
+| 2026-11-24 | `APPROVED` | Resolved and approved Q-1 (Warning), Q-2 (Option A: Stage-1 Fail), and Q-3 (Scratch directory) | User / Agent |
+| 2026-11-24 | `ARCHIVED` | Distilled into `docs/features/FEAT-GOV-002-pareto-autonomy-verification.md` | User / Agent |

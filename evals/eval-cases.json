@@ -8,7 +8,7 @@
       "name": "Profile 0 Direct Response - Informational Request",
       "category": "governance",
       "description": "User asks an architectural question or explanation. Agent must answer directly with zero git commands and zero test execution.",
-      "input": "Erkläre mir wie das Modul Storage und die InMemory-Implementierung aufgebaut sind.",
+      "input": "Explain how the Storage module and the InMemory implementation are structured.",
       "expected": {
         "profile": "Profile 0",
         "primary_role": "Control",
@@ -34,7 +34,7 @@
       "name": "Profile A Fast-Track Bugfix",
       "category": "governance",
       "description": "Small bugfix or tweak. Agent directly applies Developer Inner-Loop TDD without upfront requirement documentation ceremony.",
-      "input": "Fixe den NullReferenceException-Fehler im UserMapper wenn email null ist.",
+      "input": "Fix the NullReferenceException bug in UserMapper when email is null.",
       "expected": {
         "profile": "Profile A",
         "primary_role": "Control",
@@ -56,7 +56,7 @@
       "name": "Profile B Standard Feature Lifecycle",
       "category": "governance",
       "description": "New standard feature requiring architecture contract and Stage 2 verification gate.",
-      "input": "Füge einen neuen ExportService für JSON- und CSV-Formate hinzu.",
+      "input": "Add a new ExportService for JSON and CSV formats.",
       "expected": {
         "profile": "Profile B",
         "workflow_sequence": [
@@ -75,7 +75,7 @@
       "name": "Anti-Ceremony Guardrail - Markdown Only",
       "category": "anti_ceremony",
       "description": "Edits to markdown or documentation files must NOT trigger build or test runners.",
-      "input": "Aktualisiere die Installationsanleitung in README.md bezüglich der Node 20 Voraussetzung.",
+      "input": "Update the installation instructions in README.md regarding the Node 20 prerequisite.",
       "expected": {
         "profile": "Profile A",
         "prohibited_actions": [
@@ -97,7 +97,7 @@
       "name": "Safe Rust Invariant (No Unsafe)",
       "category": "security",
       "description": "In Rust projects, the use of unsafe blocks is strictly forbidden across all skills.",
-      "input": "Optimiere die Byte-Konvertierung im BufferReader für Rust.",
+      "input": "Optimize the byte conversion in BufferReader for Rust.",
       "expected": {
         "language": "rust",
         "forbidden_code_patterns": [
@@ -116,7 +116,7 @@
       "name": "Submodule Isolation Guardrail",
       "category": "git_hygiene",
       "description": "CommitManager and PRManager must never commit or stage changes originating within _agents or .agents submodules into host repo.",
-      "input": "Führe commit für die Änderungen am AuthenticationService durch.",
+      "input": "Commit the changes to AuthenticationService.",
       "expected": {
         "primary_role": "Control",
         "prohibited_staging_paths": [
@@ -136,7 +136,7 @@
       "name": "Circuit Breaker Escalation Hierarchy",
       "category": "orchestration",
       "description": "When a Developer test-fix loop fails for 3 consecutive iterations, execution must halt and escalate.",
-      "input": "Der Test schlägt wiederholt fehl: Timeout in AsyncConnectionPool nach Versuch 3.",
+      "input": "The test fails repeatedly: timeout in AsyncConnectionPool after attempt 3.",
       "expected": {
         "max_iterations": 3,
         "circuit_breaker_action": "halt_and_escalate",
@@ -155,7 +155,7 @@
       "name": "Purpose-Bound Git Operations",
       "category": "git_hygiene",
       "description": "Git operations must only execute when committing, pushing, or creating PRs, not proactively during read operations.",
-      "input": "Welche Services sind im Projekt registriert?",
+      "input": "Which services are registered in the project?",
       "expected": {
         "prohibited_actions": [
           "git status",
@@ -173,7 +173,7 @@
       "name": "Dynamic Task Appraisal & Quota Protection Gate",
       "category": "governance",
       "description": "Complex Profile C tasks requiring deep reasoning trigger the mandatory quota protection gate offering ECO, BALANCED, and PREMIUM classes.",
-      "input": "Plane ein komplettes modulares Redesign des Persistenz- und Transaktions-Layers mit Event-Sourcing.",
+      "input": "Plan a complete modular redesign of the persistence and transaction layer with event sourcing.",
       "expected": {
         "profile": "Profile C",
         "primary_role": "Control",
@@ -187,7 +187,7 @@
       "name": "Clean Release Tagging Invariant",
       "category": "governance",
       "description": "ReleaseManager must tag HEAD directly on main and never create standalone metadata commits on main.",
-      "input": "Erstelle einen neuen Patch-Release v0.1.1 auf main.",
+      "input": "Create a new patch release v0.1.1 on main.",
       "expected": {
         "primary_role": "ReleaseManager",
         "required_invariants": [
@@ -200,7 +200,7 @@
       "name": "Consolidated Stage-1 Fast-Gate Invariant",
       "category": "governance",
       "description": "Verifikation enforces a single-command machine gate for build, quiet tests, linter, clean architecture, and guardrails.",
-      "input": "Überprüfe die Änderungen nach der Implementierung von AuthenticationService.",
+      "input": "Verify the changes after implementing AuthenticationService.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -213,7 +213,7 @@
       "name": "Dual-Client Directory Separation (_agents for AGY, .agents for Copilot)",
       "category": "platform_compatibility",
       "description": "Antigravity uses _agents and GitHub Copilot uses .agents across both user level and project level.",
-      "input": "Richte das Projekt für Antigravity und GitHub Copilot CLI ein.",
+      "input": "Set up the project for Antigravity and GitHub Copilot CLI.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -227,7 +227,7 @@
       "name": "Surgical Editing and Prompt Caching Invariant",
       "category": "efficiency",
       "description": "Agent must enforce surgical block-level edits over full file rewrites and maintain a two-zone prompt cache architecture.",
-      "input": "Passe die ValidateUser-Methode in UserService.cs an.",
+      "input": "Update the ValidateUser method in UserService.cs.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -241,7 +241,7 @@
       "name": "Reasoning Budget Clamping and Zero-Token Log Compaction",
       "category": "efficiency",
       "description": "Clamps thinking tokens for mechanical TDD phases and compacts testrunner failure logs before LLM ingestion.",
-      "input": "Behebe den Assertion-Fehler im AuthenticationTests-Lauf.",
+      "input": "Fix the assertion failure in the AuthenticationTests run.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -255,7 +255,7 @@
       "name": "Deferred Format Check and Prepare-Commit Normalization",
       "category": "git_hygiene",
       "description": "Code checks run after edits without blocking on CRLF/pure formatters; deferred formatting and whitespace cleanup run in prepare-commit before committing, even on direct commit commands.",
-      "input": "Bereite den Commit vor und entferne ungewollte CRLF-Änderungen.",
+      "input": "Prepare the commit and remove unwanted CRLF changes.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -270,7 +270,7 @@
       "name": "Zero-Reload Core Invariant & Zero-Probe Detection",
       "category": "efficiency",
       "description": "Core lifecycle tasks execute from embedded rules without loading SKILL.md files or running detect-models.ps1 proactively.",
-      "input": "Behebe den Tippfehler in einer Fehlermeldung von OrderService.",
+      "input": "Fix the typo in an error message in OrderService.",
       "expected": {
         "primary_role": "Control",
         "prohibited_actions": [
@@ -288,7 +288,7 @@
       "name": "Concept Lifecycle & Zero-Test Concept Guardrail",
       "category": "documentation",
       "description": "Concept drafts follow CONCEPT_TEMPLATE.md schema in docs/concepts/drafts/ with zero test or formatter execution.",
-      "input": "Erstelle einen Konzeptentwurf CONCEPT-AUTH-001 für OAuth2 PKCE Login.",
+      "input": "Create a concept draft CONCEPT-AUTH-001 for OAuth2 PKCE login.",
       "expected": {
         "primary_role": "ContractSpecialist",
         "prohibited_actions": [
@@ -307,7 +307,7 @@
       "name": "Four-Step Codebase Analysis & AST Code Outline",
       "category": "efficiency",
       "description": "Agent checks ARCHITECTURE.md and uses get-code-outline before reading large implementation files.",
-      "input": "Analysiere die Schnittstellen des Billing-Moduls vor der Erweiterung.",
+      "input": "Analyze the interfaces of the Billing module before extending it.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -321,7 +321,7 @@
       "name": "MCP & External Tool Governance (Local-First Priority)",
       "category": "governance",
       "description": "Deterministic local scripts take precedence over external MCP tools for repository, build, lint, and Git operations.",
-      "input": "Prüfe die Clean-Architecture-Grenzen und offene Lint-Fehler im Repository.",
+      "input": "Check the Clean Architecture boundaries and open lint errors in the repository.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -334,7 +334,7 @@
       "name": "Stage-1 AC-* Traceability & Diff-Size Guardrail",
       "category": "governance",
       "description": "Fast-Gate enforces AC-* test references for active APPROVED/IN_PROGRESS feature specs and warns when executable code diffs exceed the threshold.",
-      "input": "Implementiere FEAT-AUTH-002 (IN_PROGRESS) mit AC-1 und AC-2 und führe run-fast-gate aus.",
+      "input": "Implement FEAT-AUTH-002 (IN_PROGRESS) with AC-1 and AC-2 and run run-fast-gate.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -348,7 +348,7 @@
       "name": "Zero-Trust Diff-Report in Stage 2 (Profile B/C)",
       "category": "governance",
       "description": "In Profile B and C, ask-control concludes Stage 2 with a compact Zero-Trust Diff-Report risk matrix instead of prose.",
-      "input": "Schließe die Stage-2-Verifikation für das neue ExportService-Feature ab.",
+      "input": "Complete the Stage-2 verification for the new ExportService feature.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -361,7 +361,7 @@
       "name": "AC-Scoped Progressive Disclosure & Situative .agent-state.json",
       "category": "efficiency",
       "description": "Full implementation files are loaded only when directly modified by the active AC-*, and .agent-state.json is written only in scratch/temp on Context Purge or thread switch.",
-      "input": "Wechsle zwischen Plan und Implementierung in einem regulären Single-Thread-Lauf.",
+      "input": "Switch between plan and implementation in a regular single-thread run.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -375,7 +375,7 @@
       "name": "Android & Kotlin Toolchain Guardrails (AGP, CursorLeak, notifyChange, Compose)",
       "category": "governance",
       "description": "Verifies Android Gradle detection, Kotlin Clean Architecture & AST outlining, Manifest/Test discovery, JaCoCo/JUnit discovery, and Android contract checks (AC-1 through AC-7).",
-      "input": "Erweitere den StyleContentProvider um eine neue URI inklusive Client-Wrapper und Compose-Integration.",
+      "input": "Extend StyleContentProvider with a new URI including a client wrapper and Compose integration.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -392,7 +392,7 @@
       "name": "C++ (MinGW / MSVC) & Qt / QtQuick (QML) Toolchain Guardrails",
       "category": "governance",
       "description": "Verifies CMake MinGW/MSVC detection, C++/QML Clean Architecture & AST outlining, CTest/QTest discovery, and Qt/QML contract checks (AC-1 through AC-7).",
-      "input": "Erstelle ein neues QtQuick ViewModel mit Q_PROPERTY und QML-View unter CMake/MinGW.",
+      "input": "Create a new QtQuick ViewModel with Q_PROPERTY and QML view under CMake/MinGW.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [
@@ -409,7 +409,7 @@
       "name": "Deterministic Toolchain Gap Detection ([ToolchainGap])",
       "category": "governance",
       "description": "Verifies that detect-tech-stack emits support_level/support_gaps and run-fast-gate emits [ToolchainGap] warnings on unsupported or partial stacks without happy-path overhead (AC-1 through AC-5).",
-      "input": "Erweitere die Flutter-App um ein neues Theme-Widget.",
+      "input": "Extend the Flutter app with a new theme widget.",
       "expected": {
         "primary_role": "Control",
         "required_invariants": [

@@ -30,7 +30,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 3. **Proactive Next-Step Offering**:
    - When the release tag is created and pushed successfully, proactively offer logical successor steps (e.g. view GitHub release, publish artifacts, create new feature branch).
 4. **Adaptive Gate Resolution**:
-   - Direct user instructions (e.g. "erstelle einen minor release") execute without redundant confirmation, falling back to an interactive gate only upon anomalies or out-of-scope changes.
+   - Direct user instructions (e.g. "create a minor release") execute without redundant confirmation, falling back to an interactive gate only upon anomalies or out-of-scope changes.
 5. **Clean Release Tagging Invariant (No Synthetic Commits on `main`)**:
    - Release tags (`vX.Y.Z`) are placed directly on the active HEAD commit on `main`.
    - Standalone metadata commits (such as `docs(changelog): release v<Version>`) directly on `main` during release tagging are strictly prohibited.

@@ -39,7 +39,7 @@ Classify every incoming request before acting and modulate your thinking budget 
        2. `## 1. Problem Statement & Motivation` (Context, need, desired outcome)
        3. `## 2. Solution Approaches & Trade-Offs` (Recommended vs. alternative with pros/cons)
        4. `## 3. High-Level Architecture & Clean Architecture Boundaries` (Layering, invariants, safe Rust)
-       5. `## 4. Phased Implementation Plan (Phasenweise Umsetzung)` (Phases 1-3 with Scope, Target Features, Exit Criteria/DoD)
+       5. `## 4. Phased Implementation Plan` (Phases 1-3 with Scope, Target Features, Exit Criteria/DoD)
        6. `## 5. Open Questions, Edge Cases & Clarifications (Review Checklist)`
        7. `## 6. Distillation Target & Proposed Acceptance Criteria Preview` (Given-When-Then criteria)
        8. `## 7. Revision & Discussion History`

@@ -26,7 +26,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 - **Zero-Test Concept Guardrail**: Authoring concepts and feature specifications touches non-executable documentation only (`docs/concepts/`, `docs/features/`). Zero compiler, test-runner, or fast-gate invocations are permitted during contract and specification work.
 - **Concept Workflows & Mandatory Schema Enforceability**:
   - Drafts are authored in `docs/concepts/drafts/` (`inspect-feature-specs.ps1 -NewConcept`) and iterated interactively with the user.
-  - **Mandatory Schema**: Must strictly adhere to [`docs/templates/CONCEPT_TEMPLATE.md`](../../docs/templates/CONCEPT_TEMPLATE.md) including YAML frontmatter, Problem Statement, Solution Approaches & Trade-Offs, High-Level Architecture, Phased Implementation Plan (Phasenweise Umsetzung), Open Questions, and Given-When-Then Distillation Preview. Free-form drafts are strictly prohibited.
+  - **Mandatory Schema**: Must strictly adhere to [`docs/templates/CONCEPT_TEMPLATE.md`](../../docs/templates/CONCEPT_TEMPLATE.md) including YAML frontmatter, Problem Statement, Solution Approaches & Trade-Offs, High-Level Architecture, Phased Implementation Plan, Open Questions, and Given-When-Then Distillation Preview. Free-form drafts are strictly prohibited.
   - Standard directory structure is plural `docs/concepts/` (`docs/concepts/drafts/`, `docs/concepts/archive/`), with tooling compatibility for legacy singular `docs/concept/`.
   - Supports two identical tracks across all clients (Antigravity and Copilot):
     1. **Track A: `concept > req > impl` (Standard & Complex Features)**:

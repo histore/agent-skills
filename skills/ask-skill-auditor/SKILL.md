@@ -18,7 +18,7 @@ Model capability tiers, reference models, and calibrated thinking budgets are dy
 
 ---
 
-## 1. Clearly Defined Target Mission & Measurable KPIs (Ziele für das Skillset)
+## 1. Clearly Defined Target Mission & Measurable KPIs
 
 Every audit measures the actual implementation strictly against three non-negotiable target dimensions:
 
@@ -43,7 +43,7 @@ Every audit measures the actual implementation strictly against three non-negoti
 
 ---
 
-## 2. Deterministic Audit Rules (Prüfregeln A1–A10)
+## 2. Deterministic Audit Rules (Rules A1–A10)
 
 To prevent varying findings caused by differently phrased prompts, **every audit must execute Rules A1–A10 in exact sequence**:
 
@@ -82,17 +82,17 @@ To prevent varying findings caused by differently phrased prompts, **every audit
 
 Every raw candidate finding from Rules A1–A10 must be classified with exact file and line references into one of three categories:
 
-1. **`[K]` Korrektur (Defect / Bug / Contradiction / Parity Gap)**:
+1. **`[K]` Correction (Defect / Bug / Contradiction / Parity Gap)**:
    - A syntax error, broken command, failing test, `.ps1`/`.sh` behavioral divergence, PowerShell 5.1 scalar-vs-array bug, or direct semantic contradiction between two files.
-2. **`[R]` Redundanz (Token Bloat / Unnecessary Duplication)**:
+2. **`[R]` Redundancy (Token Bloat / Unnecessary Duplication)**:
    - Duplicate paragraphs or role lists within the same file, or verbose prose in `README.md` / `rules/subagents.md` that repeats `AGENTS.md` without adding platform-specific function.
    - *Important Exception*: Deliberate parallel embedding between `AGENTS.md` (for Antigravity) and `.github/copilot-instructions.md` (for GitHub Copilot Zero-Reload) is **architecturally required** and must **never** be flagged as removable redundancy.
-3. **`[V]` Verbesserung (Measurable Quality or Efficiency Enhancement)**:
+3. **`[V]` Improvement (Measurable Quality or Efficiency Enhancement)**:
    - Eliminating a redundant subprocess call, extending a linter to cover missing file extensions (e.g. `.tsx`/`.jsx`), or adding a deterministic regression test / eval assertion for an unguarded invariant.
 
 ---
 
-## 4. Value-vs-Churn Gate & Anti-Oscillation Protocol (Schutz vor Hin-und-Her-Änderungen)
+## 4. Value-vs-Churn Gate & Anti-Oscillation Protocol
 
 Before proposing any change to the user, `SkillAuditor` must pass every candidate `[K]`, `[R]`, and `[V]` finding through this **mandatory 3-Gate Filter**:
 
@@ -116,7 +116,7 @@ Before proposing any change to the user, `SkillAuditor` must pass every candidat
 
 ---
 
-## 5. Self-Audit & LLM Evolution Protocol (Selbstaudit & Anpassung an LLM-Entwicklungen)
+## 5. Self-Audit & LLM Evolution Protocol
 
 When invoked with an evolution check (or as Step 11 of a full audit), `SkillAuditor` audits **both the skillset and its own rules (`ask-skill-auditor/SKILL.md`)** against current LLM and platform developments:
 

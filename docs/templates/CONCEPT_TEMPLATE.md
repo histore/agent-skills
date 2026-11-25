@@ -48,7 +48,7 @@ Compare viable approaches before solidifying requirements:
 
 ---
 
-## 4. Phased Implementation Plan (Phasenweise Umsetzung)
+## 4. Phased Implementation Plan
 Structure implementation into incremental, independently testable phases to reduce risk and ensure verifiable milestones:
 
 ### Phase 1: Foundation & Core Contracts (MVP)
