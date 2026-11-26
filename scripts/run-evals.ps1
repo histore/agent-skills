@@ -490,6 +490,26 @@ foreach ($tc in $cases) {
                     $failures.Add("Invariant 'toolchain_gap_reactive_rule' missing in ask-control/SKILL.md or copilot-instructions.md")
                 }
             }
+            "dual_cli_pre_tool_hooks" {
+                $hookPs1 = Join-Path $repoRoot "scripts\hook-pre-tool-guard.ps1"
+                $hookSh = Join-Path $repoRoot "scripts\hook-pre-tool-guard.sh"
+                $copHook = Join-Path $repoRoot "hooks\copilot-guard.json"
+                $agyHook = Join-Path $repoRoot "hooks\agy-guard.json"
+                if (-not (Test-Path $hookPs1) -or -not (Test-Path $hookSh) -or -not (Test-Path $copHook) -or -not (Test-Path $agyHook)) {
+                    $failures.Add("Invariant 'dual_cli_pre_tool_hooks' missing hook scripts or templates in scripts/ or hooks/")
+                }
+            }
+            "agy_current_model_lineup" {
+                $mtRaw = if ($modelTiersPath -and (Test-Path $modelTiersPath)) { Get-Content -Path $modelTiersPath -Raw -Encoding UTF8 } else { "" }
+                if ($mtRaw -notmatch 'gemini-4-neon' -or $mtRaw -notmatch 'gemini-4-carbon' -or $mtRaw -notmatch 'gemini-pro-orchestrator' -or $mtRaw -match 'gemini-4-pro-high' -or $mtRaw -match 'gemini-4-flash-low') {
+                    $failures.Add("Invariant 'agy_current_model_lineup' failed in rules/model-tiers.json")
+                }
+            }
+            "copilot_cli_native_workflows" {
+                if ($copilotContent -notmatch '/plan' -or $copilotContent -notmatch '/autopilot' -or $copilotContent -notmatch '/fleet' -or $copilotContent -notmatch '/compact') {
+                    $failures.Add("Invariant 'copilot_cli_native_workflows' missing /plan, /autopilot, /fleet, or /compact in .github/copilot-instructions.md")
+                }
+            }
             default {
                 $failures.Add("Unhandled required_invariant '$inv' in eval case '$caseId' (must be explicitly asserted in run-evals.ps1)")
             }

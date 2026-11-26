@@ -351,6 +351,24 @@ for c in cases:
             cop_content = open(os.path.join(repo_root, '.github', 'copilot-instructions.md'), encoding='utf-8', errors='ignore').read()
             if '[ToolchainGap]' not in control_content or '[ToolchainGap]' not in cop_content:
                 failures.append("Invariant 'toolchain_gap_reactive_rule' missing in ask-control/SKILL.md or copilot-instructions.md")
+        elif inv == 'dual_cli_pre_tool_hooks':
+            req_files = [
+                os.path.join(repo_root, 'scripts', 'hook-pre-tool-guard.ps1'),
+                os.path.join(repo_root, 'scripts', 'hook-pre-tool-guard.sh'),
+                os.path.join(repo_root, 'hooks', 'copilot-guard.json'),
+                os.path.join(repo_root, 'hooks', 'agy-guard.json')
+            ]
+            if not all(os.path.isfile(p) for p in req_files):
+                failures.append("Invariant 'dual_cli_pre_tool_hooks' missing hook scripts or templates in scripts/ or hooks/")
+        elif inv == 'agy_current_model_lineup':
+            mt_path = os.path.join(repo_root, 'rules', 'model-tiers.json')
+            mt_raw = open(mt_path, encoding='utf-8', errors='ignore').read() if os.path.isfile(mt_path) else ''
+            if ('gemini-4-neon' not in mt_raw or 'gemini-4-carbon' not in mt_raw or 'gemini-pro-orchestrator' not in mt_raw or
+                'gemini-4-pro-high' in mt_raw or 'gemini-4-flash-low' in mt_raw):
+                failures.append("Invariant 'agy_current_model_lineup' failed in rules/model-tiers.json")
+        elif inv == 'copilot_cli_native_workflows':
+            if any(tok not in copilot_content for tok in ('/plan', '/autopilot', '/fleet', '/compact')):
+                failures.append("Invariant 'copilot_cli_native_workflows' missing /plan, /autopilot, /fleet, or /compact in .github/copilot-instructions.md")
         else:
             failures.append(f"Unhandled required_invariant '{inv}' in eval case '{cid}' (must be explicitly asserted in run-evals.sh)")
 

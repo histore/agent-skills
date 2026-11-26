@@ -39,6 +39,7 @@ CLIENT_EXPLICIT=false
 GLOBAL_MODE=false
 SKIP_COPILOT=false
 INIT_DOCS=false
+WITH_HOOKS=false
 USER_HOME="${HOME}"
 FORCE=false
 
@@ -52,6 +53,7 @@ print_usage() {
   echo "  -t, --folder-type <type> Explicit link override: '_agents', '.agents', or 'both'"
   echo "  --skip-copilot           Skip Copilot (.agents and .github/copilot-instructions.md)"
   echo "  --init-docs              Scaffold initial ARCHITECTURE.md and docs/ROADMAP.md in target project"
+  echo "  --with-hooks             Provision deterministic PreToolUse guardrail hooks for Copilot CLI & AGY"
   echo "  --user-home <dir>        Override user HOME directory (for isolated testing)"
   echo "  -f, --force              Overwrite existing links or files"
   echo "  -h, --help               Show this help message"
@@ -83,6 +85,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --init-docs)
       INIT_DOCS=true
+      shift
+      ;;
+    --with-hooks)
+      WITH_HOOKS=true
       shift
       ;;
     --user-home)
@@ -198,10 +204,40 @@ if [[ "$GLOBAL_MODE" == true ]]; then
     create_symlink "${GEMINI_CONFIG_DIR}/skills" "${AGY_USER_DIR}/skills"
     create_symlink "${GEMINI_CONFIG_DIR}/rules" "${AGY_USER_DIR}/rules"
 
+    if [[ "$WITH_HOOKS" == true ]]; then
+      AGY_HOOK_FILE="${GEMINI_CONFIG_DIR}/hooks.json"
+      if [[ -f "$AGY_HOOK_FILE" && "$FORCE" != true ]]; then
+        echo "  [SKIP] AGY global hooks.json already exists: ${AGY_HOOK_FILE} (use --force to overwrite)"
+      else
+        cat <<EOF > "$AGY_HOOK_FILE"
+{
+  "agent-skills-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|edit_file|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${AGY_USER_DIR}/scripts/hook-pre-tool-guard.sh\" --format agy",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+        echo "  [OK] Provisioned AGY PreToolUse guardrail hook: ${AGY_HOOK_FILE}"
+      fi
+    fi
+
     echo ""
     echo "Antigravity / Gemini Setup (~/_agents):"
     echo "  - User Root: ${AGY_USER_DIR}"
     echo "  - Auto-Discovery: ~/.gemini/config/skills & ~/.gemini/config/rules -> ~/_agents"
+    if [[ "$WITH_HOOKS" == true ]]; then
+      echo "  - PreToolUse Hook: ~/.gemini/config/hooks.json"
+    fi
     echo "  - Optional Global Rules: Add Control orchestrator defaults to ~/.gemini/GEMINI.md (preserved if already present)"
   fi
 
@@ -229,11 +265,42 @@ description: "Universal Clean Code, Clean Architecture, and Zero-Reload Copilot 
 ${INLINED_BODY}
 EOF
     echo "  [OK] Generated Zero-Reload Copilot user instructions (inlined via .agents): ${USER_INSTRUCTIONS_FILE}"
+
+    if [[ "$WITH_HOOKS" == true ]]; then
+      COPILOT_HOOKS_DIR="${USER_HOME}/.copilot/hooks"
+      mkdir -p "${COPILOT_HOOKS_DIR}"
+      COPILOT_HOOK_FILE="${COPILOT_HOOKS_DIR}/agent-skills-guard.json"
+      if [[ -f "$COPILOT_HOOK_FILE" && "$FORCE" != true ]]; then
+        echo "  [SKIP] Copilot global hook already exists: ${COPILOT_HOOK_FILE} (use --force to overwrite)"
+      else
+        cat <<EOF > "$COPILOT_HOOK_FILE"
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "bash \"${COPILOT_AGENTS_DIR}/scripts/hook-pre-tool-guard.sh\" --format copilot",
+        "powershell": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${COPILOT_AGENTS_DIR}/scripts/hook-pre-tool-guard.ps1\" -Format copilot",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}
+EOF
+        echo "  [OK] Provisioned Copilot CLI PreToolUse guardrail hook: ${COPILOT_HOOK_FILE}"
+      fi
+    fi
+
     echo ""
     echo "GitHub Copilot CLI Setup (~/.agents):"
     echo "  - User Root: ${COPILOT_AGENTS_DIR}"
     echo "  - Instructions (Zero-Reload inlined): ~/.copilot/instructions/agent-skills.instructions.md"
     echo "  - Skills: Auto-discovered from ~/.agents/skills"
+    if [[ "$WITH_HOOKS" == true ]]; then
+      echo "  - PreToolUse Hook: ~/.copilot/hooks/agent-skills-guard.json"
+    fi
+    echo "  - Double-Injection Note: Copilot CLI combines global + project instructions; use '/instructions' to disable duplicates in repos that also define .github/copilot-instructions.md or AGENTS.md."
     echo "  - Verification commands: 'copilot instruction list' and 'copilot skill list'"
     echo ""
     echo "GitHub Copilot (VS Code User Settings):"
@@ -274,8 +341,13 @@ else
     create_symlink "${TARGET_DIR}/.agents" "$REPO_ROOT"
   fi
 
-  # 2. Setup .github/copilot-instructions.md (configured for .agents/)
+  # 2. Setup .github/copilot-instructions.md, path-specific .github/instructions/, and optional hooks
   if [[ "$SETUP_COPILOT" == true ]]; then
+    GLOBAL_COPILOT_INSTR="${USER_HOME}/.copilot/instructions/agent-skills.instructions.md"
+    if [[ -f "$GLOBAL_COPILOT_INSTR" ]]; then
+      echo "  [WARN] Double-Injection Notice: Global Copilot instructions also exist at '${GLOBAL_COPILOT_INSTR}'. Copilot CLI combines global + project instructions (and AGENTS.md); toggle duplicates with '/instructions' if needed."
+    fi
+
     mkdir -p "${TARGET_DIR}/.github"
     DEST_COPILOT="${TARGET_DIR}/.github/copilot-instructions.md"
     if [[ -f "$DEST_COPILOT" && "$FORCE" != true ]]; then
@@ -283,6 +355,64 @@ else
     else
       cp -f "$COPILOT_TEMPLATE" "$DEST_COPILOT"
       echo "  [OK] Provisioned ${DEST_COPILOT} (configured for .agents/)"
+    fi
+
+    SRC_INSTR_DIR="${REPO_ROOT}/.github/instructions"
+    if [[ -d "$SRC_INSTR_DIR" ]]; then
+      mkdir -p "${TARGET_DIR}/.github/instructions"
+      for instr_file in "${SRC_INSTR_DIR}"/*.instructions.md; do
+        [[ -f "$instr_file" ]] || continue
+        instr_name="$(basename "$instr_file")"
+        dest_instr="${TARGET_DIR}/.github/instructions/${instr_name}"
+        if [[ -f "$dest_instr" && "$FORCE" != true ]]; then
+          echo "  [SKIP] .github/instructions/${instr_name} already exists"
+        else
+          cp -f "$instr_file" "$dest_instr"
+          echo "  [OK] Provisioned path-specific instruction: .github/instructions/${instr_name}"
+        fi
+      done
+    fi
+
+    if [[ "$WITH_HOOKS" == true ]]; then
+      SRC_COPILOT_HOOK="${REPO_ROOT}/hooks/copilot-guard.json"
+      if [[ -f "$SRC_COPILOT_HOOK" ]]; then
+        mkdir -p "${TARGET_DIR}/.github/hooks"
+        DEST_HOOK="${TARGET_DIR}/.github/hooks/agent-skills-guard.json"
+        if [[ -f "$DEST_HOOK" && "$FORCE" != true ]]; then
+          echo "  [SKIP] .github/hooks/agent-skills-guard.json already exists (use --force to overwrite)"
+        else
+          cp -f "$SRC_COPILOT_HOOK" "$DEST_HOOK"
+          echo "  [OK] Provisioned Copilot CLI PreToolUse guardrail hook: ${DEST_HOOK}"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "$SETUP_AGY" == true && "$WITH_HOOKS" == true ]]; then
+    mkdir -p "${TARGET_DIR}/.agent"
+    DEST_AGY_HOOK="${TARGET_DIR}/.agent/hooks.json"
+    if [[ -f "$DEST_AGY_HOOK" && "$FORCE" != true ]]; then
+      echo "  [SKIP] .agent/hooks.json already exists (use --force to overwrite)"
+    else
+      cat <<EOF > "$DEST_AGY_HOOK"
+{
+  "agent-skills-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|edit_file|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ../_agents/scripts/hook-pre-tool-guard.sh --format agy",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+      echo "  [OK] Provisioned AGY PreToolUse guardrail hook: ${DEST_AGY_HOOK}"
     fi
   fi
 

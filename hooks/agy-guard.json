@@ -1,0 +1,16 @@
+{
+  "agent-skills-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|edit_file|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File ../_agents/scripts/hook-pre-tool-guard.ps1 -Format agy",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

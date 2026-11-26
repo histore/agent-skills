@@ -101,6 +101,7 @@ $result = [ordered]@{
         throttle_routine_to_cost_efficient = $true
     }
     supports_subagents = $false
+    supports_hooks     = $false
     detected_models    = @()
     recommended_tiers  = [ordered]@{}
 }
@@ -112,6 +113,7 @@ if ($isAntigravityEnv) {
     $result.platform = "antigravity"
     $result.execution_mode = "multi_agent"
     $result.supports_subagents = $true
+    $result.supports_hooks = $true
 
     $rawModels = $null
     if ($agyCmd) {
@@ -144,11 +146,20 @@ if ($isAntigravityEnv) {
     }
 
     if ($modelList -and $modelList.Count -gt 0) {
-        $flagshipHigh = ($modelList | Where-Object { $_.id -match '(opus|gemini-4|hydrogen|argon|pro|gpt-[56]|astra).*(high|extended)' -or $_.id -match 'opus|gemini-4.*pro|gpt-6.*astra' } | Select-Object -First 1).id
-        $analyticalHigh = ($modelList | Where-Object { $_.id -match '(sonnet|gemini-4|hydrogen|argon|gpt-[56]|sol).*(high|medium)|gpt-6\.1-sol' } | Select-Object -First 1).id
+        $flagshipHigh = ($modelList | Where-Object { $_.id -match '^(gemini-4-(neon|carbon)|gemini-pro-orchestrator-neon|claude-opus|gpt-6.*astra).*(xhigh|high|neon)$' -or $_.id -match '^(gemini-pro-orchestrator-neon|gemini-4-hydrogen-xhigh)$' } | Select-Object -First 1).id
+        if (-not $flagshipHigh) {
+            $flagshipHigh = ($modelList | Where-Object { $_.id -match '(opus|neon|carbon|hydrogen|pro|gpt-[56]|astra).*(xhigh|high|extended)' } | Select-Object -First 1).id
+        }
+        $analyticalHigh = ($modelList | Where-Object { $_.id -match '^(gemini-pro-orchestrator-argon|gemini-4-carbon-medium|gemini-4-hydrogen-high|gemini-4-argon-high|claude-sonnet.*high|gpt-6\.1-sol)$' } | Select-Object -First 1).id
+        if (-not $analyticalHigh) {
+            $analyticalHigh = ($modelList | Where-Object { $_.id -notmatch '(neon|opus|xhigh|astra)' -and $_.id -match '(carbon|hydrogen|argon|sonnet|gpt-[56]|sol).*(medium|high)' } | Select-Object -First 1).id
+        }
         $flashHigh = ($modelList | Where-Object { $_.id -match '(flash|haiku|mini|luna).*high' } | Select-Object -First 1).id
-        $flashMed = ($modelList | Where-Object { $_.id -match '(flash|argon|sonnet|gpt-6|sol).*medium|gpt-6\.1-sol' } | Select-Object -First 1).id
-        $flashLow = ($modelList | Where-Object { $_.id -match '(flash|haiku|mini|luna).*low|gpt-6.*(mini|luna)' } | Select-Object -First 1).id
+        $flashMed = ($modelList | Where-Object { $_.id -match '^(gemini-4-argon-medium|gemini-4-hydrogen-medium|gemini-3\.8-flash-medium|claude-sonnet.*medium|gpt-6\.1-sol)$' } | Select-Object -First 1).id
+        if (-not $flashMed) {
+            $flashMed = ($modelList | Where-Object { $_.id -match '(argon|hydrogen|flash|sonnet|gpt-6|sol).*medium' } | Select-Object -First 1).id
+        }
+        $flashLow = ($modelList | Where-Object { $_.id -match '(flash|argon|haiku|mini|luna).*low|gpt-6.*(mini|luna)' } | Select-Object -First 1).id
 
         $result.active_model_mapping = [ordered]@{
             tier_1_deep_reasoning = if ($flagshipHigh) { $flagshipHigh } elseif ($flashHigh) { $flashHigh } else { "inherit" }
@@ -160,15 +171,16 @@ if ($isAntigravityEnv) {
 }
 # 3.2. Probe for standalone GitHub Copilot CLI ('copilot') or gh-copilot extension
 elseif ((Get-Command copilot -ErrorAction SilentlyContinue) -or ($null -ne $env:COPILOT_CLI) -or (Test-Path (Join-Path $HOME ".copilot")) -or ((Get-Command gh -ErrorAction SilentlyContinue) -and ((& gh extension list 2>$null) -match 'gh-copilot'))) {
-    $hasCopilotCli = ($null -ne (Get-Command copilot -ErrorAction SilentlyContinue))
+    $hasCopilotCli = ($null -ne (Get-Command copilot -ErrorAction SilentlyContinue)) -or ($null -ne $env:COPILOT_CLI) -or (Test-Path (Join-Path $HOME ".copilot"))
     $result.platform = "copilot"
-    $result.execution_mode = "sequential_persona"
+    $result.execution_mode = "compound_execution"
     $result.supports_subagents = $hasCopilotCli
+    $result.supports_hooks = $hasCopilotCli
     $result.recommended_tiers = [ordered]@{
-        tier_1 = [ordered]@{ reasoning_effort = "high"; strategy = "maximum_thinking"; preferred_family = "gpt-6-astra / gpt-6-high / claude-opus" }
-        tier_2 = [ordered]@{ reasoning_effort = "high"; strategy = "analytical"; preferred_family = "gpt-6.1-sol / gpt-6 / claude-sonnet" }
-        tier_3 = [ordered]@{ reasoning_effort = "medium"; strategy = "balanced"; preferred_family = "gpt-6.1-sol / gpt-6-medium / claude-sonnet" }
-        tier_4 = [ordered]@{ reasoning_effort = "low"; strategy = "deterministic"; preferred_family = "gpt-6.1-luna / gpt-6-mini / gpt-5.4-mini" }
+        tier_1 = [ordered]@{ reasoning_effort = "high"; strategy = "maximum_thinking"; preferred_family = "gpt-6.2-astra / claude-fable-5.2 / gemini-4-neon / gemini-4-hydrogen / claude-opus-5.5" }
+        tier_2 = [ordered]@{ reasoning_effort = "high"; strategy = "analytical"; preferred_family = "gpt-6.2-sol / gemini-4-carbon / gemini-4-hydrogen / claude-sonnet-5.5" }
+        tier_3 = [ordered]@{ reasoning_effort = "medium"; strategy = "balanced"; preferred_family = "gpt-6.2-sol / gemini-4-hydrogen / gemini-4-argon / claude-sonnet-5.5 / mai-code-2" }
+        tier_4 = [ordered]@{ reasoning_effort = "low"; strategy = "deterministic"; preferred_family = "gpt-6-luna / claude-haiku-5.5 / gemini-3.8-flash / gemini-4-argon" }
     }
 }
 # 3.3. Generic LLM Fallback

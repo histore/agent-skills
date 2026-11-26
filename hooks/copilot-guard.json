@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "bash ./.agents/scripts/hook-pre-tool-guard.sh --format copilot",
+        "powershell": "powershell -NoProfile -ExecutionPolicy Bypass -File ./.agents/scripts/hook-pre-tool-guard.ps1 -Format copilot",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

@@ -8,14 +8,14 @@ All workflows leverage deterministic zero-token helper scripts ([`scripts/`](scr
 
 ## Overview: Execution Paradigm Differences
 
-| Workflow Aspect | Google Antigravity (AGY) | GitHub Copilot (CLI & VS Code) |
+| Workflow Aspect | Google Antigravity (AGY 1.5+) | GitHub Copilot (CLI & VS Code) |
 | :--- | :--- | :--- |
-| **Customization Root** | **`_agents`** (`./_agents/` project, `~/_agents/` user) | **`.agents`** (`./.agents/` project, `~/.agents/` user) |
-| **Execution Mode** | Multi-Agent Orchestration (`invoke_subagent`) & persistent session | Single-Thread Sequential Persona Transitions (`### [Phase: ...]`) |
-| **Default Entry Point** | `/ask-control <task>` or automatic via `~/.gemini/GEMINI.md` | Start conversation directly; governed by `.github/copilot-instructions.md` |
-| **Zero-Reload Invariant** | Core roles (`Developer`, `Verifikation`, `CommitManager`) are embedded | Core rules are embedded in `copilot-instructions.md`; never read `SKILL.md` for core roles |
-| **On-Demand Specialists** | Loaded dynamically per slash command or subagent dispatch (`_agents/skills/`) | Auto-discovered / referenced via `.agents/skills/<name>/SKILL.md` |
-| **Quality Gates** | Native Stage-1 script (`./_agents/scripts/run-fast-gate.ps1`) + modal review | Native Stage-1 script (`./.agents/scripts/run-fast-gate.ps1`) + sequential verification audit |
+| **Customization Root** | **`_agents`** (`./_agents/` project, `~/_agents/` user, optional `.agent/hooks.json` / `~/.gemini/config/hooks.json`) | **`.agents`** (`./.agents/` project, `~/.agents/` user, `.github/instructions/*.instructions.md`, optional `.github/hooks/`) |
+| **Execution Mode** | Compound Execution (default) + selective `invoke_subagent`, `run_workflow` fan-out, and user-invoked `/swarm` | Compound Execution (default) + native `/plan` (`Shift+Tab`), `/autopilot`, selective `/fleet` subagents, and `/compact` |
+| **Default Entry Point** | `/ask-control <task>` or automatic via `~/.gemini/GEMINI.md` | Start conversation directly; governed by `.github/copilot-instructions.md` (use `/instructions` to manage scope) |
+| **Zero-Reload Invariant** | Core roles (`Developer`, `Verifikation`, `CommitManager`) are embedded (24 KB/file cap, 20k-token aggregate budget) | Core rules are embedded in `copilot-instructions.md`; rare/stack rules load via `applyTo` in `.github/instructions/` |
+| **On-Demand Specialists** | Loaded dynamically per slash command or subagent dispatch (`_agents/skills/`) | Auto-discovered / referenced via `.agents/skills/<name>/SKILL.md` (`/skills` to inspect) |
+| **Quality Gates & Hooks** | Stage-1 script (`./_agents/scripts/run-fast-gate.ps1`) + optional `PreToolUse` hook (`hooks.json`) | Stage-1 script (`./.agents/scripts/run-fast-gate.ps1`) + optional `preToolUse` hook (`.github/hooks/`) |
 
 ---
 
@@ -103,15 +103,19 @@ Cross-cutting refactorings, persistence redesigns, or stubborn distributed deadl
 ```text
 /ask-control --premium Refactor the entire persistence and transaction layer to Unit of Work.
 ```
-*(If `--premium` or `--eco` is omitted, `Control` displays an interactive selection modal via `ask_question`: `[1] Premium`, `[2] Balanced`, `[3] Eco`.)*
+*(If `--premium` or `--eco` is omitted, `Control` displays an interactive selection modal via `ask_question`: `[1] Premium`, `[2] Balanced`, `[3] Eco`. For structured multi-module fan-out, AGY can use `run_workflow`; for large multi-team work, the user can explicitly invoke `/swarm`.)*
 
 ### GitHub Copilot
 ```text
-Refactor the entire persistence and transaction layer to Unit of Work.
+# 1. Start in Plan Mode (Shift+Tab or /plan) for architectural contract & Quota Gate:
+/plan Refactor the entire persistence and transaction layer to Unit of Work.
+
+# 2. After plan & quota approval, optionally parallelize independent modules via /fleet or execute via /autopilot:
+/fleet Refactor persistence adapters and author integration tests in parallel, then run ./.agents/scripts/run-fast-gate.ps1
 ```
 *Workflow*: Copilot outputs the Quota Protection Gate in chat:
 > `[Quota Gate] Profile C detected. Choose [1] Premium (Deep Thinking), [2] Balanced (70% savings), or [3] Eco (Fast).`
-After the user confirms, Copilot executes sequentially.
+After the user confirms, Copilot executes via Compound Execution (or `/fleet` for independent modules) and uses `/compact` if the session grows long.
 
 ---
 

@@ -1465,6 +1465,81 @@ try {
     if (Test-Path $tempKmpDir) { Remove-Item -LiteralPath $tempKmpDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+# 55. Validating FEAT-CLI-001 Dual-Client CLI Evolution, Current AGY Models, PreToolUse Hooks & Audit Ratchet
+Write-Host "`n55. Validating FEAT-CLI-001 Dual-Client CLI Evolution, PreToolUse Hooks & Audit Ratchet..." -ForegroundColor Yellow
+
+# 55a. Audit Ratchet: every scripts/*.ps1 must appear in README.md and match ARCHITECTURE.md count
+$allPs1Scripts = @(Get-ChildItem -Path (Join-Path $repoRoot "scripts") -Filter "*.ps1" -File | ForEach-Object { $_.BaseName })
+$readmeText55 = Get-Content -Path (Join-Path $repoRoot "README.md") -Raw -Encoding UTF8
+$missingReadmeScripts = @($allPs1Scripts | Where-Object { $readmeText55 -notmatch [regex]::Escape("$_.ps1") })
+Assert-Condition ($missingReadmeScripts.Count -eq 0) "README.md documents all $($allPs1Scripts.Count) script pairs" "README.md missing script entries: $($missingReadmeScripts -join ', ')"
+
+$archText55 = Get-Content -Path (Join-Path $repoRoot "ARCHITECTURE.md") -Raw -Encoding UTF8
+Assert-Condition ($archText55 -match "\b$($allPs1Scripts.Count)\s+dual-platform script pairs") "ARCHITECTURE.md script count matches actual ($($allPs1Scripts.Count) pairs)" "ARCHITECTURE.md script pair count is out of sync (expected $($allPs1Scripts.Count))"
+
+$ragPs1 = Get-Content -Path (Join-Path $repoRoot "scripts\run-all-gates.ps1") -Raw -Encoding UTF8
+$ragSh = Get-Content -Path (Join-Path $repoRoot "scripts\run-all-gates.sh") -Raw -Encoding UTF8
+Assert-Condition ($ragPs1 -match 'Requirements Scoped IDs & Non-Duplication' -and $ragSh -match 'Requirements Scoped IDs & Non-Duplication' -and $ragSh -notmatch 'Requirements Scoped IDs & Integrity') "run-all-gates.ps1 and run-all-gates.sh share identical gate names" "run-all-gates gate name drift detected"
+
+# 55b. AC-1: Current AGY 1.5.18 model lineup & Copilot multi-agent parity in model-tiers.json
+$mtRaw55 = Get-Content -Path $modelTiersFile -Raw -Encoding UTF8
+$mtObj55 = $mtRaw55 | ConvertFrom-Json
+$hasCurrentAgyModels = ($mtRaw55 -match 'gemini-4-neon-high' -and $mtRaw55 -match 'gemini-4-carbon-medium' -and $mtRaw55 -match 'gemini-pro-orchestrator-neon' -and $mtRaw55 -notmatch 'gemini-4-pro-high' -and $mtRaw55 -notmatch 'gemini-4-flash-low')
+Assert-Condition $hasCurrentAgyModels "model-tiers.json maps live AGY lineup (Neon, Carbon, Orchestrators) without obsolete IDs" "model-tiers.json has outdated AGY model entries"
+Assert-Condition ($mtObj55.execution_modes.multi_agent.client_support -contains 'copilot') "model-tiers.json recognizes Copilot CLI subagent/fleet capability" "model-tiers.json missing 'copilot' in multi_agent.client_support"
+
+# 55c. AC-2: Shared PreToolUse Guardrail Hook (Copilot CLI & AGY formats)
+$hookPs1Path = Join-Path $repoRoot "scripts\hook-pre-tool-guard.ps1"
+$hookShPath = Join-Path $repoRoot "scripts\hook-pre-tool-guard.sh"
+$copHookTpl = Join-Path $repoRoot "hooks\copilot-guard.json"
+$agyHookTpl = Join-Path $repoRoot "hooks\agy-guard.json"
+Assert-Condition ((Test-Path $hookPs1Path) -and (Test-Path $hookShPath) -and (Test-Path $copHookTpl) -and (Test-Path $agyHookTpl)) "PreToolUse hook scripts and JSON templates exist for Copilot CLI and AGY" "Missing hook scripts or templates"
+
+$tempCliDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+try {
+    New-Item -ItemType Directory -Path $tempCliDir -Force | Out-Null
+    $utf8NoBom55 = New-Object System.Text.UTF8Encoding($false)
+
+    $pForce = Join-Path $tempCliDir "cop-force.json"
+    [System.IO.File]::WriteAllText($pForce, '{"toolName":"bash","toolArgs":{"command":"git push --force origin main"}}', $utf8NoBom55)
+    $rForce = & $psExe -NoProfile -ExecutionPolicy Bypass -File $hookPs1Path -PayloadFile $pForce | ConvertFrom-Json
+    Assert-Condition ($rForce.permissionDecision -eq 'deny') "hook-pre-tool-guard.ps1 denies Copilot 'git push --force'" "Expected deny for Copilot git push --force"
+
+    $pLease = Join-Path $tempCliDir "cop-lease.json"
+    [System.IO.File]::WriteAllText($pLease, '{"toolName":"bash","toolArgs":{"command":"git push --force-with-lease origin feat/test"}}', $utf8NoBom55)
+    $rLease = & $psExe -NoProfile -ExecutionPolicy Bypass -File $hookPs1Path -PayloadFile $pLease | ConvertFrom-Json
+    Assert-Condition ($null -eq $rLease.permissionDecision) "hook-pre-tool-guard.ps1 allows Copilot 'git push --force-with-lease'" "Incorrectly blocked --force-with-lease"
+
+    $pSub = Join-Path $tempCliDir "agy-sub.json"
+    [System.IO.File]::WriteAllText($pSub, '{"hookEventName":"PreToolUse","toolCall":{"name":"run_command","args":{"CommandLine":"git add _agents/AGENTS.md"}}}', $utf8NoBom55)
+    $rSub = & $psExe -NoProfile -ExecutionPolicy Bypass -File $hookPs1Path -PayloadFile $pSub | ConvertFrom-Json
+    Assert-Condition ($rSub.decision -eq 'deny') "hook-pre-tool-guard.ps1 denies AGY submodule staging ('_agents')" "Expected deny for AGY _agents staging"
+
+    $pRust = Join-Path $tempCliDir "agy-rust.json"
+    [System.IO.File]::WriteAllText($pRust, '{"hookEventName":"PreToolUse","toolCall":{"name":"edit_file","args":{"Path":"src/lib.rs","Replacement":"unsafe { ptr::read(p) }"}}}', $utf8NoBom55)
+    $rRust = & $psExe -NoProfile -ExecutionPolicy Bypass -File $hookPs1Path -PayloadFile $pRust | ConvertFrom-Json
+    Assert-Condition ($rRust.decision -eq 'deny') "hook-pre-tool-guard.ps1 denies Rust 'unsafe' block edits" "Expected deny for Rust unsafe edit"
+
+    $pSafe = Join-Path $tempCliDir "agy-safe.json"
+    [System.IO.File]::WriteAllText($pSafe, '{"hookEventName":"PreToolUse","toolCall":{"name":"edit_file","args":{"Path":"src/lib.rs","Replacement":"pub fn add(a: i32, b: i32) -> i32 { a + b }"}}}', $utf8NoBom55)
+    $rSafe = & $psExe -NoProfile -ExecutionPolicy Bypass -File $hookPs1Path -PayloadFile $pSafe | ConvertFrom-Json
+    Assert-Condition ($rSafe.decision -eq 'allow') "hook-pre-tool-guard.ps1 allows safe Rust edits" "Expected allow for safe Rust edit"
+
+    # 55d. AC-3: setup-agent-skills -WithHooks, .github/instructions/, and Double-Injection Warning
+    $fakeHome55 = Join-Path $tempCliDir "home"
+    $fakeProj55 = Join-Path $tempCliDir "proj"
+    New-Item -ItemType Directory -Path $fakeHome55, $fakeProj55 -Force | Out-Null
+
+    & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\setup-agent-skills.ps1") -Global -WithHooks -UserHome $fakeHome55 -Force | Out-Null
+    Assert-Condition ((Test-Path (Join-Path $fakeHome55 ".copilot\hooks\agent-skills-guard.json")) -and (Test-Path (Join-Path $fakeHome55 ".gemini\config\hooks.json"))) "setup-agent-skills.ps1 -Global -WithHooks provisions global Copilot & AGY hooks" "Global -WithHooks failed to create hook files"
+
+    $projOut55 = (& $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\setup-agent-skills.ps1") -TargetProject $fakeProj55 -WithHooks -UserHome $fakeHome55 -Force 2>&1) -join "`n"
+    Assert-Condition ((Test-Path (Join-Path $fakeProj55 ".github\hooks\agent-skills-guard.json")) -and (Test-Path (Join-Path $fakeProj55 ".agent\hooks.json")) -and (Test-Path (Join-Path $fakeProj55 ".github\instructions\concepts.instructions.md"))) "setup-agent-skills.ps1 -WithHooks provisions project Copilot/AGY hooks and path-specific instructions" "Project -WithHooks missing expected files"
+    Assert-Condition ($projOut55 -match 'Double-Injection Notice') "setup-agent-skills.ps1 emits Double-Injection Notice when global Copilot instructions already exist" "Missing Double-Injection Notice on dual global+project Copilot setup"
+} finally {
+    if (Test-Path $tempCliDir) { Remove-Item -LiteralPath $tempCliDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan
