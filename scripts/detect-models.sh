@@ -179,10 +179,10 @@ elif command -v copilot &>/dev/null || [[ -n "${COPILOT_CLI:-}" ]] || [[ -d "$HO
   "supports_hooks": $copilot_cli_active,
   "detected_models": [],
   "recommended_tiers": {
-    "tier_1": { "reasoning_effort": "high", "strategy": "maximum_thinking", "preferred_family": "gpt-6-astra / gpt-6-high / claude-opus" },
-    "tier_2": { "reasoning_effort": "high", "strategy": "analytical", "preferred_family": "gpt-6.1-sol / gpt-6 / claude-sonnet" },
-    "tier_3": { "reasoning_effort": "medium", "strategy": "balanced", "preferred_family": "gpt-6.1-sol / gpt-6-medium / claude-sonnet" },
-    "tier_4": { "reasoning_effort": "low", "strategy": "deterministic", "preferred_family": "gpt-6.1-luna / gpt-6-mini / gpt-5.4-mini" }
+    "tier_1": { "reasoning_effort": "high", "strategy": "maximum_thinking", "preferred_family": "gpt-6.2-astra / claude-fable-5.2 / gemini-4-neon / gemini-4-hydrogen / claude-opus-5.5" },
+    "tier_2": { "reasoning_effort": "high", "strategy": "analytical", "preferred_family": "gpt-6.2-sol / gemini-4-carbon / gemini-4-hydrogen / claude-sonnet-5.5" },
+    "tier_3": { "reasoning_effort": "medium", "strategy": "balanced", "preferred_family": "gpt-6.2-sol / gemini-4-hydrogen / gemini-4-argon / claude-sonnet-5.5 / mai-code-2" },
+    "tier_4": { "reasoning_effort": "low", "strategy": "deterministic", "preferred_family": "gpt-6-luna / claude-haiku-5.5 / gemini-3.8-flash / gemini-4-argon" }
   }
 }
 EOF

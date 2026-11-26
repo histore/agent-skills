@@ -44,9 +44,9 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 10. **100% Coverage for Functional Features**: Enterprise features require approved requirements; minor tweaks do not require requirement overhead.
 11. **Dynamic Model Allocation & Universal Execution Strategy**:
     - **Right-Sizing into 3 Classes** ([rules/model-tiers.json](rules/model-tiers.json)):
-      - **ECO**: Profile 0/A, docs, scripts, Tier 4 Git/lifecycle (`flash`, `gemini-3.8-flash-low`, `gemini-4-argon-low`, `gpt-6.1-luna` / `gpt-6-mini`, `claude-haiku`, minimal reasoning).
-      - **BALANCED**: Profile B standard features (`inherit`, `gemini-pro-orchestrator-argon`, `gemini-4-carbon-medium`, `gemini-4-argon-medium`, `gpt-6.1-sol` / `gpt-6`, `sonnet`, medium reasoning).
-      - **PREMIUM**: Profile C complex architectures/deadlocks (`pro`, `gemini-4-neon-high`/`xhigh`, `gemini-pro-orchestrator-neon`, `gemini-4-carbon-high`, `gpt-6-astra` / `gpt-6-high`, `opus`). **Subject to Mandatory Quota Protection User Gate**.
+      - **ECO**: Profile 0/A, docs, scripts, Tier 4 Git/lifecycle (`flash`, `gemini-3.8-flash-low`, `gemini-4-argon-low`, `gpt-6-luna`, `claude-haiku-5.5`, minimal reasoning).
+      - **BALANCED**: Profile B standard features (`inherit`, `gemini-pro-orchestrator-argon`, `gemini-4-carbon-medium`, `gemini-4-hydrogen`, `gemini-4-argon-medium`, `gpt-6.2-sol`, `sonnet`, medium reasoning).
+      - **PREMIUM**: Profile C complex architectures/deadlocks (`pro`, `gemini-4-neon-high`/`xhigh`, `gemini-pro-orchestrator-neon`, `gemini-4-carbon-high`, `gpt-6.2-astra`, `claude-fable-5.2`, `opus`). **Subject to Mandatory Quota Protection User Gate**.
     - **Quota Protection User Gate**: For Profile C / Premium tasks, `Control` pauses and offers `[1] Premium`, `[2] Balanced`, `[3] Eco` to protect quota (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`).
     - **Compound Phased Execution & Zero-Reload Invariant (Default Strategy)**: Single-context phased persona transitions preserve prefix continuity, unlocking 75–90% KV-cache discounts.
       - **Zero-Reload Core Invariant**: In Profile 0/A/B, core rules for planning, contracts, Inner-Loop TDD, verification, and atomic commits are embedded here. Do NOT spend tool calls reading skill files for core tasks; load `SKILL.md` strictly for the 5 On-Demand Specialists.

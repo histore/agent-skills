@@ -18,7 +18,7 @@
           "characteristics": "Minimal token cost, high speed, deterministic outputs.",
           "models": {
             "antigravity": "flash / gemini-3.8-flash-low / gemini-4-argon-low",
-            "copilot": "gpt-6.1-luna / gpt-6-mini / gpt-5.4-mini / claude-haiku-4.5",
+            "copilot": "gpt-6-luna / gpt-6.1-luna / claude-haiku-5.5 / gemini-3.8-flash / gemini-4-argon / mai-code-1.1-flash",
             "generic": "ultra-fast-mini"
           },
           "reasoning_budget": "minimal",
@@ -30,7 +30,7 @@
           "characteristics": "High code quality, reliable Clean Code implementation and inner-loop TDD, balanced quota consumption.",
           "models": {
             "antigravity": "inherit / gemini-pro-orchestrator-argon / gemini-4-carbon-medium / gemini-4-argon-medium / gemini-4-hydrogen-medium / gemini-3.8-flash-medium",
-            "copilot": "gpt-6.1-sol / gpt-6 / claude-sonnet-5.5 / gpt-5.4",
+            "copilot": "gpt-6.2-sol / gpt-6.1-sol / gemini-4-hydrogen / gemini-4-carbon / claude-sonnet-5.5 / mai-code-2",
             "generic": "balanced-coder-efficient-mini"
           },
           "reasoning_budget": "medium",
@@ -42,7 +42,7 @@
           "characteristics": "Maximum analytical depth, complex distributed invariants, deep deadlock analysis, multi-module redesigns.",
           "models": {
             "antigravity": "pro / gemini-4-neon-high / gemini-4-neon-xhigh / gemini-pro-orchestrator-neon / gemini-4-carbon-high / gemini-pro-orchestrator / gemini-4-hydrogen-xhigh / claude-opus-5-5-high",
-            "copilot": "gpt-6-astra / gpt-6-high / claude-opus / gpt-5.4-high",
+            "copilot": "gpt-6.2-astra / gpt-6-astra / claude-fable-5.2 / claude-opus-5.5 / gemini-4-neon / gemini-4-hydrogen",
             "generic": "deep-reasoning-flagship"
           },
           "reasoning_budget": "high_extended",
@@ -187,11 +187,11 @@
       "customization_root": ".agents",
       "native_capabilities": ["plan_mode", "autopilot_with_guardrails", "fleet_parallel_subagents", "pre_tool_use_hooks", "native_compact", "path_specific_instructions"],
       "auto_routing_behavior": "When Copilot model selection is set to 'Auto' or invoked via 'copilot --model', steer reasoning via native effort settings, /plan before execution, /compact for long threads, and concise output checkpoints.",
-      "tier_1": ["gpt-6-astra", "gpt-6-high", "claude-opus-5-5-high", "claude-sonnet-5-5-high", "gpt-5.4"],
-      "tier_1_exception": ["gpt-6-astra", "claude-opus-5-5-high", "gpt-6-high"],
-      "tier_2": ["gpt-6.1-sol", "gpt-6", "claude-sonnet-5-5-high", "gpt-5.4"],
-      "tier_3": ["gpt-6.1-sol", "gpt-6-medium", "claude-sonnet-5-5-medium", "gpt-5.4-mini"],
-      "tier_4": ["gpt-6.1-luna", "gpt-6-mini", "gpt-5.4-mini", "claude-haiku-4.5"]
+      "tier_1": ["gpt-6.2-astra", "claude-fable-5.2", "gemini-4-neon", "gemini-4-carbon", "gemini-4-hydrogen", "claude-opus-5-5-high", "gpt-6-astra"],
+      "tier_1_exception": ["gpt-6.2-astra", "claude-fable-5.2", "gemini-4-neon", "claude-opus-5-5-high"],
+      "tier_2": ["gpt-6.2-sol", "gemini-4-carbon", "gemini-4-hydrogen", "claude-sonnet-5-5-high", "gpt-6.1-sol"],
+      "tier_3": ["gpt-6.2-sol", "gemini-4-hydrogen", "gemini-4-argon", "claude-sonnet-5-5-medium", "mai-code-2"],
+      "tier_4": ["gpt-6-luna", "claude-haiku-5.5", "gemini-3.8-flash", "gemini-4-argon", "mai-code-1.1-flash", "claude-haiku-4.5"]
     },
     "generic": {
       "tier_1": ["deep-reasoning-efficient-mini"],

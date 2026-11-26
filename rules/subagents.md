@@ -10,9 +10,9 @@
 3. **Universal Model Tiering & Execution Modes**:
    - Single Source of Truth: [`rules/model-tiers.json`](model-tiers.json).
    - **Dynamic Right-Sizing into 3 Classes**:
-     - **ECO**: Profile 0/A, docs, scripts, Tier 4 Git/lifecycle (`flash`, `gemini-3.8-flash-low`, `gemini-4-argon-low`, `gpt-6.1-luna` / `gpt-6-mini`, `claude-haiku`, minimal reasoning). Auto-approved.
-     - **BALANCED**: Profile B standard features & Inner-Loop TDD (`inherit`, `gemini-pro-orchestrator-argon`, `gemini-4-carbon-medium`, `gemini-4-argon-medium`, `gpt-6.1-sol` / `gpt-6`, `sonnet`, `flash` with medium reasoning). Auto-approved.
-     - **PREMIUM**: Profile C complex architectures, deadlocks, security audits (`pro`, `gemini-4-neon-high`/`xhigh`, `gemini-pro-orchestrator-neon`, `gemini-4-carbon-high`, `gpt-6-astra` / `gpt-6-high`, `opus`). **Subject to Mandatory Quota Protection User Gate**.
+     - **ECO**: Profile 0/A, docs, scripts, Tier 4 Git/lifecycle (`flash`, `gemini-3.8-flash-low`, `gemini-4-argon-low`, `gpt-6-luna`, `claude-haiku-5.5`, minimal reasoning). Auto-approved.
+     - **BALANCED**: Profile B standard features & Inner-Loop TDD (`inherit`, `gemini-pro-orchestrator-argon`, `gemini-4-carbon-medium`, `gemini-4-hydrogen`, `gemini-4-argon-medium`, `gpt-6.2-sol`, `sonnet`, `flash` with medium reasoning). Auto-approved.
+     - **PREMIUM**: Profile C complex architectures, deadlocks, security audits (`pro`, `gemini-4-neon-high`/`xhigh`, `gemini-pro-orchestrator-neon`, `gemini-4-carbon-high`, `gpt-6.2-astra`, `claude-fable-5.2`, `opus`). **Subject to Mandatory Quota Protection User Gate**.
    - **Quota Protection User Gate**: For Profile C / Premium tasks, `Control` pauses and presents `[1] Premium`, `[2] Balanced`, `[3] Eco` before consuming quota (satisfied immediately via `--eco`, `--balanced`, `--premium`, or direct user selection).
    - **Calibrated Sweet-Spot Allocation**: Subagents default to `inherit`; divergent exploratory research uses `flash`; deterministic lifecycle actions use `flash` (avoiding `flash_lite`); strategic/diagnostic roles (`Control`, `Troubleshooter`, `GitTroubleshooter`, `ContractSpecialist`) scale up to `pro` / high reasoning for Profile C or deadlocks.
    - **Reasoning & Cost Guardrails**: Clamp reasoning to `low/minimal` during mechanical coding/testing phases. When high-cost flagship models (> $4.00/M input, > $20.00/M output) are active on routine tasks, auto-throttle Tier 4 subagents or pause via a Smart Confirmation Gate recommending Daily Driver models (`flash` / `gpt-6.1-sol` / `luna`).
