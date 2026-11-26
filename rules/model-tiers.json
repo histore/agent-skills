@@ -17,7 +17,7 @@
           "profiles": ["Profile 0", "Profile A", "Tier 4 Lifecycle / Git"],
           "characteristics": "Minimal token cost, high speed, deterministic outputs.",
           "models": {
-            "antigravity": "flash / gemini-4-flash / gemini-3.8-flash-low",
+            "antigravity": "flash / gemini-3.8-flash-low / gemini-4-argon-low",
             "copilot": "gpt-6.1-luna / gpt-6-mini / gpt-5.4-mini / claude-haiku-4.5",
             "generic": "ultra-fast-mini"
           },
@@ -29,7 +29,7 @@
           "profiles": ["Profile B"],
           "characteristics": "High code quality, reliable Clean Code implementation and inner-loop TDD, balanced quota consumption.",
           "models": {
-            "antigravity": "inherit / gemini-4-argon-medium / gemini-3.8-flash-medium / gemini-3.8-flash-high",
+            "antigravity": "inherit / gemini-pro-orchestrator-argon / gemini-4-carbon-medium / gemini-4-argon-medium / gemini-4-hydrogen-medium / gemini-3.8-flash-medium",
             "copilot": "gpt-6.1-sol / gpt-6 / claude-sonnet-5.5 / gpt-5.4",
             "generic": "balanced-coder-efficient-mini"
           },
@@ -41,7 +41,7 @@
           "profiles": ["Profile C", "Complex Diagnostics", "Security Audits"],
           "characteristics": "Maximum analytical depth, complex distributed invariants, deep deadlock analysis, multi-module redesigns.",
           "models": {
-            "antigravity": "pro / gemini-4-pro-high / claude-opus-high",
+            "antigravity": "pro / gemini-4-neon-high / gemini-4-neon-xhigh / gemini-pro-orchestrator-neon / gemini-4-carbon-high / gemini-pro-orchestrator / gemini-4-hydrogen-xhigh / claude-opus-5-5-high",
             "copilot": "gpt-6-astra / gpt-6-high / claude-opus / gpt-5.4-high",
             "generic": "deep-reasoning-flagship"
           },
@@ -118,8 +118,8 @@
       "output_brevity_guardrail": "Leverage platform-native reasoning effort controls where available; enforce strict output brevity between persona phases (max 3-5 bullet points per state checkpoint; never echo full modified source files in chat)."
     },
     "multi_agent": {
-      "description": "Isolated parallel subagents via platform API (Antigravity invoke_subagent). Used selectively for divergent exploration, broad codebase research, or independent background sidecars.",
-      "client_support": ["antigravity"],
+      "description": "Isolated parallel subagents via platform API (Antigravity invoke_subagent / run_workflow / user-invoked /swarm; GitHub Copilot CLI subagents / /fleet). Used selectively for divergent exploration, broad codebase research, or independent Profile C modules while keeping compound_execution as default.",
+      "client_support": ["antigravity", "copilot"],
       "tier_dispatch": {
         "tier_1_deep_reasoning": {
           "model_class": "inherit",
@@ -150,7 +150,7 @@
       }
     },
     "sequential_persona": {
-      "description": "Single-agent sequential persona switching with prompt-modulated thinking budgets. Used in GitHub Copilot, Cursor, or single-model environments where subagent forking is unavailable.",
+      "description": "Single-agent sequential persona switching with prompt-modulated thinking budgets. Used in IDE chat sessions, Cursor, or single-model environments (and as KV-cache-preserving default in Copilot CLI before selective subagent / /fleet delegation).",
       "client_support": ["copilot", "cursor", "claude_code", "generic_llm"],
       "tier_modulation": {
         "tier_1_deep_reasoning": {
@@ -175,15 +175,18 @@
   "platform_preferences": {
     "antigravity": {
       "customization_root": "_agents",
-      "tier_1": ["gemini-4-hydrogen-high", "gemini-4-argon-high", "gemini-3.8-flash-high", "claude-opus-5-5-high", "gemini-4-pro-high"],
-      "tier_1_exception": ["claude-opus-5-5-high", "gemini-4-pro-high", "gemini-4-hydrogen-high"],
-      "tier_2": ["gemini-4-hydrogen-medium", "gemini-4-argon-medium", "gemini-3.8-flash-high", "claude-sonnet-5-5-high"],
-      "tier_3": ["gemini-4-argon-medium", "gemini-3.8-flash-medium", "claude-sonnet-5-5-medium"],
-      "tier_4": ["gemini-3.8-flash-low", "gemini-4-flash-low"]
+      "native_capabilities": ["invoke_subagent", "run_workflow", "user_invoked_swarm", "pre_tool_use_hooks", "dual_model_orchestrators"],
+      "aggregate_rules_budget_tokens": 20000,
+      "tier_1": ["gemini-4-neon-high", "gemini-4-neon-xhigh", "gemini-pro-orchestrator-neon", "gemini-4-carbon-high", "gemini-pro-orchestrator", "gemini-4-hydrogen-xhigh", "claude-opus-5-5-high"],
+      "tier_1_exception": ["gemini-4-neon-xhigh", "claude-opus-5-5-high", "gemini-4-neon-high", "gemini-4-carbon-high"],
+      "tier_2": ["gemini-pro-orchestrator-argon", "gemini-4-carbon-medium", "gemini-4-hydrogen-high", "gemini-4-argon-high", "claude-sonnet-5-5-high"],
+      "tier_3": ["gemini-4-argon-medium", "gemini-4-hydrogen-medium", "gemini-3.8-flash-medium", "claude-sonnet-5-5-medium"],
+      "tier_4": ["gemini-3.8-flash-low", "gemini-4-argon-low", "gemini-4-hydrogen-low"]
     },
     "copilot": {
       "customization_root": ".agents",
-      "auto_routing_behavior": "When Copilot model selection is set to 'Auto' or invoked via 'copilot --model', steer reasoning via native effort settings and concise output checkpoints.",
+      "native_capabilities": ["plan_mode", "autopilot_with_guardrails", "fleet_parallel_subagents", "pre_tool_use_hooks", "native_compact", "path_specific_instructions"],
+      "auto_routing_behavior": "When Copilot model selection is set to 'Auto' or invoked via 'copilot --model', steer reasoning via native effort settings, /plan before execution, /compact for long threads, and concise output checkpoints.",
       "tier_1": ["gpt-6-astra", "gpt-6-high", "claude-opus-5-5-high", "claude-sonnet-5-5-high", "gpt-5.4"],
       "tier_1_exception": ["gpt-6-astra", "claude-opus-5-5-high", "gpt-6-high"],
       "tier_2": ["gpt-6.1-sol", "gpt-6", "claude-sonnet-5-5-high", "gpt-5.4"],

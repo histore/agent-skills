@@ -417,6 +417,21 @@
           "toolchain_gap_reactive_rule"
         ]
       }
+    },
+    {
+      "id": "EVAL-CLI-001",
+      "name": "Dual-Client CLI Evolution (Copilot CLI & AGY 1.5.18) and PreToolUse Hooks",
+      "category": "platform_compatibility",
+      "description": "Verifies current AGY model lineup (Neon, Carbon, Orchestrators), Copilot CLI native workflow integration (/plan, /autopilot, /fleet, /compact), and shared zero-token PreToolUse guardrail hooks.",
+      "input": "Provision deterministic PreToolUse hooks and plan a Profile C feature using Copilot CLI or AGY.",
+      "expected": {
+        "primary_role": "Control",
+        "required_invariants": [
+          "dual_cli_pre_tool_hooks",
+          "agy_current_model_lineup",
+          "copilot_cli_native_workflows"
+        ]
+      }
     }
   ]
 }

@@ -36,14 +36,15 @@ pwsh -NoProfile -File ./scripts/inspect-feature-specs.ps1 -Phase 0
 | Phase 1 | `FEAT-TOOL-002` | Android & Kotlin Toolchain Guardrails | IMPLEMENTED | `TOOLING` | [features/FEAT-TOOL-002-android-kotlin-guardrails.md](features/FEAT-TOOL-002-android-kotlin-guardrails.md) | `v0.4.0` |
 | Phase 1 | `FEAT-TOOL-003` | C++ (MinGW / MSVC) & Qt / QtQuick (QML) Toolchain Guardrails | IMPLEMENTED | `TOOLING` | [features/FEAT-TOOL-003-cpp-qt-qml-guardrails.md](features/FEAT-TOOL-003-cpp-qt-qml-guardrails.md) | `v0.4.0` |
 | Phase 1 | `FEAT-TOOL-004` | Deterministic Toolchain Gap Detection ([ToolchainGap]) | IMPLEMENTED | `TOOLING` | [features/FEAT-TOOL-004-toolchain-gap-detection.md](features/FEAT-TOOL-004-toolchain-gap-detection.md) | `v0.4.0` |
+| Phase 1 | `FEAT-CLI-001` | Dual-Client CLI Evolution (Copilot CLI & AGY 1.5.18) and PreToolUse Hooks | IMPLEMENTED | `CLI` | [features/FEAT-CLI-001-dual-cli-evolution-and-hooks.md](features/FEAT-CLI-001-dual-cli-evolution-and-hooks.md) | `v0.7.0` |
 
 ---
 
 ## 3. Implementation Progress Summary
 
-- **Total Features Registered**: 9
-- **Completed & Verified (Phase 0 Baseline)**: 5 (83%)
-- **Implemented (Phase 1, pending final freeze)**: 4
+- **Total Features Registered**: 10
+- **Completed & Verified (Phase 0 Baseline)**: 5 (50%)
+- **Implemented (Phase 1, pending final freeze)**: 5
 - **Proposed / Planned (Phase 1)**: 0
 
 ---

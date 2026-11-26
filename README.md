@@ -18,6 +18,7 @@ agent-skills/
 ├── COMMON_WORKFLOWS.md     # Engineering workflows & invocation cheat sheet (AGY & Copilot)
 ├── ARCHITECTURE.md         # System architecture baseline
 ├── LICENSE                 # Apache License 2.0
+├── hooks/                  # Declarative PreToolUse guardrail templates (Copilot CLI & AGY)
 ├── rules/
 │   ├── clean-architecture.json # Declarative Clean Architecture layer rules and metric thresholds
 │   ├── model-tiers.json    # Universal model tier mapping and thinking budgets
@@ -91,10 +92,10 @@ This repository supports cross-platform execution across **Google Antigravity**,
    - **KV-Cache Continuity**: Retaining the conversation history unlocks 75–90% prompt caching discounts across turns, dramatically slashing latency and token expenditure.
    - **Calibrated Thinking Budgets**: Inner-Loop implementation and test execution clamp reasoning budgets to `minimal` (`ECO` / Flash Split-Phase) because compiler diagnostics and test suites act as deterministic ground truth.
    - **Terminal Hygiene**: Scripts and testrunners run quietly (`dotnet test --verbosity quiet`, `cargo test -q`, PowerShell `-NoProfile`) to eliminate terminal spam.
-2. **Selective Subagent Forking (Antigravity / AGY)**:
-   - Subagents (`invoke_subagent`) are leveraged selectively for **divergent, high-noise exploration** (broad file searches, web research, multi-repo audits) to prevent polluting the primary thread's cache prefix.
-3. **Sequential Persona Mode (GitHub Copilot / Cursor / Single-Model)**:
-   - For clients lacking subagent-forking APIs, a single agent executes role phases sequentially using semantic prompt-based thinking budgets.
+2. **Selective Subagent Forking & Parallel Orchestration (Antigravity & GitHub Copilot CLI)**:
+   - Subagents (`invoke_subagent` / `run_workflow` / user-invoked `/swarm` in AGY; native subagents & `/fleet` in Copilot CLI) are leveraged selectively for **divergent, high-noise exploration** or independent Profile C modules to avoid polluting the primary thread's cache prefix.
+3. **Sequential Persona Mode (IDE Chat / Cursor / Single-Model)**:
+   - In single-model sessions or when maximizing KV-cache continuity, a single agent executes role phases sequentially using calibrated thinking budgets (paired with `/plan`, `/autopilot`, and `/compact` in Copilot CLI).
 
 ### Zero-Token Runtime Capability Detection & 24h Persistent Caching
 During normal tasks, agents infer the environment (`multi_agent` vs. `sequential_persona`) directly from available tool declarations without running scripts (**Zero-Probe Environment Detection**). For explicit diagnostics or manual environment checks at zero token cost:
@@ -125,6 +126,9 @@ To minimize LLM token consumption, eliminate non-deterministic hallucinations, a
 | `run-fast-gate.ps1/.sh` | `ask-control` | Stage 1 Zero-Token compiler, linter, and quiet test suite fast gate. |
 | `run-all-gates.ps1/.sh` | `ask-control` | Unified quality gates orchestrator running all static zero-token linters and Stage 1 fast gate. |
 | `lint-clean-architecture.ps1/.sh` | `ask-control`, `ask-troubleshooter` | Evaluates declarative layer import boundaries ([`rules/clean-architecture.json`](rules/clean-architecture.json)) and code metric limits. |
+| `lint-android-contracts.ps1/.sh` | `ask-control`, `ask-troubleshooter` | Enforces Android/Kotlin/KMP guardrails (`CursorLeak`, `ContentProvider` `notifyChange`, Manifest/Compose checks). |
+| `lint-cpp-qt-contracts.ps1/.sh` | `ask-control`, `ask-troubleshooter` | Enforces C++/Qt/QML guardrails (`Q_OBJECT`, `Q_PROPERTY` `NOTIFY`, Qt 6 `Connections` syntax). |
+| `hook-pre-tool-guard.ps1/.sh` | `ask-control` | Zero-token `PreToolUse` safety hook for Copilot CLI & AGY blocking destructive Git commands, `_agents`/`.agents` staging, and Rust `unsafe` edits. |
 | `scan-guardrails.ps1/.sh` | `ask-release-manager`, `ask-control` | Pre-commit scanner enforcing Safe Rust (0 `unsafe`), secret leak prevention, and terminal hygiene (`-SkipLineEndings` available for inner-loop code checks). |
 | `prepare-commit.ps1/.sh` | `ask-control` | Zero-token commit preparation: deferred format checks, whitespace-only diff cleanup, OS-native line-ending normalization (`CRLF` on Windows, `LF` on Linux/macOS unless `.gitattributes`/`.editorconfig` requires otherwise; user decision on ambiguous files), and commit message drafting (`-Direct` skips confirmation without skipping format checks). |
 | `lint-requirements.ps1/.sh` | `ask-contract-specialist` | Validates requirement formatting, duplicate detection, and allocates scoped IDs (`REQ-<SCOPE>-XXX`). |
@@ -235,6 +239,7 @@ Creates `_agents` (for Antigravity) and `.agents` + `.github/copilot-instruction
 - `-Global` / `-g, --global`: Installs globally in user home (`~/_agents` for AGY, `~/.agents` for Copilot).
 - `-FolderType <type>` / `-t, --folder-type <type>`: Explicit override (`_agents`, `.agents`, or `both`).
 - `-InitDocs` / `--init-docs`: Auto-detects target project stack and scaffolds `ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/features/`, and `docs/concepts/drafts/`.
+- `-WithHooks` / `--with-hooks`: Provisions deterministic `PreToolUse` guardrail hooks for Copilot CLI (`.github/hooks/` or `~/.copilot/hooks/`) and Antigravity (`.agent/hooks.json` or `~/.gemini/config/hooks.json`).
 - `-SkipCopilot` / `--skip-copilot`: Skips Copilot setup (`.agents` and `.github/copilot-instructions.md`).
 - `-Force` / `-f, --force`: Overwrites existing symlinks/junctions or files.
 
@@ -299,11 +304,11 @@ Enables all 6 capability packs, model tier mappings, and the `ask-control` orche
 
 ### Manual Setup: GitHub Copilot (VS Code & CLI — `.agents`)
 
-GitHub Copilot operates in **Sequential Persona Mode** (`Control` -> `Developer` -> `Verifikation` -> `CommitManager`) and integrates strictly via **`.agents`** at both user level (`~/.agents`) and project level (`./.agents`).
+GitHub Copilot defaults to **Compound Phased Execution** (`Control` -> `Developer` -> `Verifikation` -> `CommitManager`) for KV-cache efficiency, while Copilot CLI also supports native `/plan`, `/autopilot`, `/fleet` subagents, `/compact`, path-specific `.github/instructions/*.instructions.md`, and deterministic `preToolUse` hooks (`.github/hooks/`). It integrates strictly via **`.agents`** at both user level (`~/.agents`) and project level (`./.agents`).
 
 > [!TIP]
-> **Copilot Efficiency & Zero-Reload Inlining**:
-> Unlike multi-agent platforms (Antigravity/AGY), Copilot executes in a single persistent context window. Core lifecycle engineering (`Control`, contracts, Inner-Loop TDD, verification, atomic commits) is embedded directly into `.github/copilot-instructions.md` (and inlined into `~/.copilot/instructions/agent-skills.instructions.md` on user level) so zero tool calls are spent loading core rules, while the 5 consolidated specialist capability packs are loaded strictly on demand from `.agents/skills/` (or `~/.agents/skills/`).
+> **Copilot Efficiency, Path-Specific Rules & Avoiding Double Injection**:
+> Core lifecycle engineering is embedded directly in `.github/copilot-instructions.md` (and inlined into `~/.copilot/instructions/agent-skills.instructions.md` on user level) while the 5 consolidated specialist capability packs load strictly on demand from `.agents/skills/` (or `~/.agents/skills/`) and stack-specific rules load via `.github/instructions/*.instructions.md` (`applyTo`). Because Copilot CLI **combines** global and project instruction files (and `AGENTS.md`), use `/instructions` in Copilot CLI to disable duplicates if both user-level and project-level instructions exist in the same repo.
 
 #### A. User Level (Global Machine Scope via `~/.agents`)
 

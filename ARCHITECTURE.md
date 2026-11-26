@@ -1,7 +1,7 @@
 # System Architecture Baseline: Agent Skills Toolkit
 
 > **Status**: APPROVED  
-> **Last Synchronized**: 2026-11-11  
+> **Last Synchronized**: 2026-11-26  
 > **Governance Authority**: `AGENTS.md`  
 
 This document describes the architectural baseline of the **Agent Skills Toolkit**, providing specialized subagent roles, adaptive execution pipelines, deterministic zero-token helper scripts, and automated quality gates for Google Antigravity and GitHub Copilot.
@@ -40,7 +40,7 @@ The toolkit is structured in strict accordance with Clean Architecture principle
                                 v
 +---------------------------------------------------------------+
 | Layer 4: Evaluation & Observability (evals/, telemetry)       |
-|   - 25 Synthetic Scenario Benchmarks (eval-cases.json)        |
+|   - 26 Synthetic Scenario Benchmarks (eval-cases.json)        |
 |   - Local Telemetry Logging & Reporting                       |
 +---------------------------------------------------------------+
 ```
@@ -72,13 +72,15 @@ The toolkit is structured in strict accordance with Clean Architecture principle
 - **Lazy Loading**: AI agents read only the central roadmap index first, loading solely the active feature spec into context.
 - **Hash-Based State Tracking**: `docs/.spec-state.json` tracks SHA-256 hashes of all feature documents, eliminating redundant file parsing.
 
-### 2.4 Deterministic Zero-Token Script Toolkit
-- 30 dual-platform script pairs (`.ps1` and `.sh`) that execute natively without consuming LLM tokens:
+### 2.4 Deterministic Zero-Token Script Toolkit & Dual-Client Hooks
+- 33 dual-platform script pairs (`.ps1` and `.sh`) that execute natively without consuming LLM tokens:
   - Fast-Gate & Tech Stack detection (`detect-tech-stack`, `run-fast-gate`)
-  - Architectural & code linters (`lint-clean-architecture`, `lint-docs`, `scan-guardrails`)
+  - Architectural, contract & code linters (`lint-clean-architecture`, `lint-android-contracts`, `lint-cpp-qt-contracts`, `lint-docs`, `scan-guardrails`)
+  - Deterministic `PreToolUse` safety hooks (`hook-pre-tool-guard` with declarative templates in `hooks/copilot-guard.json` and `hooks/agy-guard.json`)
   - SemVer and release calculators (`calculate-semver`, `generate-changelog`)
   - Living specs inspector & scaffolding (`inspect-feature-specs`)
   - Unified quality gates runner (`run-all-gates`)
+- Path-specific Copilot modular instructions in `.github/instructions/*.instructions.md` (`applyTo` globs) to keep the always-on prefix compact.
 
 ---
 

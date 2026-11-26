@@ -15,7 +15,7 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
    - **Surgical Edit First Invariant**: When modifying existing files, agents MUST use surgical, targeted block edits (`edit_file`) rather than rewriting whole files (`write_file`). Full file rewrites are strictly reserved for creating new files or when restructuring > 80% of a file. This preserves comments, eliminates regression risks, and saves up to 85% of output token generation latency.
 3. **Dynamic Tech Stack Specialization**: Discover language, framework, and test commands dynamically without hardcoded assumptions.
 4. **Core Lifecycle vs. On-Demand Specialist Capability Packs**:
-   - **Unified Core Lifecycle Engineer**: `Control` (`ask-control`). In both multi-agent (Antigravity) and single-thread (Copilot Sequential Persona Mode), `Control` executes planning, contracts, Inner-Loop TDD, two-stage verification, and atomic Git lifecycle actions directly.
+   - **Unified Core Lifecycle Engineer**: `Control` (`ask-control`). Across Antigravity and GitHub Copilot CLI/IDE, `Control` defaults to Compound Phased Execution (planning, contracts, Inner-Loop TDD, two-stage verification, atomic Git lifecycle) and selectively engages subagents (`invoke_subagent` / `run_workflow` in AGY; subagents / `/fleet` in Copilot CLI).
    - **On-Demand Specialist Capability Packs**: Five domain-specific packs (`ask-troubleshooter`, `ask-git-troubleshooter`, `ask-contract-specialist`, `ask-release-manager`, `ask-skill-auditor`) engage selectively on-demand (see **Subagent Roles & Governance Mappings** below).
 5. **Automated Testing, Quality & Inner-Loop TDD**:
    - **Profile 0 (Direct Response - Informational / Read-Only / Trivial)**: Answer directly. **Zero Git operations and zero test execution.**
@@ -44,14 +44,14 @@ Toolchains and languages are dynamically detected from project manifests (`Cargo
 10. **100% Coverage for Functional Features**: Enterprise features require approved requirements; minor tweaks do not require requirement overhead.
 11. **Dynamic Model Allocation & Universal Execution Strategy**:
     - **Right-Sizing into 3 Classes** ([rules/model-tiers.json](rules/model-tiers.json)):
-      - **ECO**: Profile 0/A, docs, scripts, Tier 4 Git/lifecycle (`flash`, `gpt-6.1-luna` / `gpt-6-mini`, `gpt-5.4-mini`, `claude-haiku`, minimal reasoning).
-      - **BALANCED**: Profile B standard features (`inherit`, `gemini-4-argon`, `gpt-6.1-sol` / `gpt-6`, `sonnet`, medium reasoning).
-      - **PREMIUM**: Profile C complex architectures/deadlocks (`gemini-4-pro`, `gpt-6-astra` / `gpt-6-high`, `opus`). **Subject to Mandatory Quota Protection User Gate**.
+      - **ECO**: Profile 0/A, docs, scripts, Tier 4 Git/lifecycle (`flash`, `gemini-3.8-flash-low`, `gemini-4-argon-low`, `gpt-6.1-luna` / `gpt-6-mini`, `claude-haiku`, minimal reasoning).
+      - **BALANCED**: Profile B standard features (`inherit`, `gemini-pro-orchestrator-argon`, `gemini-4-carbon-medium`, `gemini-4-argon-medium`, `gpt-6.1-sol` / `gpt-6`, `sonnet`, medium reasoning).
+      - **PREMIUM**: Profile C complex architectures/deadlocks (`pro`, `gemini-4-neon-high`/`xhigh`, `gemini-pro-orchestrator-neon`, `gemini-4-carbon-high`, `gpt-6-astra` / `gpt-6-high`, `opus`). **Subject to Mandatory Quota Protection User Gate**.
     - **Quota Protection User Gate**: For Profile C / Premium tasks, `Control` pauses and offers `[1] Premium`, `[2] Balanced`, `[3] Eco` to protect quota (bypassed if specified in prompt via `--eco`, `--balanced`, `--premium`).
     - **Compound Phased Execution & Zero-Reload Invariant (Default Strategy)**: Single-context phased persona transitions preserve prefix continuity, unlocking 75–90% KV-cache discounts.
       - **Zero-Reload Core Invariant**: In Profile 0/A/B, core rules for planning, contracts, Inner-Loop TDD, verification, and atomic commits are embedded here. Do NOT spend tool calls reading skill files for core tasks; load `SKILL.md` strictly for the 5 On-Demand Specialists.
-      - **Zero-Probe Environment Detection**: Determine environment (`multi_agent` if `invoke_subagent` present, else `sequential_persona`) directly from tool declarations without executing `detect-models.ps1` during normal tasks.
-    - **Selective Subagent Forking & Parallel Worktrees (`invoke_subagent`)**: Reserved primarily for divergent research (`research` with `Model: "flash"`). For complex Profile C tasks with independent modules or A/B prototyping, isolated worktrees (`Workspace: "share"`) may be used for parallel implementation.
+      - **Zero-Probe Environment Detection**: Determine environment (`multi_agent` if `invoke_subagent` or Copilot CLI subagents present, else `sequential_persona`) directly from tool declarations without executing `detect-models.ps1` during normal tasks.
+    - **Selective Subagent Forking, `run_workflow` & Parallel Execution**: Reserve `invoke_subagent` (`research` with `Model: "flash"`) or Copilot CLI `/fleet` for noisy exploration or independent Profile C modules (`Workspace: "share"` in AGY). Use AGY `run_workflow` for structured multi-file/module fan-out; never invoke `/swarm` unless explicitly requested by the user. In Copilot CLI, pair `/plan` before execution and `/autopilot` after plan approval (guarded by optional deterministic `PreToolUse` hooks via `scripts/hook-pre-tool-guard.ps1/.sh`).
     - **Thinking Budget Clamping & Reasoning Token Guardrail**: Clamp thinking/reasoning effort for mechanical phases (TDD implementation, test fixes, Git lifecycle) to eliminate latency and token waste.
     - **Two-Zone Prompt Cache Architecture (Byte-Stable Frozen Prefix)**: Zone 1 (Static Frozen Prefix: base governance, tool declarations, schemata) remains 100% byte-identical across turns to maximize KV-cache hits (75-90% discount). Zone 2 (Dynamic Tail: diffs, logs, user input) is strictly append-only at prompt tail.
     - **Terminal & Context Hygiene**: Run PowerShell with `-NoProfile` (on Windows, prefer `pwsh -NoProfile`, falling back immediately to `powershell -NoProfile` if `pwsh` resolves to a sandbox-blocked `WindowsApps\pwsh.exe` Store alias) and testrunners in quiet mode (`-q`, `--verbosity quiet`). Telemetry recorded via `scripts/record-telemetry.ps1`.
@@ -88,10 +88,10 @@ Single Source of Truth: [`rules/model-tiers.json`](rules/model-tiers.json):
 
 ## Context Isolation & Compaction Protocol
 - Pass downstream agents only the strictly necessary scoped context.
-- **Proactive Context Compaction & Output Brevity**: At phase boundaries (Plan -> Implementation, or between tasks), synthesize a concise State Checkpoint (max 3–5 bullet points), never echo full modified source files in chat, and prune intermediate chatter/logs to maximize reasoning and maintain KV-cache prefix hits.
+- **Proactive Context Compaction & Output Brevity**: At phase boundaries (Plan -> Implementation, or between tasks), synthesize a concise State Checkpoint (max 3–5 bullet points), never echo full modified source files in chat, and prefer native `/compact` (Copilot CLI / AGY) before pruning chatter to maintain KV-cache prefix hits.
 - **Situative `.agent-state.json` (Scratch/Temp Only)**: Never write `.agent-state.json` between phases in a regular single-thread run. Write a compact `.agent-state.json` (`decisions`, `touched_files`, `open_ac_ids`, `constraints`) exclusively in the scratch/temp directory **only** on Circuit-Breaker Level 3 (*Context Purge*) or an explicit Copilot thread switch.
 
 ## Client Directory Compatibility (`_agents` for AGY vs. `.agents` for Copilot)
-- **Google Antigravity (AGY / Gemini)** uses `_agents` at both project level (`./_agents/`) and user level (`~/_agents/` + `~/.gemini/config/`).
-- **GitHub Copilot (CLI & VS Code)** uses `.agents` at both project level (`./.agents/` + `.github/copilot-instructions.md`) and user level (`~/.agents/` + `~/.copilot/instructions/`).
+- **Google Antigravity (AGY / Gemini)** uses `_agents` at both project level (`./_agents/`, optional `.agent/hooks.json`) and user level (`~/_agents/` + `~/.gemini/config/`, optional `hooks.json`; 20,000-token aggregate rules budget).
+- **GitHub Copilot (CLI & VS Code)** uses `.agents` at both project level (`./.agents/` + `.github/copilot-instructions.md` + `.github/instructions/*.instructions.md`, optional `.github/hooks/`) and user level (`~/.agents/` + `~/.copilot/instructions/`, optional `~/.copilot/hooks/`).
 - When mounted as a link or submodule, all code, test, and Git operations strictly target the host repository root.

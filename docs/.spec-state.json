@@ -52,5 +52,11 @@
                                                                        "status":  "VERIFIED",
                                                                        "id":  "FEAT-GOV-001",
                                                                        "hash":  "61ee082c20fedbe804fd32c3f9f757791552fa800df23bc164c1fb0af615cf3d"
+                                                                   },
+    "docs/features/FEAT-CLI-001-dual-cli-evolution-and-hooks.md":  {
+                                                                       "phase":  "1",
+                                                                       "status":  "IMPLEMENTED",
+                                                                       "id":  "FEAT-CLI-001",
+                                                                       "hash":  "1ae1c7dc3fd7d5c4496900a7f0130b5b43f7ce7f671fefa5aca6cb3d9de17fba"
                                                                    }
 }

@@ -1370,6 +1370,63 @@ fi
 
 rm -rf "$TEMP_KMP_DIR"
 
+# 52. Validate FEAT-CLI-001 Dual-Client CLI Evolution, Current AGY Models, PreToolUse Hooks & Audit Ratchet
+echo -e "\n\033[33m52. Validating FEAT-CLI-001 Dual-Client CLI Evolution, PreToolUse Hooks & Audit Ratchet...\033[0m"
+SCRIPT_COUNT_SH=$(find "$REPO_ROOT/scripts" -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
+MISSING_README_SH=0
+for sf in "$REPO_ROOT"/scripts/*.sh; do
+    sbase=$(basename "$sf" .sh)
+    if ! grep -q "${sbase}\.ps1" "$REPO_ROOT/README.md"; then
+        MISSING_README_SH=$((MISSING_README_SH + 1))
+    fi
+done
+if [ "$MISSING_README_SH" -eq 0 ]; then
+    assert_condition 0 "README.md documents all ${SCRIPT_COUNT_SH} script pairs" "README.md is missing ${MISSING_README_SH} script entries"
+else
+    assert_condition 1 "README.md documents all ${SCRIPT_COUNT_SH} script pairs" "README.md is missing ${MISSING_README_SH} script entries"
+fi
+
+if grep -Eq "\b${SCRIPT_COUNT_SH} dual-platform script pairs" "$REPO_ROOT/ARCHITECTURE.md"; then
+    assert_condition 0 "ARCHITECTURE.md script count matches actual (${SCRIPT_COUNT_SH} pairs)" "ARCHITECTURE.md script count drift"
+else
+    assert_condition 1 "ARCHITECTURE.md script count matches actual (${SCRIPT_COUNT_SH} pairs)" "ARCHITECTURE.md script count drift (expected ${SCRIPT_COUNT_SH})"
+fi
+
+if grep -q 'gemini-4-neon-high' "$MODEL_TIERS_FILE" && grep -q 'gemini-4-carbon-medium' "$MODEL_TIERS_FILE" && grep -q 'gemini-pro-orchestrator-neon' "$MODEL_TIERS_FILE" && ! grep -q 'gemini-4-pro-high' "$MODEL_TIERS_FILE" && ! grep -q 'gemini-4-flash-low' "$MODEL_TIERS_FILE"; then
+    assert_condition 0 "model-tiers.json maps live AGY lineup (Neon, Carbon, Orchestrators) without obsolete IDs" "model-tiers.json has outdated AGY model entries"
+else
+    assert_condition 1 "model-tiers.json maps live AGY lineup (Neon, Carbon, Orchestrators) without obsolete IDs" "model-tiers.json has outdated AGY model entries"
+fi
+
+TEMP_CLI_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'cli52')
+HOOK_FORCE=$(printf '%s' '{"toolName":"bash","toolArgs":{"command":"git push --force origin main"}}' | bash "$REPO_ROOT/scripts/hook-pre-tool-guard.sh" 2>/dev/null || true)
+HOOK_LEASE=$(printf '%s' '{"toolName":"bash","toolArgs":{"command":"git push --force-with-lease origin feat/test"}}' | bash "$REPO_ROOT/scripts/hook-pre-tool-guard.sh" 2>/dev/null || true)
+HOOK_SUB=$(printf '%s' '{"hookEventName":"PreToolUse","toolCall":{"name":"run_command","args":{"CommandLine":"git add .agents/AGENTS.md"}}}' | bash "$REPO_ROOT/scripts/hook-pre-tool-guard.sh" 2>/dev/null || true)
+HOOK_RUST=$(printf '%s' '{"hookEventName":"PreToolUse","toolCall":{"name":"edit_file","args":{"Path":"src/lib.rs","Replacement":"unsafe { ptr::read(p) }"}}}' | bash "$REPO_ROOT/scripts/hook-pre-tool-guard.sh" 2>/dev/null || true)
+HOOK_SAFE=$(printf '%s' '{"hookEventName":"PreToolUse","toolCall":{"name":"edit_file","args":{"Path":"src/lib.rs","Replacement":"pub fn ok() -> i32 { 42 }"}}}' | bash "$REPO_ROOT/scripts/hook-pre-tool-guard.sh" 2>/dev/null || true)
+
+if echo "$HOOK_FORCE" | grep -q '"permissionDecision":"deny"' && [ "$HOOK_LEASE" = "{}" ]; then
+    assert_condition 0 "hook-pre-tool-guard.sh denies Copilot git push --force and allows --force-with-lease" "Copilot git force guard failed: force=$HOOK_FORCE lease=$HOOK_LEASE"
+else
+    assert_condition 1 "hook-pre-tool-guard.sh denies Copilot git push --force and allows --force-with-lease" "Copilot git force guard failed: force=$HOOK_FORCE lease=$HOOK_LEASE"
+fi
+
+if echo "$HOOK_SUB" | grep -q '"decision":"deny"' && echo "$HOOK_RUST" | grep -q '"decision":"deny"' && echo "$HOOK_SAFE" | grep -q '"decision":"allow"'; then
+    assert_condition 0 "hook-pre-tool-guard.sh enforces AGY submodule isolation and Safe Rust guardrails" "AGY hook checks failed: sub=$HOOK_SUB rust=$HOOK_RUST safe=$HOOK_SAFE"
+else
+    assert_condition 1 "hook-pre-tool-guard.sh enforces AGY submodule isolation and Safe Rust guardrails" "AGY hook checks failed: sub=$HOOK_SUB rust=$HOOK_RUST safe=$HOOK_SAFE"
+fi
+
+mkdir -p "$TEMP_CLI_DIR/home" "$TEMP_CLI_DIR/proj"
+bash "$REPO_ROOT/scripts/setup-agent-skills.sh" --global --with-hooks --user-home "$TEMP_CLI_DIR/home" --force >/dev/null 2>&1 || true
+PROJ_OUT_52=$(bash "$REPO_ROOT/scripts/setup-agent-skills.sh" --project "$TEMP_CLI_DIR/proj" --with-hooks --user-home "$TEMP_CLI_DIR/home" --force 2>&1 || true)
+if [ -f "$TEMP_CLI_DIR/home/.copilot/hooks/agent-skills-guard.json" ] && [ -f "$TEMP_CLI_DIR/home/.gemini/config/hooks.json" ] && [ -f "$TEMP_CLI_DIR/proj/.github/hooks/agent-skills-guard.json" ] && [ -f "$TEMP_CLI_DIR/proj/.agent/hooks.json" ] && [ -f "$TEMP_CLI_DIR/proj/.github/instructions/concepts.instructions.md" ] && echo "$PROJ_OUT_52" | grep -q 'Double-Injection Notice'; then
+    assert_condition 0 "setup-agent-skills.sh --with-hooks provisions hooks, path-specific instructions, and Double-Injection Notice" "setup-agent-skills.sh --with-hooks check failed"
+else
+    assert_condition 1 "setup-agent-skills.sh --with-hooks provisions hooks, path-specific instructions, and Double-Injection Notice" "setup-agent-skills.sh --with-hooks check failed"
+fi
+rm -rf "$TEMP_CLI_DIR"
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

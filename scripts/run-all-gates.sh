@@ -140,7 +140,7 @@ run_gate "Documentation & Link Integrity" "lint-docs.sh" "$REPO_ROOT"
 
 # 4. Requirements (fast-path skip if no requirements exist)
 if [[ -f "${REPO_ROOT}/REQUIREMENTS.md" || -d "${REPO_ROOT}/docs/requirements/modules" ]]; then
-  run_gate "Requirements Scoped IDs & Integrity" "lint-requirements.sh" "$REPO_ROOT"
+  run_gate "Requirements Scoped IDs & Non-Duplication" "lint-requirements.sh" "$REPO_ROOT"
 else
   TOTAL_GATES=$((TOTAL_GATES + 1))
   if [[ "$JSON_OUTPUT" != "true" ]]; then

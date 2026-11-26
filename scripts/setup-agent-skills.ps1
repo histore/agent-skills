@@ -17,6 +17,8 @@
     Skips Copilot integration (.agents and .github/copilot-instructions.md), configuring AGY (_agents) only.
 .PARAMETER InitDocs
     Scaffolds initial living documentation (ARCHITECTURE.md, docs/ROADMAP.md, docs/features/, docs/concepts/drafts/) in the target project if not present.
+.PARAMETER WithHooks
+    Provisions deterministic zero-token PreToolUse guardrail hooks for Copilot CLI (.github/hooks/agent-skills-guard.json or ~/.copilot/hooks/) and/or Antigravity (.agent/hooks.json or ~/.gemini/config/hooks.json).
 .PARAMETER Force
     Overwrites existing links or files if they already exist.
 .EXAMPLE
@@ -52,6 +54,9 @@ param(
 
     [Parameter(Mandatory = $false)]
     [switch]$InitDocs,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$WithHooks,
 
     [Parameter(Mandatory = $false)]
     [string]$UserHome,
@@ -254,9 +259,40 @@ if ($Global) {
         Create-DirectoryLink -LinkPath $globalSkills -TargetPath (Join-Path $agyUserDir "skills") -Overwrite $Force
         Create-DirectoryLink -LinkPath $globalRules -TargetPath (Join-Path $agyUserDir "rules") -Overwrite $Force
 
+        if ($WithHooks) {
+            $agyHookFile = Join-Path $geminiConfigDir "hooks.json"
+            if ((Test-Path $agyHookFile) -and (-not $Force)) {
+                Write-Host "  [SKIP] AGY global hooks.json already exists: $agyHookFile (use -Force to overwrite)" -ForegroundColor Yellow
+            } else {
+                $agyGuardPath = (Join-Path $agyUserDir "scripts\hook-pre-tool-guard.ps1").Replace('\', '/')
+                $agyHookObj = [ordered]@{
+                    "agent-skills-guard" = [ordered]@{
+                        "PreToolUse" = @(
+                            [ordered]@{
+                                "matcher" = "run_command|edit_file|write_file"
+                                "hooks"   = @(
+                                    [ordered]@{
+                                        "type"    = "command"
+                                        "command" = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$agyGuardPath`" -Format agy"
+                                        "timeout" = 10
+                                    }
+                                )
+                            }
+                        )
+                    }
+                }
+                $nl = [System.Environment]::NewLine
+                [System.IO.File]::WriteAllText($agyHookFile, (($agyHookObj | ConvertTo-Json -Depth 6) -replace "`r?`n", $nl) + $nl, (New-Object System.Text.UTF8Encoding($false)))
+                Write-Host "  [OK] Provisioned AGY PreToolUse guardrail hook: $agyHookFile" -ForegroundColor Green
+            }
+        }
+
         Write-Host "`nAntigravity / Gemini Setup (~/_agents):" -ForegroundColor Cyan
         Write-Host "  - User Root: $agyUserDir" -ForegroundColor White
         Write-Host "  - Auto-Discovery: ~/.gemini/config/skills & ~/.gemini/config/rules -> ~/_agents" -ForegroundColor White
+        if ($WithHooks) {
+            Write-Host "  - PreToolUse Hook: ~/.gemini/config/hooks.json" -ForegroundColor White
+        }
         Write-Host "  - Optional Global Rules: Add Control orchestrator defaults to ~/.gemini/GEMINI.md (preserved if already present)" -ForegroundColor Gray
     }
 
@@ -292,10 +328,41 @@ $inlinedBody
         [System.IO.File]::WriteAllText($userInstructionsFile, ($instructionContent -replace "`r?`n", $nl), (New-Object System.Text.UTF8Encoding($false)))
         Write-Host "  [OK] Generated Zero-Reload Copilot user instructions (inlined via .agents): $userInstructionsFile" -ForegroundColor Green
 
+        if ($WithHooks) {
+            $copilotHooksDir = Join-Path $effectiveHome ".copilot\hooks"
+            if (-not (Test-Path $copilotHooksDir)) {
+                New-Item -ItemType Directory -Path $copilotHooksDir -Force | Out-Null
+            }
+            $copilotHookFile = Join-Path $copilotHooksDir "agent-skills-guard.json"
+            if ((Test-Path $copilotHookFile) -and (-not $Force)) {
+                Write-Host "  [SKIP] Copilot global hook already exists: $copilotHookFile (use -Force to overwrite)" -ForegroundColor Yellow
+            } else {
+                $copilotHookObj = [ordered]@{
+                    "version" = 1
+                    "hooks"   = [ordered]@{
+                        "preToolUse" = @(
+                            [ordered]@{
+                                "type"       = "command"
+                                "bash"       = "bash `"$copilotAgentsSlash/scripts/hook-pre-tool-guard.sh`" --format copilot"
+                                "powershell" = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$copilotAgentsSlash/scripts/hook-pre-tool-guard.ps1`" -Format copilot"
+                                "timeoutSec" = 10
+                            }
+                        )
+                    }
+                }
+                [System.IO.File]::WriteAllText($copilotHookFile, (($copilotHookObj | ConvertTo-Json -Depth 6) -replace "`r?`n", $nl) + $nl, (New-Object System.Text.UTF8Encoding($false)))
+                Write-Host "  [OK] Provisioned Copilot CLI PreToolUse guardrail hook: $copilotHookFile" -ForegroundColor Green
+            }
+        }
+
         Write-Host "`nGitHub Copilot CLI Setup (~/.agents):" -ForegroundColor Cyan
         Write-Host "  - User Root: $copilotAgentsDir" -ForegroundColor White
         Write-Host "  - Instructions (Zero-Reload inlined): ~/.copilot/instructions/agent-skills.instructions.md" -ForegroundColor White
         Write-Host "  - Skills: Auto-discovered from ~/.agents/skills" -ForegroundColor White
+        if ($WithHooks) {
+            Write-Host "  - PreToolUse Hook: ~/.copilot/hooks/agent-skills-guard.json" -ForegroundColor White
+        }
+        Write-Host "  - Double-Injection Note: Copilot CLI combines global + project instructions; use '/instructions' to disable duplicates in repos that also define .github/copilot-instructions.md or AGENTS.md." -ForegroundColor Gray
         Write-Host "  - Verification commands: 'copilot instruction list' and 'copilot skill list'" -ForegroundColor White
 
         Write-Host "`nGitHub Copilot (VS Code User Settings):" -ForegroundColor Cyan
@@ -336,8 +403,15 @@ $inlinedBody
         Create-DirectoryLink -LinkPath $linkPath -TargetPath $repoRoot -Overwrite $Force
     }
 
-    # 2. Setup .github/copilot-instructions.md (assumes .agents/)
+    # 2. Setup .github/copilot-instructions.md, path-specific .github/instructions/, and optional hooks
     if ($setupCopilot) {
+        $globalCopilotInstr = Join-Path $effectiveHome ".copilot\instructions\agent-skills.instructions.md"
+        $hasGlobalCopilotInstr = $false
+        try { $hasGlobalCopilotInstr = Test-Path -LiteralPath $globalCopilotInstr -ErrorAction SilentlyContinue } catch { $hasGlobalCopilotInstr = $false }
+        if ($hasGlobalCopilotInstr) {
+            Write-Host "  [WARN] Double-Injection Notice: Global Copilot instructions also exist at '$globalCopilotInstr'. Copilot CLI combines global + project instructions (and AGENTS.md); toggle duplicates with '/instructions' if needed." -ForegroundColor Yellow
+        }
+
         $githubDir = Join-Path $targetFullPath ".github"
         if (-not (Test-Path $githubDir)) {
             New-Item -ItemType Directory -Path $githubDir -Force | Out-Null
@@ -349,6 +423,57 @@ $inlinedBody
         } else {
             Copy-Item -LiteralPath $copilotTemplate -Destination $destCopilot -Force
             Write-Host "  [OK] Provisioned $destCopilot (configured for .agents/)" -ForegroundColor Green
+        }
+
+        $srcInstrDir = Join-Path $repoRoot ".github\instructions"
+        if (Test-Path -LiteralPath $srcInstrDir) {
+            $destInstrDir = Join-Path $githubDir "instructions"
+            if (-not (Test-Path $destInstrDir)) {
+                New-Item -ItemType Directory -Path $destInstrDir -Force | Out-Null
+            }
+            foreach ($instrFile in (Get-ChildItem -LiteralPath $srcInstrDir -Filter "*.instructions.md" -File)) {
+                $destFile = Join-Path $destInstrDir $instrFile.Name
+                if ((Test-Path $destFile) -and (-not $Force)) {
+                    Write-Host "  [SKIP] .github/instructions/$($instrFile.Name) already exists" -ForegroundColor Yellow
+                } else {
+                    Copy-Item -LiteralPath $instrFile.FullName -Destination $destFile -Force
+                    Write-Host "  [OK] Provisioned path-specific instruction: .github/instructions/$($instrFile.Name)" -ForegroundColor Green
+                }
+            }
+        }
+
+        if ($WithHooks) {
+            $srcCopilotHook = Join-Path $repoRoot "hooks\copilot-guard.json"
+            if (Test-Path -LiteralPath $srcCopilotHook) {
+                $destHooksDir = Join-Path $githubDir "hooks"
+                if (-not (Test-Path $destHooksDir)) {
+                    New-Item -ItemType Directory -Path $destHooksDir -Force | Out-Null
+                }
+                $destHook = Join-Path $destHooksDir "agent-skills-guard.json"
+                if ((Test-Path $destHook) -and (-not $Force)) {
+                    Write-Host "  [SKIP] .github/hooks/agent-skills-guard.json already exists (use -Force to overwrite)" -ForegroundColor Yellow
+                } else {
+                    Copy-Item -LiteralPath $srcCopilotHook -Destination $destHook -Force
+                    Write-Host "  [OK] Provisioned Copilot CLI PreToolUse guardrail hook: $destHook" -ForegroundColor Green
+                }
+            }
+        }
+    }
+
+    if ($setupAgy -and $WithHooks) {
+        $srcAgyHook = Join-Path $repoRoot "hooks\agy-guard.json"
+        if (Test-Path -LiteralPath $srcAgyHook) {
+            $destAgyHookDir = Join-Path $targetFullPath ".agent"
+            if (-not (Test-Path $destAgyHookDir)) {
+                New-Item -ItemType Directory -Path $destAgyHookDir -Force | Out-Null
+            }
+            $destAgyHook = Join-Path $destAgyHookDir "hooks.json"
+            if ((Test-Path $destAgyHook) -and (-not $Force)) {
+                Write-Host "  [SKIP] .agent/hooks.json already exists (use -Force to overwrite)" -ForegroundColor Yellow
+            } else {
+                Copy-Item -LiteralPath $srcAgyHook -Destination $destAgyHook -Force
+                Write-Host "  [OK] Provisioned AGY PreToolUse guardrail hook: $destAgyHook" -ForegroundColor Green
+            }
         }
     }
 

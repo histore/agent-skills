@@ -100,11 +100,20 @@ if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d 
         if [ ${#models_array[@]} -gt 0 ]; then
             models_json="["$(IFS=,; echo "${models_array[*]}")"]"
         fi
-        flagship_high=$(echo "$raw_models" | grep -E '(opus|gemini-4|hydrogen|argon|pro|gpt-[56]|astra).*(high|extended)|opus|gpt-6.*astra' | head -n1 | awk '{print $1}')
-        analytical_high=$(echo "$raw_models" | grep -E '(sonnet|gemini-4|hydrogen|argon|gpt-[56]|sol).*(high|medium)|gpt-6\.1-sol' | head -n1 | awk '{print $1}')
-        flash_high=$(echo "$raw_models" | grep -E '(flash|haiku|mini|luna).*high' | head -n1 | awk '{print $1}')
-        flash_med=$(echo "$raw_models" | grep -E '(flash|argon|sonnet|gpt-6|sol).*medium|gpt-6\.1-sol' | head -n1 | awk '{print $1}')
-        flash_low=$(echo "$raw_models" | grep -E '(flash|haiku|mini|luna).*low|gpt-6.*(mini|luna)' | head -n1 | awk '{print $1}')
+        flagship_high=$(echo "$raw_models" | awk '{print $1}' | grep -E '^(gemini-4-(neon|carbon)|gemini-pro-orchestrator-neon|claude-opus|gpt-6.*astra).*(xhigh|high|neon)$|^(gemini-pro-orchestrator-neon|gemini-4-hydrogen-xhigh)$' | head -n1 || true)
+        if [[ -z "$flagship_high" ]]; then
+            flagship_high=$(echo "$raw_models" | awk '{print $1}' | grep -E '(opus|neon|carbon|hydrogen|pro|gpt-[56]|astra).*(xhigh|high|extended)' | head -n1 || true)
+        fi
+        analytical_high=$(echo "$raw_models" | awk '{print $1}' | grep -E '^(gemini-pro-orchestrator-argon|gemini-4-carbon-medium|gemini-4-hydrogen-high|gemini-4-argon-high|claude-sonnet.*high|gpt-6\.1-sol)$' | head -n1 || true)
+        if [[ -z "$analytical_high" ]]; then
+            analytical_high=$(echo "$raw_models" | awk '{print $1}' | grep -Ev '(neon|opus|xhigh|astra)' | grep -E '(carbon|hydrogen|argon|sonnet|gpt-[56]|sol).*(medium|high)' | head -n1 || true)
+        fi
+        flash_high=$(echo "$raw_models" | awk '{print $1}' | grep -E '(flash|haiku|mini|luna).*high' | head -n1 || true)
+        flash_med=$(echo "$raw_models" | awk '{print $1}' | grep -E '^(gemini-4-argon-medium|gemini-4-hydrogen-medium|gemini-3\.8-flash-medium|claude-sonnet.*medium|gpt-6\.1-sol)$' | head -n1 || true)
+        if [[ -z "$flash_med" ]]; then
+            flash_med=$(echo "$raw_models" | awk '{print $1}' | grep -E '(argon|hydrogen|flash|sonnet|gpt-6|sol).*medium' | head -n1 || true)
+        fi
+        flash_low=$(echo "$raw_models" | awk '{print $1}' | grep -E '(flash|argon|haiku|mini|luna).*low|gpt-6.*(mini|luna)' | head -n1 || true)
 
         t1="${flagship_high:-${flash_high:-inherit}}"
         t2="${analytical_high:-${flash_high:-inherit}}"
@@ -128,6 +137,7 @@ if command -v agy &>/dev/null || [[ -n "${ANTIGRAVITY_CLI_ALIAS:-}" ]] || [[ -d 
     "throttle_routine_to_cost_efficient": true
   },
   "supports_subagents": $supports_subagents,
+  "supports_hooks": true,
   "detected_models": $models_json,
   "recommended_tiers": {
     "tier_1": { "model_class": "inherit", "fallback": "flash", "exception_model_class": "pro", "reasoning_effort": "high_extended" },
@@ -146,15 +156,17 @@ EOF
 )
 
 elif command -v copilot &>/dev/null || [[ -n "${COPILOT_CLI:-}" ]] || [[ -d "$HOME/.copilot" ]] || (command -v gh &>/dev/null && gh extension list 2>/dev/null | grep -q 'gh-copilot'); then
-    copilot_subagents=false
-    command -v copilot &>/dev/null && copilot_subagents=true
+    copilot_cli_active=false
+    if command -v copilot &>/dev/null || [[ -n "${COPILOT_CLI:-}" ]] || [[ -d "$HOME/.copilot" ]]; then
+        copilot_cli_active=true
+    fi
     json_output=$(cat <<EOF
 {
   "timestamp": "$timestamp",
   "cached": false,
   "cache_file": "$cache_path",
   "platform": "copilot",
-  "execution_mode": "sequential_persona",
+  "execution_mode": "compound_execution",
   "cost_efficiency": true,
   "cost_guardrail": {
     "enabled": true,
@@ -163,7 +175,8 @@ elif command -v copilot &>/dev/null || [[ -n "${COPILOT_CLI:-}" ]] || [[ -d "$HO
     "flagship_threshold_output_per_m": 20.00,
     "throttle_routine_to_cost_efficient": true
   },
-  "supports_subagents": $copilot_subagents,
+  "supports_subagents": $copilot_cli_active,
+  "supports_hooks": $copilot_cli_active,
   "detected_models": [],
   "recommended_tiers": {
     "tier_1": { "reasoning_effort": "high", "strategy": "maximum_thinking", "preferred_family": "gpt-6-astra / gpt-6-high / claude-opus" },
@@ -192,6 +205,7 @@ else
     "throttle_routine_to_cost_efficient": true
   },
   "supports_subagents": false,
+  "supports_hooks": false,
   "detected_models": [],
   "recommended_tiers": {
     "tier_1": { "reasoning_effort": "high", "strategy": "deep_reasoning" },
