@@ -194,11 +194,11 @@ function Parse-Signatures {
                 }
             }
             'kotlin' {
-                if ($trimmed -match '^(public|internal|protected|private)?\s*(sealed|data|open|abstract|value|enum|annotation)?\s*(class|interface|object|enum\s+class)\s+([A-Za-z0-9_<>]+)') {
+                if ($trimmed -match '^(public|internal|protected|private)?\s*(?:expect\s+|actual\s+)?(sealed|data|open|abstract|value|enum|annotation)?\s*(class|interface|object|enum\s+class)\s+([A-Za-z0-9_<>]+)') {
                     $kind = $matches[3]
                     $sig = $trimmed.TrimEnd('{').Trim()
                     $vis = if ($matches[1]) { $matches[1] } else { "public" }
-                } elseif ($trimmed -match '^(@Composable\s+)?(public|internal|protected|private)?\s*(override\s+|inline\s+|suspend\s+)*fun\s+(<[^>]+>\s*)?([A-Za-z0-9_.<>]+)\s*\(') {
+                } elseif ($trimmed -match '^(@Composable\s+)?(public|internal|protected|private)?\s*(expect\s+|actual\s+|override\s+|inline\s+|suspend\s+|operator\s+|infix\s+)*fun\s+(<[^>]+>\s*)?([A-Za-z0-9_.<>]+)\s*\(') {
                     $kind = if ($trimmed -match '@Composable') { "composable" } else { "fun" }
                     $sig = $trimmed.TrimEnd('{', '=').Trim()
                     $vis = if ($matches[2]) { $matches[2] } else { "public" }

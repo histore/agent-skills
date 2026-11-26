@@ -74,7 +74,7 @@ errors, warnings = [], []
 
 for fp in files_to_scan:
     rel = os.path.relpath(fp, project_root).replace('\\', '/')
-    if re.search(r'(?i)(^|/)(test|androidTest)/|Test\.kt$', rel):
+    if re.search(r'(?i)(^|/)((common|jvm|desktop|android|androidUnit|androidInstrumented|ios|js|wasmJs|wasmWasi|native|linux|macos|mingw|apple)?Test|tests?)/|Test\.kt$', rel):
         continue
     try:
         with open(fp, 'r', encoding='utf-8', errors='ignore') as f:

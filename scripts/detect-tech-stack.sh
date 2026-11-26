@@ -114,20 +114,42 @@ elif [[ -f "${PROJECT_ROOT}/go.mod" ]]; then
 elif [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/build.gradle" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/settings.gradle" ]]; then
   GRADLE_CMD="gradle"
   [[ -f "${PROJECT_ROOT}/gradlew" ]] && GRADLE_CMD="./gradlew"
+  GRADLE_BUILD_RAW=""
+  GRADLE_CATALOG_RAW=""
+  while IFS= read -r -d '' gf; do
+    if [[ "$(basename "$gf")" == "libs.versions.toml" ]]; then
+      GRADLE_CATALOG_RAW+=$'\n'"$(cat "$gf" 2>/dev/null || true)"
+    else
+      GRADLE_BUILD_RAW+=$'\n'"$(cat "$gf" 2>/dev/null || true)"
+    fi
+  done < <(find "$PROJECT_ROOT" -maxdepth 3 -type f \
+    ! -path "*/.git/*" ! -path "*/.gradle/*" ! -path "*/build/*" ! -path "*/_agents/*" ! -path "*/.agents/*" \
+    \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -print0 2>/dev/null)
+  GRADLE_RAW="${GRADLE_BUILD_RAW}"$'\n'"${GRADLE_CATALOG_RAW}"
+
   HAS_SPOTLESS=false
-  if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -li "spotless" {} + 2>/dev/null | head -n 1)" ]]; then
-    HAS_SPOTLESS=true
-  fi
+  if grep -qi "spotless" <<< "$GRADLE_RAW"; then HAS_SPOTLESS=true; fi
+  HAS_DETEKT=false
+  if grep -qi "detekt" <<< "$GRADLE_RAW"; then HAS_DETEKT=true; fi
+  HAS_KTLINT=false
+  if grep -qi "ktlint" <<< "$GRADLE_RAW"; then HAS_KTLINT=true; fi
   IS_ANDROID=false
-  if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -liE "com\.android\.(application|library)" {} + 2>/dev/null | head -n 1)" ]]; then
-    IS_ANDROID=true
+  if grep -qiE "com\.android\.(application|library)" <<< "$GRADLE_RAW"; then IS_ANDROID=true; fi
+
+  HAS_KMP_SRC=false
+  if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -type d \
+    ! -path "*/.git/*" ! -path "*/.gradle/*" ! -path "*/build/*" ! -path "*/_agents/*" ! -path "*/.agents/*" \
+    \( -name "commonMain" -o -name "desktopMain" -o -name "jvmMain" \) 2>/dev/null | head -n 1)" ]]; then
+    HAS_KMP_SRC=true
   fi
-  if [[ "$IS_ANDROID" == "true" ]]; then
-    STACK="android-gradle"
-  else
-    STACK="gradle"
+  IS_KMP=false
+  if grep -qiE "(kotlin[[:space:]]*\([[:space:]]*[\"']multiplatform[\"'][[:space:]]*\)|org\.jetbrains\.kotlin\.multiplatform|alias[[:space:]]*\([^)]*kotlin[._-]?multiplatform)" <<< "$GRADLE_BUILD_RAW" || \
+     grep -qi "org\.jetbrains\.kotlin\.multiplatform" <<< "$GRADLE_CATALOG_RAW" || \
+     [[ "$HAS_KMP_SRC" == "true" ]]; then
+    IS_KMP=true
   fi
-  if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 3 \( -name "*.gradle" -o -name "*.gradle.kts" -o -name "libs.versions.toml" \) -exec grep -li "kotlin" {} + 2>/dev/null | head -n 1)" ]] || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -name "*.kt" -type f 2>/dev/null | head -n 1)" ]]; then
+
+  if [[ "$IS_KMP" == "true" ]] || grep -qi "kotlin" <<< "$GRADLE_RAW" || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -name "*.kt" -type f 2>/dev/null | head -n 1)" ]]; then
     LANG="kotlin"
   else
     LANG="java"
@@ -137,17 +159,81 @@ elif [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]] || [[ -f "${PROJECT_ROOT}/build
     SPOTLESS_EXCL=" -x spotlessCheck"
     FORMAT_CHECK_CMD="${GRADLE_CMD} spotlessCheck -q"
     FORMAT_FIX_CMD="${GRADLE_CMD} spotlessApply -q"
+  elif [[ "$HAS_KTLINT" == "true" ]]; then
+    FORMAT_CHECK_CMD="${GRADLE_CMD} ktlintCheck -q"
+    FORMAT_FIX_CMD="${GRADLE_CMD} ktlintFormat -q"
   fi
-  if [[ "$IS_ANDROID" == "true" ]]; then
+
+  if [[ "$IS_KMP" == "true" ]]; then
+    STACK="kmp-gradle"
+    JVM_TARGETS=()
+    while IFS= read -r tname; do
+      [[ -z "$tname" ]] && continue
+      FOUND_T=false
+      if [[ ${#JVM_TARGETS[@]} -gt 0 ]]; then
+        for existing in "${JVM_TARGETS[@]}"; do
+          [[ "$existing" == "$tname" ]] && FOUND_T=true
+        done
+      fi
+      [[ "$FOUND_T" == "false" ]] && JVM_TARGETS+=("$tname")
+    done < <(grep -oiE "(^|[^A-Za-z0-9_.])jvm[[:space:]]*\([[:space:]]*(name[[:space:]]*=[[:space:]]*)?[\"'][A-Za-z][A-Za-z0-9_-]*[\"'][[:space:]]*\)" <<< "$GRADLE_BUILD_RAW" | sed -E "s/.*[\"']([A-Za-z][A-Za-z0-9_-]*)[\"'].*/\1/" || true)
+
+    if grep -qiE "(^|[^A-Za-z0-9_.])jvm[[:space:]]*(\([[:space:]]*\)|\{)" <<< "$GRADLE_BUILD_RAW"; then
+      FOUND_JVM=false
+      if [[ ${#JVM_TARGETS[@]} -gt 0 ]]; then
+        for existing in "${JVM_TARGETS[@]}"; do
+          [[ "$existing" == "jvm" ]] && FOUND_JVM=true
+        done
+      fi
+      [[ "$FOUND_JVM" == "false" ]] && JVM_TARGETS+=("jvm")
+    fi
+
+    if [[ ${#JVM_TARGETS[@]} -eq 0 ]]; then
+      if grep -qiE "(^|[^A-Za-z0-9_])desktopMain([^A-Za-z0-9_]|$)" <<< "$GRADLE_BUILD_RAW" || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -type d ! -path "*/.git/*" ! -path "*/.gradle/*" ! -path "*/build/*" -name "desktopMain" 2>/dev/null | head -n 1)" ]]; then
+        JVM_TARGETS+=("desktop")
+      fi
+      if grep -qiE "(^|[^A-Za-z0-9_])jvmMain([^A-Za-z0-9_]|$)" <<< "$GRADLE_BUILD_RAW" || [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -type d ! -path "*/.git/*" ! -path "*/.gradle/*" ! -path "*/build/*" -name "jvmMain" 2>/dev/null | head -n 1)" ]]; then
+        JVM_TARGETS+=("jvm")
+      fi
+    fi
+
+    if [[ ${#JVM_TARGETS[@]} -gt 0 ]]; then
+      BUILD_TASKS=""
+      TEST_TASKS=""
+      for t in "${JVM_TARGETS[@]}"; do
+        [[ -n "$BUILD_TASKS" ]] && BUILD_TASKS+=" "
+        BUILD_TASKS+="${t}MainClasses ${t}TestClasses"
+        [[ -n "$TEST_TASKS" ]] && TEST_TASKS+=" "
+        TEST_TASKS+="${t}Test"
+      done
+      PRIMARY_TARGET="${JVM_TARGETS[0]}"
+      BUILD_CMD="${GRADLE_CMD} ${BUILD_TASKS}${SPOTLESS_EXCL} -q"
+      TEST_CMD="${GRADLE_CMD} ${TEST_TASKS}${SPOTLESS_EXCL} -q"
+      FILTER_SYNTAX="${GRADLE_CMD} ${PRIMARY_TARGET}Test --tests {filter}${SPOTLESS_EXCL} -q"
+      if [[ "$HAS_DETEKT" == "true" ]]; then LINT_CMD="${GRADLE_CMD} detekt -q"; else LINT_CMD=""; fi
+    elif [[ "$IS_ANDROID" == "true" ]]; then
+      BUILD_CMD="${GRADLE_CMD} testDebugUnitTestClasses${SPOTLESS_EXCL} -q"
+      TEST_CMD="${GRADLE_CMD} testDebugUnitTest${SPOTLESS_EXCL} -q"
+      FILTER_SYNTAX="${GRADLE_CMD} testDebugUnitTest --tests {filter}${SPOTLESS_EXCL} -q"
+      LINT_CMD="${GRADLE_CMD} lintDebug -q"
+    else
+      BUILD_CMD="${GRADLE_CMD} assemble${SPOTLESS_EXCL} -q"
+      TEST_CMD="${GRADLE_CMD} allTests${SPOTLESS_EXCL} -q"
+      FILTER_SYNTAX="${GRADLE_CMD} allTests${SPOTLESS_EXCL} -q"
+      if [[ "$HAS_DETEKT" == "true" ]]; then LINT_CMD="${GRADLE_CMD} detekt -q"; else LINT_CMD=""; fi
+    fi
+  elif [[ "$IS_ANDROID" == "true" ]]; then
+    STACK="android-gradle"
     BUILD_CMD="${GRADLE_CMD} testDebugUnitTestClasses${SPOTLESS_EXCL} -q"
     TEST_CMD="${GRADLE_CMD} testDebugUnitTest${SPOTLESS_EXCL} -q"
     FILTER_SYNTAX="${GRADLE_CMD} testDebugUnitTest --tests {filter}${SPOTLESS_EXCL} -q"
     LINT_CMD="${GRADLE_CMD} lintDebug -q"
   else
+    STACK="gradle"
     BUILD_CMD="${GRADLE_CMD} classes testClasses${SPOTLESS_EXCL} -q"
     TEST_CMD="${GRADLE_CMD} test${SPOTLESS_EXCL} -q"
     FILTER_SYNTAX="${GRADLE_CMD} test --tests {filter}${SPOTLESS_EXCL} -q"
-    LINT_CMD=""
+    if [[ "$HAS_DETEKT" == "true" ]]; then LINT_CMD="${GRADLE_CMD} detekt -q"; else LINT_CMD=""; fi
   fi
   if [[ -f "${PROJECT_ROOT}/build.gradle.kts" ]]; then MANIFEST="build.gradle.kts"
   elif [[ -f "${PROJECT_ROOT}/build.gradle" ]]; then MANIFEST="build.gradle"

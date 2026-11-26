@@ -217,13 +217,13 @@ def parse_signatures(filepath):
                     sig = trimmed.rstrip("{").strip()
                     vis = "exported" if m2.group(1)[0].isupper() else "package"
         elif lang == "kotlin":
-            m = re.match(r'^(public|internal|protected|private)?\s*(?:sealed|data|open|abstract|value|enum|annotation)?\s*(class|interface|object|enum\s+class)\s+([A-Za-z0-9_<>]+)', trimmed)
+            m = re.match(r'^(public|internal|protected|private)?\s*(?:expect\s+|actual\s+)?(?:sealed|data|open|abstract|value|enum|annotation)?\s*(class|interface|object|enum\s+class)\s+([A-Za-z0-9_<>]+)', trimmed)
             if m:
                 kind = m.group(2)
                 sig = trimmed.rstrip("{").strip()
                 vis = m.group(1) or "public"
             else:
-                m2 = re.match(r'^(@Composable\s+)?(public|internal|protected|private)?\s*(?:override\s+|inline\s+|suspend\s+)*fun\s+(?:<[^>]+>\s*)?([A-Za-z0-9_.<>]+)\s*\(', trimmed)
+                m2 = re.match(r'^(@Composable\s+)?(public|internal|protected|private)?\s*(?:expect\s+|actual\s+|override\s+|inline\s+|suspend\s+|operator\s+|infix\s+)*fun\s+(?:<[^>]+>\s*)?([A-Za-z0-9_.<>]+)\s*\(', trimmed)
                 if m2:
                     kind = "composable" if m2.group(1) else "fun"
                     sig = trimmed.rstrip("{=").strip()

@@ -108,6 +108,8 @@ if ($StagedOnly) {
     } else {
         $allFiles = Get-ChildItem -Path $TargetPath -Recurse -File | Where-Object {
             $_.FullName -notmatch '[\\/]\.git[\\/]' -and
+            $_.FullName -notmatch '[\\/]\.gradle[\\/]' -and
+            $_.FullName -notmatch '[\\/]build[\\/]' -and
             $_.FullName -notmatch '[\\/](_agents|\.agents)[\\/]' -and
             $_.FullName -notmatch '[\\/]node_modules[\\/]' -and
             $_.FullName -notmatch '[\\/]target[\\/]' -and
@@ -120,6 +122,8 @@ if ($StagedOnly) {
 } else {
     $allFiles = Get-ChildItem -Path $TargetPath -Recurse -File | Where-Object {
         $_.FullName -notmatch '[\\/]\.git[\\/]' -and
+        $_.FullName -notmatch '[\\/]\.gradle[\\/]' -and
+        $_.FullName -notmatch '[\\/]build[\\/]' -and
         $_.FullName -notmatch '[\\/](_agents|\.agents)[\\/]' -and
         $_.FullName -notmatch '[\\/]node_modules[\\/]' -and
         $_.FullName -notmatch '[\\/]target[\\/]' -and
@@ -136,7 +140,7 @@ $violations = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # Import regex patterns across languages (use, import, using, from)
 $importRegex = '^\s*(#include\s+[<"]|use\s+|import\s+|using\s+|from\s+)([^;>"]+)'
-$funcRegex = '^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|function\s+\w+\s*\(|(@Composable\s+)?((public|private|protected|internal)\s+)?(override\s+)?(suspend\s+)?fun\s+\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\(|(virtual\s+|static\s+|inline\s+|explicit\s+)*[\w:<>~*&]+\s+[\w:~]+\s*\([^;]*$)'
+$funcRegex = '^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|function\s+\w+\s*\(|(@Composable\s+)?((public|private|protected|internal)\s+)?(expect\s+|actual\s+|override\s+|inline\s+|suspend\s+)*fun\s+\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\(|(virtual\s+|static\s+|inline\s+|explicit\s+)*[\w:<>~*&]+\s+[\w:~]+\s*\([^;]*$)'
 
 foreach ($filePath in $filesToScan) {
     $relPath = $filePath.Replace($TargetPath + "\", "").Replace($TargetPath + "/", "")

@@ -134,31 +134,90 @@ elseif ((Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) -or (Test-Path (
     $isKts = (Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) -or (Test-Path (Join-Path $ProjectRoot "settings.gradle.kts"))
     $isWin = ($env:OS -eq 'Windows_NT') -or ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
     $gradleCmd = if ($isWin -and (Test-Path (Join-Path $ProjectRoot "gradlew.bat"))) { ".\gradlew.bat" } elseif (Test-Path (Join-Path $ProjectRoot "gradlew")) { "./gradlew" } else { "gradle" }
-    $gradleRaw = ""
-    $gradleFiles = Get-ChildItem -Path $ProjectRoot -Include "*.gradle", "*.gradle.kts", "libs.versions.toml" -File -Depth 2 -ErrorAction SilentlyContinue
+    $gradleBuildRaw = ""
+    $gradleCatalogRaw = ""
+    $gradleFiles = Get-ChildItem -Path $ProjectRoot -Include "*.gradle", "*.gradle.kts", "libs.versions.toml" -File -Depth 2 -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '[\\/](\.git|\.gradle|build|_agents|\.agents)[\\/]' }
     foreach ($gf in $gradleFiles) {
-        try { $gradleRaw += "`n" + (Get-Content -Path $gf.FullName -Raw -Encoding UTF8) } catch {}
+        try {
+            $content = Get-Content -Path $gf.FullName -Raw -Encoding UTF8
+            if ($gf.Name -ieq "libs.versions.toml") {
+                $gradleCatalogRaw += "`n" + $content
+            } else {
+                $gradleBuildRaw += "`n" + $content
+            }
+        } catch {}
     }
+    $gradleRaw = $gradleBuildRaw + "`n" + $gradleCatalogRaw
     $hasSpotless = ($gradleRaw -match '(?i)spotless')
+    $hasDetekt = ($gradleRaw -match '(?i)detekt')
+    $hasKtlint = ($gradleRaw -match '(?i)ktlint')
     $isAndroid = ($gradleRaw -match '(?i)com\.android\.(application|library)')
-    $isKotlinLang = ($gradleRaw -match '(?i)kotlin') -or (@(Get-ChildItem -Path $ProjectRoot -Filter "*.kt" -File -Depth 3 -ErrorAction SilentlyContinue).Count -gt 0)
-    $detected.stack = if ($isAndroid) { "android-gradle" } else { "gradle" }
+    $hasKmpSourceDir = (@(Get-ChildItem -Path $ProjectRoot -Directory -Depth 3 -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '[\\/](\.git|\.gradle|build|_agents|\.agents)[\\/]' -and $_.Name -in @("commonMain", "desktopMain", "jvmMain") }).Count -gt 0)
+    $isKmp = ($gradleBuildRaw -match '(?i)(kotlin\s*\(\s*["'']multiplatform["'']\s*\)|org\.jetbrains\.kotlin\.multiplatform|alias\s*\([^)]*kotlin[._-]?multiplatform)') -or
+             ($gradleCatalogRaw -match '(?i)org\.jetbrains\.kotlin\.multiplatform') -or
+             $hasKmpSourceDir
+    $isKotlinLang = $isKmp -or ($gradleRaw -match '(?i)kotlin') -or (@(Get-ChildItem -Path $ProjectRoot -Filter "*.kt" -File -Depth 3 -ErrorAction SilentlyContinue).Count -gt 0)
     $detected.language = if ($isKotlinLang) { "kotlin" } else { "java" }
     $spotlessExcl = if ($hasSpotless) { " -x spotlessCheck" } else { "" }
-    if ($isAndroid) {
+
+    if ($isKmp) {
+        $detected.stack = "kmp-gradle"
+        $jvmTargets = [System.Collections.Generic.List[string]]::new()
+        $namedMatches = [regex]::Matches($gradleBuildRaw, '(?i)\bjvm\s*\(\s*(?:name\s*=\s*)?["'']([A-Za-z][A-Za-z0-9_-]*)["'']\s*\)')
+        foreach ($nm in $namedMatches) {
+            $tName = $nm.Groups[1].Value
+            if ($jvmTargets -notcontains $tName) { $jvmTargets.Add($tName) }
+        }
+        if ($gradleBuildRaw -match '(?i)(?<![A-Za-z0-9_.])jvm\s*(?:\(\s*\)|\{)') {
+            if ($jvmTargets -notcontains "jvm") { $jvmTargets.Add("jvm") }
+        }
+        if ($jvmTargets.Count -eq 0) {
+            $hasDesktopSrc = ($gradleBuildRaw -match '(?i)\bdesktopMain\b') -or (@(Get-ChildItem -Path $ProjectRoot -Directory -Depth 3 -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch '[\\/](\.git|\.gradle|build|_agents|\.agents)[\\/]' -and $_.Name -eq "desktopMain" }).Count -gt 0)
+            $hasJvmSrc = ($gradleBuildRaw -match '(?i)\bjvmMain\b') -or (@(Get-ChildItem -Path $ProjectRoot -Directory -Depth 3 -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch '[\\/](\.git|\.gradle|build|_agents|\.agents)[\\/]' -and $_.Name -eq "jvmMain" }).Count -gt 0)
+            if ($hasDesktopSrc) { $jvmTargets.Add("desktop") }
+            if ($hasJvmSrc) { $jvmTargets.Add("jvm") }
+        }
+
+        if ($jvmTargets.Count -gt 0) {
+            $buildTasks = ($jvmTargets | ForEach-Object { "${_}MainClasses ${_}TestClasses" }) -join " "
+            $testTasks = ($jvmTargets | ForEach-Object { "${_}Test" }) -join " "
+            $primaryTarget = $jvmTargets[0]
+            $detected.build_cmd = "$gradleCmd $buildTasks$spotlessExcl -q"
+            $detected.test_cmd = "$gradleCmd $testTasks$spotlessExcl -q"
+            $detected.test_filter_syntax = "$gradleCmd ${primaryTarget}Test --tests {filter}$spotlessExcl -q"
+            $detected.lint_cmd = if ($hasDetekt) { "$gradleCmd detekt -q" } else { "" }
+        } elseif ($isAndroid) {
+            $detected.build_cmd = "$gradleCmd testDebugUnitTestClasses$spotlessExcl -q"
+            $detected.test_cmd = "$gradleCmd testDebugUnitTest$spotlessExcl -q"
+            $detected.test_filter_syntax = "$gradleCmd testDebugUnitTest --tests {filter}$spotlessExcl -q"
+            $detected.lint_cmd = "$gradleCmd lintDebug -q"
+        } else {
+            $detected.build_cmd = "$gradleCmd assemble$spotlessExcl -q"
+            $detected.test_cmd = "$gradleCmd allTests$spotlessExcl -q"
+            $detected.test_filter_syntax = "$gradleCmd allTests$spotlessExcl -q"
+            $detected.lint_cmd = if ($hasDetekt) { "$gradleCmd detekt -q" } else { "" }
+        }
+    } elseif ($isAndroid) {
+        $detected.stack = "android-gradle"
         $detected.build_cmd = "$gradleCmd testDebugUnitTestClasses$spotlessExcl -q"
         $detected.test_cmd = "$gradleCmd testDebugUnitTest$spotlessExcl -q"
         $detected.test_filter_syntax = "$gradleCmd testDebugUnitTest --tests {filter}$spotlessExcl -q"
         $detected.lint_cmd = "$gradleCmd lintDebug -q"
     } else {
+        $detected.stack = "gradle"
         $detected.build_cmd = "$gradleCmd classes testClasses$spotlessExcl -q"
         $detected.test_cmd = "$gradleCmd test$spotlessExcl -q"
         $detected.test_filter_syntax = "$gradleCmd test --tests {filter}$spotlessExcl -q"
-        $detected.lint_cmd = ""
+        $detected.lint_cmd = if ($hasDetekt) { "$gradleCmd detekt -q" } else { "" }
     }
     if ($hasSpotless) {
         $detected.format_check_cmd = "$gradleCmd spotlessCheck -q"
         $detected.format_fix_cmd = "$gradleCmd spotlessApply -q"
+    } elseif ($hasKtlint) {
+        $detected.format_check_cmd = "$gradleCmd ktlintCheck -q"
+        $detected.format_fix_cmd = "$gradleCmd ktlintFormat -q"
     }
     $detected.manifest_file = if (Test-Path (Join-Path $ProjectRoot "build.gradle.kts")) { "build.gradle.kts" } elseif (Test-Path (Join-Path $ProjectRoot "build.gradle")) { "build.gradle" } elseif ($isKts) { "settings.gradle.kts" } else { "settings.gradle" }
 }

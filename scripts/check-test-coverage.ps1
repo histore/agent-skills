@@ -62,6 +62,7 @@ if ($ReportPath) {
         "TestResults/**/coverage.cobertura.xml",
         "jacocoTestReport.xml",
         "jacoco.xml",
+        "kover/report.xml",
         "coverage/lcov.info",
         "lcov.info",
         "coverage.info",
@@ -70,8 +71,13 @@ if ($ReportPath) {
     )
 
     foreach ($pattern in $candidates) {
-        $match = Get-ChildItem -Path $RepoRoot -Filter (Split-Path $pattern -Leaf) -Recurse -Depth 6 -ErrorAction SilentlyContinue |
-                 Where-Object { $_.FullName -notmatch '[\\/](\.git|_agents|\.agents)[\\/]' } |
+        $leaf = Split-Path $pattern -Leaf
+        $parentHint = Split-Path $pattern -Parent
+        $match = Get-ChildItem -Path $RepoRoot -Filter $leaf -Recurse -Depth 6 -ErrorAction SilentlyContinue |
+                 Where-Object {
+                     $_.FullName -notmatch '[\\/](\.git|_agents|\.agents)[\\/]' -and
+                     ([string]::IsNullOrEmpty($parentHint) -or $parentHint -match '\*' -or $_.FullName.Replace('\', '/') -match ("/" + [regex]::Escape($parentHint.Replace('\', '/')) + "/"))
+                 } |
                  Select-Object -First 1
         if ($match) {
             $foundFile = $match.FullName
@@ -130,9 +136,9 @@ if ($foundFile -and (Test-Path $foundFile)) {
             $hasBranch = $true
         }
     }
-    # JaCoCo XML
-    elseif ($fileName -match '(?i)jacoco.*\.xml$') {
-        $format = "jacoco"
+    # JaCoCo / Kover XML
+    elseif ($fileName -match '(?i)jacoco.*\.xml$' -or $foundFile -match '(?i)[\\/]kover[\\/].*\.xml$') {
+        $format = if ($foundFile -match '(?i)[\\/]kover[\\/]') { "kover" } else { "jacoco" }
         try {
             [xml]$xml = Get-Content -Path $foundFile -Raw
             $lineCounter = $xml.report.counter | Where-Object { $_.type -eq "LINE" } | Select-Object -First 1

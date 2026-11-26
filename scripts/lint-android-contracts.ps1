@@ -83,7 +83,7 @@ function Get-KtTestCorpus {
 
 foreach ($filePath in $filesToScan) {
     $relPath = $filePath.Replace($ProjectRoot + "\", "").Replace($ProjectRoot + "/", "").Replace('\', '/')
-    if ($relPath -match '(?i)(^|/)(test|androidTest)/|Test\.kt$') { continue }
+    if ($relPath -match '(?i)(^|/)((common|jvm|desktop|android|androidUnit|androidInstrumented|ios|js|wasmJs|wasmWasi|native|linux|macos|mingw|apple)?Test|tests?)/|Test\.kt$') { continue }
 
     $lines = @(Get-Content -Path $filePath -Encoding UTF8)
     $rawContent = $lines -join "`n"

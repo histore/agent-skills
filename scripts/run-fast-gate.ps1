@@ -298,7 +298,7 @@ if ($buildSuccess -and $testSuccess -and $lintSuccess -and -not $SkipGuardrails)
             if ($activeSpecs) {
                 $testFiles = Get-ChildItem -Path $ProjectRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
                     $_.FullName -notmatch '[\\/](node_modules|target|bin|obj|\.git|_agents|\.agents|dist|build)[\\/]' -and
-                    ($_.FullName -match '(?i)([\\/](tests?|androidTest|specs?|__tests__|evals)[\\/]|(test|spec)\.[a-z0-9]+$|Test\.(kt|java|cpp|cc|cxx)$|tst_.*\.(cpp|qml)$|_test\.[a-z0-9]+$|eval-cases\.json$|test-skills\.(ps1|sh)$)')
+                    ($_.FullName -match '(?i)([\\/](tests?|androidTest|commonTest|jvmTest|desktopTest|androidUnitTest|androidInstrumentedTest|iosTest|jsTest|wasmJsTest|nativeTest|specs?|__tests__|evals)[\\/]|(test|spec)\.[a-z0-9]+$|Test\.(kt|java|cpp|cc|cxx)$|tst_.*\.(cpp|qml)$|_test\.[a-z0-9]+$|eval-cases\.json$|test-skills\.(ps1|sh)$)')
                 }
                 $testCorpus = ""
                 if ($testFiles) {

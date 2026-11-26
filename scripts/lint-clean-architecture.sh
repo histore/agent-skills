@@ -123,14 +123,14 @@ elif working_tree:
                         seen.add(fp)
                         files_to_scan.append(fp)
     else:
-        ignored_dirs = {'.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj'}
+        ignored_dirs = {'.git', '.gradle', 'build', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj'}
         for root, dirs, files in os.walk(target_path):
             dirs[:] = [d for d in dirs if d not in ignored_dirs]
             for f in files:
                 if f.endswith(src_exts):
                     files_to_scan.append(os.path.join(root, f))
 else:
-    ignored_dirs = {'.git', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj'}
+    ignored_dirs = {'.git', '.gradle', 'build', '_agents', '.agents', 'node_modules', 'target', 'bin', 'obj'}
     for root, dirs, files in os.walk(target_path):
         dirs[:] = [d for d in dirs if d not in ignored_dirs]
         for f in files:
@@ -139,7 +139,7 @@ else:
 
 violations = []
 import_pattern = re.compile(r'^\s*(#include\s+[<"]|use\s+|import\s+|using\s+|from\s+)([^;>"]+)', re.IGNORECASE)
-func_pattern = re.compile(r'^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|function\s+\w+\s*\(|(@Composable\s+)?((public|private|protected|internal)\s+)?(override\s+)?(suspend\s+)?fun\s+\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\(|(virtual\s+|static\s+|inline\s+|explicit\s+)*[\w:<>~*&]+\s+[\w:~]+\s*\([^;]*$)')
+func_pattern = re.compile(r'^\s*((pub(\([^)]+\))?\s+)?(async\s+)?fn\s+\w+|def\s+\w+|func\s+(\([^)]+\)\s*)?\w+|function\s+\w+\s*\(|(@Composable\s+)?((public|private|protected|internal)\s+)?(expect\s+|actual\s+|override\s+|inline\s+|suspend\s+)*fun\s+\w+|(public|private|protected|internal)\s+(static\s+|async\s+|virtual\s+|override\s+)*[\w<>[\],\s]+\s+\w+\s*\(|(virtual\s+|static\s+|inline\s+|explicit\s+)*[\w:<>~*&]+\s+[\w:~]+\s*\([^;]*$)')
 ctrl_pattern = re.compile(r'^\s*(if|for|while|match|switch)\b')
 
 for fp in files_to_scan:

@@ -1300,6 +1300,76 @@ fi
 
 rm -rf "$TEMP_HARDEN_DIR"
 
+# 51. Validate Kotlin Multiplatform (KMP) & Kotlin Desktop Toolchain Support
+echo -e "\n\033[33m51. Validating Kotlin Multiplatform (KMP) & Kotlin Desktop Toolchain Support...\033[0m"
+TEMP_KMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'kmp')
+
+KMP_DESK="$TEMP_KMP_DIR/kmp-desktop"
+mkdir -p "$KMP_DESK/composeApp/src/commonMain/kotlin/domain" "$KMP_DESK/composeApp/src/desktopTest/kotlin" "$KMP_DESK/composeApp/build/generated/domain" "$KMP_DESK/composeApp/build/reports/kover"
+printf 'rootProject.name = "DesktopApp"\ninclude(":composeApp")\n' > "$KMP_DESK/settings.gradle.kts"
+printf 'plugins {\n  kotlin("multiplatform")\n  id("org.jetbrains.compose")\n  id("com.diffplug.spotless")\n}\nkotlin {\n  jvm("desktop")\n}\n' > "$KMP_DESK/composeApp/build.gradle.kts"
+KMP_DESK_STACK=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$KMP_DESK" --json 2>/dev/null || true)
+if echo "$KMP_DESK_STACK" | grep -q '"stack":"kmp-gradle"' && echo "$KMP_DESK_STACK" | grep -q '"language":"kotlin"' && echo "$KMP_DESK_STACK" | grep -q 'desktopMainClasses desktopTestClasses' && ! echo "$KMP_DESK_STACK" | grep -q '"build_cmd":"[^"]* classes ' && echo "$KMP_DESK_STACK" | grep -q 'desktopTest --tests {filter}'; then
+    assert_condition 0 "detect-tech-stack.sh resolves KMP Desktop (jvm('desktop')) to desktopMainClasses/desktopTestClasses/desktopTest" "KMP Desktop failed: $KMP_DESK_STACK"
+else
+    assert_condition 1 "detect-tech-stack.sh resolves KMP Desktop (jvm('desktop')) to desktopMainClasses/desktopTestClasses/desktopTest" "KMP Desktop failed: $KMP_DESK_STACK"
+fi
+
+KMP_JVM="$TEMP_KMP_DIR/kmp-jvm"
+mkdir -p "$KMP_JVM"
+printf 'plugins {\n  id("org.jetbrains.kotlin.multiplatform")\n}\nkotlin {\n  jvm()\n}\n' > "$KMP_JVM/build.gradle.kts"
+KMP_JVM_STACK=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$KMP_JVM" --json 2>/dev/null || true)
+if echo "$KMP_JVM_STACK" | grep -q '"stack":"kmp-gradle"' && echo "$KMP_JVM_STACK" | grep -q 'jvmMainClasses jvmTestClasses' && echo "$KMP_JVM_STACK" | grep -q '"test_cmd":"gradle jvmTest -q"'; then
+    assert_condition 0 "detect-tech-stack.sh resolves KMP JVM (jvm()) to jvmMainClasses/jvmTestClasses/jvmTest" "KMP JVM failed: $KMP_JVM_STACK"
+else
+    assert_condition 1 "detect-tech-stack.sh resolves KMP JVM (jvm()) to jvmMainClasses/jvmTestClasses/jvmTest" "KMP JVM failed: $KMP_JVM_STACK"
+fi
+
+KMP_NATIVE="$TEMP_KMP_DIR/kmp-native"
+mkdir -p "$KMP_NATIVE"
+printf 'plugins {\n  kotlin("multiplatform")\n}\nkotlin {\n  iosArm64()\n}\n' > "$KMP_NATIVE/build.gradle.kts"
+KMP_NATIVE_STACK=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$KMP_NATIVE" --json 2>/dev/null || true)
+if echo "$KMP_NATIVE_STACK" | grep -q '"stack":"kmp-gradle"' && echo "$KMP_NATIVE_STACK" | grep -q 'assemble' && echo "$KMP_NATIVE_STACK" | grep -q 'allTests'; then
+    assert_condition 0 "detect-tech-stack.sh resolves KMP Native-only to assemble and allTests" "KMP Native failed: $KMP_NATIVE_STACK"
+else
+    assert_condition 1 "detect-tech-stack.sh resolves KMP Native-only to assemble and allTests" "KMP Native failed: $KMP_NATIVE_STACK"
+fi
+
+printf 'expect class PlatformDriver\nexpect suspend fun loadPlatformName(): String\n' > "$KMP_DESK/composeApp/src/commonMain/kotlin/Platform.kt"
+KMP_OUTLINE=$(bash "$REPO_ROOT/scripts/get-code-outline.sh" --json "$KMP_DESK/composeApp/src/commonMain/kotlin/Platform.kt" 2>/dev/null || true)
+if echo "$KMP_OUTLINE" | grep -q 'expect class PlatformDriver' && echo "$KMP_OUTLINE" | grep -q 'expect suspend fun loadPlatformName'; then
+    assert_condition 0 "get-code-outline.sh extracts Kotlin Multiplatform expect/actual declarations" "get-code-outline.sh missed expect/actual: $KMP_OUTLINE"
+else
+    assert_condition 1 "get-code-outline.sh extracts Kotlin Multiplatform expect/actual declarations" "get-code-outline.sh missed expect/actual: $KMP_OUTLINE"
+fi
+
+printf 'import javax.swing.JFrame\nclass Gen\n' > "$KMP_DESK/composeApp/build/generated/domain/Gen.kt"
+printf 'import org.jetbrains.compose.resources.DrawableResource\nclass Model\n' > "$KMP_DESK/composeApp/src/commonMain/kotlin/domain/Model.kt"
+KMP_ARCH=$(bash "$REPO_ROOT/scripts/lint-clean-architecture.sh" "$KMP_DESK" --json 2>/dev/null || true)
+if echo "$KMP_ARCH" | grep -q '"status": "fail"' && echo "$KMP_ARCH" | grep -q '"error_count": 1'; then
+    assert_condition 0 "lint-clean-architecture.sh blocks org.jetbrains.compose in domain/ and ignores build/" "lint-clean-architecture.sh KMP check failed: $KMP_ARCH"
+else
+    assert_condition 1 "lint-clean-architecture.sh blocks org.jetbrains.compose in domain/ and ignores build/" "lint-clean-architecture.sh KMP check failed: $KMP_ARCH"
+fi
+
+printf '@Composable\nfun TestHarness() {}\n' > "$KMP_DESK/composeApp/src/desktopTest/kotlin/UiHarness.kt"
+KMP_CONTRACT=$(bash "$REPO_ROOT/scripts/lint-android-contracts.sh" --project-root "$KMP_DESK" --json 2>/dev/null || true)
+if echo "$KMP_CONTRACT" | grep -q '"status": "pass"' && echo "$KMP_CONTRACT" | grep -q '"warnings": \[\]'; then
+    assert_condition 0 "lint-android-contracts.sh skips KMP desktopTest/commonTest source sets" "lint-android-contracts.sh KMP test skip failed: $KMP_CONTRACT"
+else
+    assert_condition 1 "lint-android-contracts.sh skips KMP desktopTest/commonTest source sets" "lint-android-contracts.sh KMP test skip failed: $KMP_CONTRACT"
+fi
+
+printf '<report name="kover"><counter type="LINE" missed="10" covered="90"/></report>\n' > "$KMP_DESK/composeApp/build/reports/kover/report.xml"
+KOVER_COV=$(bash "$REPO_ROOT/scripts/check-test-coverage.sh" --repo-root "$KMP_DESK" --threshold 80 --json 2>/dev/null || true)
+if echo "$KOVER_COV" | grep -q '"status":"pass"' && echo "$KOVER_COV" | grep -q '"format":"kover"' && echo "$KOVER_COV" | grep -Eq '"line_coverage_pct":90(\.0+)?'; then
+    assert_condition 0 "check-test-coverage.sh discovers and parses Kover XML reports" "check-test-coverage.sh Kover failed: $KOVER_COV"
+else
+    assert_condition 1 "check-test-coverage.sh discovers and parses Kover XML reports" "check-test-coverage.sh Kover failed: $KOVER_COV"
+fi
+
+rm -rf "$TEMP_KMP_DIR"
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

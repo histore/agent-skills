@@ -1396,6 +1396,75 @@ try {
     if (Test-Path $tempGapDir) { Remove-Item -LiteralPath $tempGapDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+# 54. Validate Kotlin Multiplatform (KMP) & Kotlin Desktop Toolchain Support
+Write-Host "`n54. Validating Kotlin Multiplatform (KMP) & Kotlin Desktop Toolchain Support..." -ForegroundColor Yellow
+$tempKmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+try {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+    # 54a. KMP with jvm("desktop") (Compose Multiplatform Desktop) must NOT use 'classes' task
+    $kmpDesktopDir = Join-Path $tempKmpDir "kmp-desktop"
+    New-Item -ItemType Directory -Path (Join-Path $kmpDesktopDir "composeApp\src\commonMain\kotlin\domain") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $kmpDesktopDir "composeApp\src\desktopTest\kotlin") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $kmpDesktopDir "composeApp\build\generated\domain") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $kmpDesktopDir "composeApp\build\reports\kover") -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $kmpDesktopDir "settings.gradle.kts"), "rootProject.name = `"DesktopApp`"`r`ninclude(`":composeApp`")`r`n", $utf8NoBom)
+    [System.IO.File]::WriteAllText((Join-Path $kmpDesktopDir "composeApp\build.gradle.kts"), "plugins {`r`n  kotlin(`"multiplatform`")`r`n  id(`"org.jetbrains.compose`")`r`n  id(`"com.diffplug.spotless`")`r`n}`r`nkotlin {`r`n  jvm(`"desktop`")`r`n}`r`n", $utf8NoBom)
+    $kmpDesktopStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $kmpDesktopDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($kmpDesktopStack.stack -eq "kmp-gradle" -and $kmpDesktopStack.language -eq "kotlin" -and $kmpDesktopStack.build_cmd -match 'desktopMainClasses desktopTestClasses' -and $kmpDesktopStack.build_cmd -notmatch '\bclasses\b' -and $kmpDesktopStack.test_cmd -match 'desktopTest' -and $kmpDesktopStack.test_filter_syntax -match 'desktopTest --tests \{filter\}') "KMP Desktop (jvm('desktop')) uses desktopMainClasses/desktopTestClasses/desktopTest without nonexistent 'classes' task" "KMP Desktop detection failed: $($kmpDesktopStack | ConvertTo-Json -Compress)"
+
+    # 54b. KMP with default jvm() target
+    $kmpJvmDir = Join-Path $tempKmpDir "kmp-jvm"
+    New-Item -ItemType Directory -Path $kmpJvmDir -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $kmpJvmDir "build.gradle.kts"), "plugins {`r`n  id(`"org.jetbrains.kotlin.multiplatform`")`r`n}`r`nkotlin {`r`n  jvm()`r`n}`r`n", $utf8NoBom)
+    $kmpJvmStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $kmpJvmDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($kmpJvmStack.stack -eq "kmp-gradle" -and $kmpJvmStack.language -eq "kotlin" -and $kmpJvmStack.build_cmd -match 'jvmMainClasses jvmTestClasses' -and $kmpJvmStack.build_cmd -notmatch '\bclasses\b' -and $kmpJvmStack.test_cmd -match 'jvmTest') "KMP JVM (jvm()) uses jvmMainClasses/jvmTestClasses/jvmTest without nonexistent 'classes' task" "KMP JVM detection failed: $($kmpJvmStack | ConvertTo-Json -Compress)"
+
+    # 54c. KMP with Android + Desktop prefers desktop JVM target without failing on 'classes'
+    $kmpHybridDir = Join-Path $tempKmpDir "kmp-hybrid"
+    New-Item -ItemType Directory -Path $kmpHybridDir -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $kmpHybridDir "build.gradle.kts"), "plugins {`r`n  kotlin(`"multiplatform`")`r`n  id(`"com.android.application`")`r`n}`r`nkotlin {`r`n  androidTarget()`r`n  jvm(`"desktop`")`r`n}`r`n", $utf8NoBom)
+    $kmpHybridStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $kmpHybridDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($kmpHybridStack.stack -eq "kmp-gradle" -and $kmpHybridStack.build_cmd -match 'desktopMainClasses desktopTestClasses' -and $kmpHybridStack.test_cmd -match 'desktopTest') "KMP Android+Desktop detects kmp-gradle and desktop target tasks" "KMP Android+Desktop detection failed: $($kmpHybridStack | ConvertTo-Json -Compress)"
+
+    # 54d. KMP Native/iOS-only (no JVM/Android) falls back to assemble / allTests (never 'classes')
+    $kmpNativeDir = Join-Path $tempKmpDir "kmp-native"
+    New-Item -ItemType Directory -Path $kmpNativeDir -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $kmpNativeDir "build.gradle.kts"), "plugins {`r`n  kotlin(`"multiplatform`")`r`n}`r`nkotlin {`r`n  iosArm64()`r`n}`r`n", $utf8NoBom)
+    $kmpNativeStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $kmpNativeDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($kmpNativeStack.stack -eq "kmp-gradle" -and $kmpNativeStack.build_cmd -match '\bassemble\b' -and $kmpNativeStack.build_cmd -notmatch '\bclasses\b' -and $kmpNativeStack.test_cmd -match '\ballTests\b') "KMP Native-only uses assemble and allTests without 'classes'" "KMP Native detection failed: $($kmpNativeStack | ConvertTo-Json -Compress)"
+
+    # 54e. Single-platform Kotlin Desktop (kotlin('jvm') + Compose) retains standard Gradle tasks
+    $ktDesktopJvmDir = Join-Path $tempKmpDir "kotlin-desktop-jvm"
+    New-Item -ItemType Directory -Path $ktDesktopJvmDir -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $ktDesktopJvmDir "build.gradle.kts"), "plugins {`r`n  kotlin(`"jvm`")`r`n  id(`"org.jetbrains.compose`")`r`n}`r`n", $utf8NoBom)
+    $ktDesktopJvmStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\detect-tech-stack.ps1") -ProjectRoot $ktDesktopJvmDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($ktDesktopJvmStack.stack -eq "gradle" -and $ktDesktopJvmStack.language -eq "kotlin" -and $ktDesktopJvmStack.build_cmd -match 'classes testClasses' -and $ktDesktopJvmStack.test_cmd -match '\btest\b') "Single-platform Kotlin Desktop (kotlin('jvm') + Compose) keeps standard classes/testClasses/test tasks" "Single-platform Kotlin Desktop detection failed: $($ktDesktopJvmStack | ConvertTo-Json -Compress)"
+
+    # 54f. Kotlin Multiplatform expect/actual code outline, Clean Arch desktop rules & build/ exclusion, KMP test skip, and Kover XML coverage
+    $expectFile = Join-Path $kmpDesktopDir "composeApp\src\commonMain\kotlin\Platform.kt"
+    [System.IO.File]::WriteAllText($expectFile, "expect class PlatformDriver`r`nexpect suspend fun loadPlatformName(): String`r`n", $utf8NoBom)
+    $kmpOutline = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\get-code-outline.ps1") -Path $expectFile -RepoRoot $kmpDesktopDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($kmpOutline.files.Count -eq 1 -and $kmpOutline.files[0].signatures.Count -ge 2) "get-code-outline.ps1 extracts Kotlin Multiplatform expect/actual declarations" "get-code-outline.ps1 missed expect/actual declarations"
+
+    [System.IO.File]::WriteAllText((Join-Path $kmpDesktopDir "composeApp\build\generated\domain\Gen.kt"), "import javax.swing.JFrame`r`nclass Gen`r`n", $utf8NoBom)
+    [System.IO.File]::WriteAllText((Join-Path $kmpDesktopDir "composeApp\src\commonMain\kotlin\domain\Model.kt"), "import org.jetbrains.compose.resources.DrawableResource`r`nclass Model`r`n", $utf8NoBom)
+    $kmpArchRaw = $null
+    try { $kmpArchRaw = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\lint-clean-architecture.ps1") -TargetPath $kmpDesktopDir -JsonOutput 2>$null } catch {}
+    $kmpArchObj = if ($kmpArchRaw) { $kmpArchRaw | ConvertFrom-Json } else { $null }
+    Assert-Condition ($null -ne $kmpArchObj -and $kmpArchObj.status -eq "fail" -and $kmpArchObj.error_count -eq 1) "lint-clean-architecture.ps1 blocks org.jetbrains.compose in domain/ and ignores generated build/ files" "lint-clean-architecture.ps1 KMP check failed ($kmpArchRaw)"
+
+    [System.IO.File]::WriteAllText((Join-Path $kmpDesktopDir "composeApp\src\desktopTest\kotlin\UiHarness.kt"), "@Composable`r`nfun TestHarness() {}`r`n", $utf8NoBom)
+    $kmpContract = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\lint-android-contracts.ps1") -ProjectRoot $kmpDesktopDir -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($kmpContract.status -eq "pass" -and $kmpContract.warnings.Count -eq 0) "lint-android-contracts.ps1 skips KMP desktopTest/commonTest source sets" "lint-android-contracts.ps1 did not skip KMP desktopTest ($($kmpContract | ConvertTo-Json -Compress))"
+
+    [System.IO.File]::WriteAllText((Join-Path $kmpDesktopDir "composeApp\build\reports\kover\report.xml"), "<report name=`"kover`"><counter type=`"LINE`" missed=`"10`" covered=`"90`"/></report>`r`n", $utf8NoBom)
+    $koverCov = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\check-test-coverage.ps1") -RepoRoot $kmpDesktopDir -Threshold 80 -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($koverCov.status -eq "pass" -and $koverCov.format -eq "kover" -and $koverCov.line_coverage_pct -eq 90) "check-test-coverage.ps1 discovers and parses Kover XML reports" "check-test-coverage.ps1 Kover check failed ($($koverCov | ConvertTo-Json -Compress))"
+} finally {
+    if (Test-Path $tempKmpDir) { Remove-Item -LiteralPath $tempKmpDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

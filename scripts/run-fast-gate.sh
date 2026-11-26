@@ -329,7 +329,7 @@ EOF
       done < <(find "$PROJECT_ROOT" -type f \
         ! -path '*/node_modules/*' ! -path '*/target/*' ! -path '*/bin/*' ! -path '*/obj/*' \
         ! -path '*/.git/*' ! -path '*/_agents/*' ! -path '*/.agents/*' ! -path '*/dist/*' ! -path '*/build/*' \
-        \( -ipath '*/tests/*' -o -ipath '*/test/*' -o -ipath '*/androidTest/*' -o -ipath '*/specs/*' -o -ipath '*/__tests__/*' -o -ipath '*/evals/*' \
+        \( -ipath '*/tests/*' -o -ipath '*/test/*' -o -ipath '*/androidTest/*' -o -ipath '*/commonTest/*' -o -ipath '*/jvmTest/*' -o -ipath '*/desktopTest/*' -o -ipath '*/androidUnitTest/*' -o -ipath '*/androidInstrumentedTest/*' -o -ipath '*/iosTest/*' -o -ipath '*/jsTest/*' -o -ipath '*/wasmJsTest/*' -o -ipath '*/nativeTest/*' -o -ipath '*/specs/*' -o -ipath '*/__tests__/*' -o -ipath '*/evals/*' \
            -o -iname '*test.*' -o -name '*Test.kt' -o -name '*Test.java' -o -name '*Test.cpp' -o -name 'tst_*.cpp' -o -name 'tst_*.qml' -o -iname '*spec.*' -o -iname '*_test.*' -o -name 'eval-cases.json' -o -name 'test-skills.ps1' -o -name 'test-skills.sh' \) \
         -print0 2>/dev/null)
 
