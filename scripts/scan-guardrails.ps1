@@ -381,7 +381,13 @@ foreach ($filePath in $filesToScan) {
         $cleanContent = $content.TrimStart([char]0xFEFF)
         if ($ext -eq ".json" -and $leafName -notmatch '(?i)^(tsconfig|jsconfig|devcontainer).*\.json$' -and $relUnix -notmatch '(^|/)\.vscode/') {
             try {
-                [void]($cleanContent | ConvertFrom-Json -ErrorAction Stop)
+                $stjType = [System.Type]::GetType('System.Text.Json.JsonDocument, System.Text.Json')
+                if ($null -ne $stjType) {
+                    $doc = $stjType::Parse($cleanContent)
+                    $doc.Dispose()
+                } else {
+                    [void]($cleanContent | ConvertFrom-Json -ErrorAction Stop)
+                }
             } catch {
                 $violations.Add([PSCustomObject]@{
                     Rule = "DataSyntax"
@@ -404,13 +410,20 @@ foreach ($filePath in $filesToScan) {
             }
         } elseif ($ext -eq ".toml") {
             if ($null -eq $script:pyExeForData) {
-                $pyCmd = Get-Command python3 -ErrorAction SilentlyContinue
-                if (-not $pyCmd) { $pyCmd = Get-Command python -ErrorAction SilentlyContinue }
+                $pyCmd = @(Get-Command python3, python -ErrorAction SilentlyContinue | Where-Object { $_.Source -and $_.Source -notmatch '[\\/]WindowsApps[\\/]' }) | Select-Object -First 1
                 $script:pyExeForData = if ($pyCmd) { $pyCmd.Source } else { "" }
+                $script:hasPyToml = $false
+                $script:hasPyYaml = $false
+                if (-not [string]::IsNullOrEmpty($script:pyExeForData)) {
+                    & $script:pyExeForData -c "import tomllib" 2>$null
+                    if ($LASTEXITCODE -eq 0) { $script:hasPyToml = $true }
+                    & $script:pyExeForData -c "import yaml" 2>$null
+                    if ($LASTEXITCODE -eq 0) { $script:hasPyYaml = $true }
+                }
             }
-            if (-not [string]::IsNullOrEmpty($script:pyExeForData)) {
-                $tomlErr = & $script:pyExeForData -c "import sys; import tomllib; tomllib.load(open(sys.argv[1], 'rb'))" $filePath 2>&1
-                if ($LASTEXITCODE -ne 0 -and ($tomlErr -notmatch 'No module named')) {
+            if ($script:hasPyToml) {
+                $tomlErr = & $script:pyExeForData -c "import sys, tomllib; tomllib.load(open(sys.argv[1], 'rb'))" $filePath 2>&1
+                if ($LASTEXITCODE -ne 0) {
                     $violations.Add([PSCustomObject]@{
                         Rule = "DataSyntax"
                         File = $relPath
@@ -421,13 +434,20 @@ foreach ($filePath in $filesToScan) {
             }
         } elseif ($ext -in @(".yml", ".yaml")) {
             if ($null -eq $script:pyExeForData) {
-                $pyCmd = Get-Command python3 -ErrorAction SilentlyContinue
-                if (-not $pyCmd) { $pyCmd = Get-Command python -ErrorAction SilentlyContinue }
+                $pyCmd = @(Get-Command python3, python -ErrorAction SilentlyContinue | Where-Object { $_.Source -and $_.Source -notmatch '[\\/]WindowsApps[\\/]' }) | Select-Object -First 1
                 $script:pyExeForData = if ($pyCmd) { $pyCmd.Source } else { "" }
+                $script:hasPyToml = $false
+                $script:hasPyYaml = $false
+                if (-not [string]::IsNullOrEmpty($script:pyExeForData)) {
+                    & $script:pyExeForData -c "import tomllib" 2>$null
+                    if ($LASTEXITCODE -eq 0) { $script:hasPyToml = $true }
+                    & $script:pyExeForData -c "import yaml" 2>$null
+                    if ($LASTEXITCODE -eq 0) { $script:hasPyYaml = $true }
+                }
             }
-            if (-not [string]::IsNullOrEmpty($script:pyExeForData)) {
+            if ($script:hasPyYaml) {
                 $yamlErr = & $script:pyExeForData -c "import sys, yaml; list(yaml.safe_load_all(open(sys.argv[1], 'r', encoding='utf-8-sig')))" $filePath 2>&1
-                if ($LASTEXITCODE -ne 0 -and ($yamlErr -notmatch 'No module named')) {
+                if ($LASTEXITCODE -ne 0) {
                     $violations.Add([PSCustomObject]@{
                         Rule = "DataSyntax"
                         File = $relPath
