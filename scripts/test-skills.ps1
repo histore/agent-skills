@@ -1047,6 +1047,10 @@ Assert-Condition ($agentsBytes -le 24000 -and $subagentsBytes -le 24000) "AGENTS
 
 $auditorSkillContent = Get-Content -Path (Join-Path $skillsDir "ask-skill-auditor\SKILL.md") -Raw -Encoding UTF8
 Assert-Condition ($auditorSkillContent -match 'Rules A1' -and $auditorSkillContent -match 'CONVERGED & SATURATED' -and $auditorSkillContent -match 'Monotonic Audit Ratchet') "ask-skill-auditor enforces deterministic A1-A10 rules, anti-oscillation saturation gate, and monotonic self-audit" "ask-skill-auditor missing mandatory audit sections"
+Assert-Condition ($auditorSkillContent -match 'Platform & Client Capability Alignment' -and $auditorSkillContent -match 'Antigravity' -and $auditorSkillContent -match 'Copilot CLI' -and $auditorSkillContent -match 'routine_task_thresholds' -and $auditorSkillContent -notmatch '\$4\.00/M|\$20\.00/M') "ask-skill-auditor audits AGY/Copilot CLI platform capabilities and resolves cost-guardrail thresholds dynamically from SSOT" "ask-skill-auditor missing platform capability alignment or still hardcodes static dollar thresholds"
+
+$subagentsContent = Get-Content -Path (Join-Path $repoRoot "rules\subagents.md") -Raw -Encoding UTF8
+Assert-Condition ($subagentsContent -match 'routine_task_thresholds' -and $subagentsContent -notmatch '\$4\.00/M|\$20\.00/M' -and $modelTiersData.cost_efficiency_policy.cost_guardrail.routine_task_thresholds.threshold_mode -eq 'dynamic') "Cost-guardrail thresholds are managed dynamically in rules/model-tiers.json without hardcoded dollar prose in rules/subagents.md" "Static dollar thresholds found in rules/subagents.md or threshold_mode is not 'dynamic' in rules/model-tiers.json"
 
 $tempFmtDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $tempFmtDir | Out-Null

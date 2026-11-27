@@ -1057,6 +1057,20 @@ else
     assert_condition 1 "ask-skill-auditor enforces deterministic A1-A10 rules, anti-oscillation saturation gate, and monotonic self-audit" "ask-skill-auditor missing mandatory audit sections"
 fi
 
+if [ -f "$AUDITOR_SKILL_FILE" ] && grep -q 'Platform & Client Capability Alignment' "$AUDITOR_SKILL_FILE" && grep -q 'Antigravity' "$AUDITOR_SKILL_FILE" && grep -q 'Copilot CLI' "$AUDITOR_SKILL_FILE" && grep -q 'routine_task_thresholds' "$AUDITOR_SKILL_FILE" && ! grep -qE '\$4\.00/M|\$20\.00/M' "$AUDITOR_SKILL_FILE"; then
+    assert_condition 0 "ask-skill-auditor audits AGY/Copilot CLI platform capabilities and resolves cost-guardrail thresholds dynamically from SSOT" "ask-skill-auditor missing platform capability alignment or still hardcodes static dollar thresholds"
+else
+    assert_condition 1 "ask-skill-auditor audits AGY/Copilot CLI platform capabilities and resolves cost-guardrail thresholds dynamically from SSOT" "ask-skill-auditor missing platform capability alignment or still hardcodes static dollar thresholds"
+fi
+
+SUBAGENTS_RULE_FILE="$REPO_ROOT/rules/subagents.md"
+THRESHOLD_MODE=$(jq -r '.cost_efficiency_policy.cost_guardrail.routine_task_thresholds.threshold_mode // ""' "$MODEL_TIERS_FILE")
+if [ -f "$SUBAGENTS_RULE_FILE" ] && grep -q 'routine_task_thresholds' "$SUBAGENTS_RULE_FILE" && ! grep -qE '\$4\.00/M|\$20\.00/M' "$SUBAGENTS_RULE_FILE" && [ "$THRESHOLD_MODE" = "dynamic" ]; then
+    assert_condition 0 "Cost-guardrail thresholds are managed dynamically in rules/model-tiers.json without hardcoded dollar prose in rules/subagents.md" "Static dollar thresholds found in rules/subagents.md or threshold_mode is not 'dynamic' in rules/model-tiers.json"
+else
+    assert_condition 1 "Cost-guardrail thresholds are managed dynamically in rules/model-tiers.json without hardcoded dollar prose in rules/subagents.md" "Static dollar thresholds found in rules/subagents.md or threshold_mode is not 'dynamic' in rules/model-tiers.json"
+fi
+
 # 47. Validate bash script parity, directory segment excludes, MIME/JSON checks, and eval coverage
 echo -e "\n\033[33m47. Validating bash script parity, excludes, MIME/JSON checks, and eval coverage...\033[0m"
 CONTRACT_SKILL_FILE="$REPO_ROOT/skills/ask-contract-specialist/SKILL.md"

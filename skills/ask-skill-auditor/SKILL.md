@@ -118,17 +118,21 @@ Before proposing any change to the user, `SkillAuditor` must pass every candidat
 
 ## 5. Self-Audit & LLM Evolution Protocol
 
-When invoked with an evolution check (or as Step 11 of a full audit), `SkillAuditor` audits **both the skillset and its own rules (`ask-skill-auditor/SKILL.md`)** against current LLM and platform developments:
+When invoked with an evolution check (or as Step 11 of a full audit), `SkillAuditor` audits **both the skillset and its own rules (`ask-skill-auditor/SKILL.md`)** against current LLM, pricing, and client-platform developments:
 
-1. **Model Catalog & Pricing Alignment ([`rules/model-tiers.json`](../../rules/model-tiers.json))**:
-   - Check whether model identifiers (`ECO`, `BALANCED`, `PREMIUM`, `platform_preferences`), cost-guardrail thresholds (`$4.00/M` input, `$20.00/M` output), and reasoning budget controls reflect the active LLM generations in Antigravity and GitHub Copilot.
-2. **Pruning Obsolete Prompt Crutches**:
+1. **Model Catalog, Capabilities & Dynamic Cost-Guardrail Alignment ([`rules/model-tiers.json`](../../rules/model-tiers.json))**:
+   - Check whether model identifiers (`ECO`, `BALANCED`, `PREMIUM`, `platform_preferences`), native model capabilities (context windows, tool-use reliability, reasoning modes), and reasoning budget controls reflect the active LLM generations in Antigravity and GitHub Copilot.
+   - Review and dynamically recalibrate `cost_guardrail.routine_task_thresholds` in [`rules/model-tiers.json`](../../rules/model-tiers.json) against current API token prices, platform quota multipliers, and the active `BALANCED` vs. `PREMIUM` spread. Never hardcode static dollar thresholds in skills or rule prose — always resolve them dynamically from the SSOT (`rules/model-tiers.json`).
+2. **Platform & Client Capability Alignment (Antigravity & Copilot CLI)**:
+   - Audit whether current native capabilities of **Antigravity (AGY)** (e.g. `invoke_subagent`, `run_workflow`, `/swarm`, `.agent/hooks.json` / `hooks.json`, built-in skills, rule/token budgets, dual-model orchestrators, plugin/customization discovery) and **GitHub Copilot CLI / IDE** (e.g. `/plan`, `/autopilot`, `/fleet`, `/compact`, `.github/hooks/`, `.github/instructions/*.instructions.md`, `--model` / `Auto` routing, native effort controls) are accurately reflected in `platform_preferences.*.native_capabilities` and governance docs.
+   - Verify against authoritative sources (e.g. built-in client guides such as `antigravity-guide` / `agy-customizations`, CLI `--help`, or official AGY / Copilot CLI release notes and docs) rather than stale model memory, and evaluate whether custom toolkit workarounds can be simplified or replaced by native client primitives.
+3. **Pruning Obsolete Prompt Crutches**:
    - Identify prompt instructions that were workarounds for older LLM limitations. If current models enforce them natively via tool schemas or system harnesses, simplify the prompt instruction while keeping the deterministic script check.
-3. **Hardening Against Newly Observed Failure Modes**:
+4. **Hardening Against Newly Observed Failure Modes**:
    - Whenever a real-world failure mode is observed during development (e.g. sandbox Store-alias blocks, re-running `prepare-commit` after confirmation, premature baseline test runs, `sed` delimiter collisions, PowerShell 5.1 scalar `Get-Content`), codify:
      1. A concise 1–2 line guardrail in the relevant skill/governance file, **and**
      2. A deterministic automated test in `test-skills.ps1/.sh` or `evals/eval-cases.json`.
-4. **Monotonic Audit Ratchet (Self-Improvement of `ask-skill-auditor`)**:
+5. **Monotonic Audit Ratchet (Self-Improvement of `ask-skill-auditor`)**:
    - Every time a genuine `[K]` or `[V]` finding is resolved, verify whether Rules A1–A10 and `test-skills.ps1/.sh` now catch that exact defect class automatically. If not, extend `test-skills.ps1/.sh` (and Rule A3/A6/A9 in this skill) so the audit catalog grows **monotonically stricter** and never relies on ad-hoc prompt phrasing to catch that bug class again.
 
 ---
