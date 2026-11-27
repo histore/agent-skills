@@ -340,7 +340,7 @@ for file in "${FILES[@]}"; do
   IS_TEXT=false
   if [[ -s "$file" ]]; then
     file_name="$(basename "$file")"
-    if [[ "$file_name" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|json|md|yml|yaml|toml|ps1|sh|axaml|props|targets|xml|txt|csproj|sln|editorconfig|gitattributes|gitignore|manifest)$ ]] || \
+    if [[ "$file_name" =~ \.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|json|md|yml|yaml|toml|ps1|psm1|psd1|sh|bash|bat|cmd|axaml|props|targets|xml|txt|csproj|fsproj|vcxproj|config|sln|editorconfig|gitattributes|gitignore|manifest)$ ]] || \
        [[ "$file_name" =~ ^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$ ]]; then
       IS_TEXT=true
     elif command -v file >/dev/null 2>&1; then
@@ -407,6 +407,43 @@ for file in "${FILES[@]}"; do
     fi
     if grep -nE -- 'gh[pousr]_[A-Za-z0-9_]{36,255}' "$file" >/dev/null 2>&1; then
       add_violation "SecretDetection" "$rel_path" 0 "Potential secret detected (GitHub Personal Token)"
+    fi
+
+    # Cross-Cutting Structured Data Syntax Check (JSON, XML, TOML, YAML)
+    file_ext_lc="$(printf '%s' "${file_name##*.}" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$file_ext_lc" == "json" && ! "$file_name" =~ ^([Tt][Ss][Cc][Oo][Nn][Ff][Ii][Gg]|[Jj][Ss][Cc][Oo][Nn][Ff][Ii][Gg]|[Dd][Ee][Vv][Cc][Oo][Nn][Tt][Aa][Ii][Nn][Ee][Rr]).*\.json$ && ! "$rel_path" =~ (^|/)\.vscode/ ]]; then
+      if command -v jq >/dev/null 2>&1; then
+        JSON_ERR=$(jq empty "$file" 2>&1 || true)
+        if ! jq empty "$file" >/dev/null 2>&1; then
+          add_violation "DataSyntax" "$rel_path" 0 "Invalid JSON syntax: ${JSON_ERR%%$'\n'*}"
+        fi
+      elif command -v python3 >/dev/null 2>&1; then
+        if ! JSON_ERR=$(python3 -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8-sig"))' "$file" 2>&1); then
+          add_violation "DataSyntax" "$rel_path" 0 "Invalid JSON syntax: ${JSON_ERR##*$'\n'}"
+        fi
+      fi
+    elif [[ "$file_ext_lc" =~ ^(xml|csproj|fsproj|props|targets|vcxproj|config|axaml)$ ]]; then
+      if command -v python3 >/dev/null 2>&1; then
+        if ! XML_ERR=$(python3 -c 'import xml.etree.ElementTree as ET, sys; ET.parse(sys.argv[1])' "$file" 2>&1); then
+          add_violation "DataSyntax" "$rel_path" 0 "Invalid XML syntax: ${XML_ERR##*$'\n'}"
+        fi
+      fi
+    elif [[ "$file_ext_lc" == "toml" ]]; then
+      if command -v python3 >/dev/null 2>&1; then
+        if ! TOML_ERR=$(python3 -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$file" 2>&1); then
+          if [[ "$TOML_ERR" != *"No module named"* ]]; then
+            add_violation "DataSyntax" "$rel_path" 0 "Invalid TOML syntax: ${TOML_ERR##*$'\n'}"
+          fi
+        fi
+      fi
+    elif [[ "$file_ext_lc" == "yml" || "$file_ext_lc" == "yaml" ]]; then
+      if command -v python3 >/dev/null 2>&1; then
+        if ! YAML_ERR=$(python3 -c 'import sys, yaml; list(yaml.safe_load_all(open(sys.argv[1], "r", encoding="utf-8-sig")))' "$file" 2>&1); then
+          if [[ "$YAML_ERR" != *"No module named"* ]]; then
+            add_violation "DataSyntax" "$rel_path" 0 "Invalid YAML syntax: ${YAML_ERR##*$'\n'}"
+          fi
+        fi
+      fi
     fi
   fi
 done

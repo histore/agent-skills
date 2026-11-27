@@ -1545,6 +1545,63 @@ try {
     if (Test-Path $tempCliDir) { Remove-Item -LiteralPath $tempCliDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+# 56. Validating Script Stacks (PowerShell, Bash, Batch/CMD, Standalone Python) & Cross-Cutting Data Syntax Guardrails
+Write-Host "`n56. Validating Script Stacks & Data Syntax Guardrails..." -ForegroundColor Yellow
+$tempScriptStackDir = Join-Path ([System.IO.Path]::GetTempPath()) ("ask-script-stacks-" + [System.Guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $tempScriptStackDir -Force | Out-Null
+try {
+    $utf8NoBom56 = New-Object System.Text.UTF8Encoding($false)
+
+    # 56a. PowerShell stack
+    $psProj = Join-Path $tempScriptStackDir "ps-proj"
+    New-Item -ItemType Directory -Path $psProj -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $psProj "deploy.ps1"), "function Invoke-Deploy { Write-Output 'ok' }`r`n", $utf8NoBom56)
+    $psStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -ProjectRoot $psProj -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($psStack.stack -eq "powershell" -and $psStack.language -eq "powershell" -and $psStack.support_level -eq "full" -and -not [string]::IsNullOrWhiteSpace($psStack.build_cmd)) "detect-tech-stack.ps1 detects PowerShell stack with native AST syntax check and full support" "Unexpected PowerShell stack: $($psStack | ConvertTo-Json -Compress)"
+
+    # 56b. Bash / Shell stack
+    $shProj = Join-Path $tempScriptStackDir "sh-proj"
+    New-Item -ItemType Directory -Path $shProj -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $shProj "run.sh"), "#!/usr/bin/env bash`nrun_task() { echo ok; }`n", $utf8NoBom56)
+    $shStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -ProjectRoot $shProj -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($shStack.stack -eq "shell" -and $shStack.language -eq "bash" -and $shStack.support_level -eq "full") "detect-tech-stack.ps1 detects Bash/Shell stack with full support" "Unexpected Shell stack: $($shStack | ConvertTo-Json -Compress)"
+
+    # 56c. Windows Batch / CMD stack
+    $batProj = Join-Path $tempScriptStackDir "bat-proj"
+    New-Item -ItemType Directory -Path $batProj -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $batProj "build.cmd"), "@echo off`r`necho ok`r`n", $utf8NoBom56)
+    $batStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -ProjectRoot $batProj -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($batStack.stack -eq "batch" -and $batStack.language -eq "batch" -and $batStack.support_level -eq "full") "detect-tech-stack.ps1 detects Windows Batch/CMD stack with full support" "Unexpected Batch stack: $($batStack | ConvertTo-Json -Compress)"
+
+    # 56d. Standalone Python script stack (no pyproject.toml/requirements.txt)
+    $pyProj = Join-Path $tempScriptStackDir "py-proj"
+    New-Item -ItemType Directory -Path $pyProj -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $pyProj "helper.py"), "def greet():`r`n    return 'hi'`r`n", $utf8NoBom56)
+    $pyStack = & $psExe -NoProfile -ExecutionPolicy Bypass -File $detectStackPs1 -ProjectRoot $pyProj -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($pyStack.stack -eq "python-script" -and $pyStack.language -eq "python" -and $pyStack.support_level -eq "full" -and $pyStack.build_cmd -match 'compileall') "detect-tech-stack.ps1 detects Standalone Python scripts without manifest" "Unexpected Python script stack: $($pyStack | ConvertTo-Json -Compress)"
+
+    # 56e. get-code-outline extracts PowerShell and Bash functions
+    $psOutline = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\get-code-outline.ps1") -Path (Join-Path $psProj "deploy.ps1") -RepoRoot $psProj -JsonOutput | ConvertFrom-Json
+    $shOutline = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\get-code-outline.ps1") -Path (Join-Path $shProj "run.sh") -RepoRoot $shProj -JsonOutput | ConvertFrom-Json
+    Assert-Condition (@($psOutline.files[0].signatures | Where-Object { $_.signature -match 'Invoke-Deploy' }).Count -ge 1 -and @($shOutline.files[0].signatures | Where-Object { $_.signature -match 'run_task' }).Count -ge 1) "get-code-outline.ps1 extracts PowerShell and Bash function signatures" "Missing PowerShell or Bash outline signatures"
+
+    # 56f. scan-guardrails catches invalid JSON and XML while passing valid data files
+    $dataProj = Join-Path $tempScriptStackDir "data-proj"
+    New-Item -ItemType Directory -Path $dataProj -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $dataProj "valid.json"), "{`"ok`": true}`r`n", $utf8NoBom56)
+    [System.IO.File]::WriteAllText((Join-Path $dataProj "valid.xml"), "<root><item>ok</item></root>`r`n", $utf8NoBom56)
+    $validScan = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\scan-guardrails.ps1") -ScanPath $dataProj -SkipLineEndings -JsonOutput | ConvertFrom-Json
+    Assert-Condition ($validScan.status -eq "pass") "scan-guardrails.ps1 passes valid JSON and XML files" "Unexpected failure on valid JSON/XML: $($validScan | ConvertTo-Json -Compress)"
+
+    [System.IO.File]::WriteAllText((Join-Path $dataProj "broken.json"), "{`"ok`": true,}`r`n", $utf8NoBom56)
+    [System.IO.File]::WriteAllText((Join-Path $dataProj "broken.xml"), "<root><unclosed></root>`r`n", $utf8NoBom56)
+    $brokenScan = & $psExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\scan-guardrails.ps1") -ScanPath $dataProj -SkipLineEndings -JsonOutput | ConvertFrom-Json
+    $dataSyntaxViolations = @($brokenScan.violations | Where-Object { $_.Rule -eq "DataSyntax" })
+    Assert-Condition ($brokenScan.status -eq "fail" -and $dataSyntaxViolations.Count -eq 2) "scan-guardrails.ps1 flags invalid JSON and XML syntax via DataSyntax rule" "Expected 2 DataSyntax violations, got $($dataSyntaxViolations.Count)"
+} finally {
+    if (Test-Path $tempScriptStackDir) { Remove-Item -LiteralPath $tempScriptStackDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # Summary Report
 Write-Host "`n=============================================" -ForegroundColor Cyan
 Write-Host "Test Suite Summary" -ForegroundColor Cyan

@@ -64,7 +64,7 @@ if (-not (Test-Path $targetPath)) {
 }
 
 # 2. Collect Candidate Files
-$supportedExts = @('.cs', '.rs', '.ts', '.tsx', '.js', '.py', '.go', '.kt', '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx', '.qml')
+$supportedExts = @('.cs', '.rs', '.ts', '.tsx', '.js', '.py', '.go', '.kt', '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx', '.qml', '.ps1', '.psm1', '.sh', '.bash')
 $filesToScan = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
 
 if ((Get-Item $targetPath) -is [System.IO.FileInfo]) {
@@ -103,6 +103,10 @@ function Parse-Signatures {
         '.hpp'  { 'cpp' }
         '.hxx'  { 'cpp' }
         '.qml'  { 'qml' }
+        '.ps1'  { 'powershell' }
+        '.psm1' { 'powershell' }
+        '.sh'   { 'bash' }
+        '.bash' { 'bash' }
         default { 'unknown' }
     }
 
@@ -230,6 +234,28 @@ function Parse-Signatures {
                     $vis = "public"
                 } elseif ($trimmed -match '^(signal|function)\s+([A-Za-z0-9_]+)\s*\(') {
                     $kind = $matches[1]
+                    $sig = $trimmed.TrimEnd('{').Trim()
+                    $vis = "public"
+                }
+            }
+            'powershell' {
+                if ($trimmed -match '(?i)^(class|enum)\s+([A-Za-z0-9_]+)') {
+                    $kind = $matches[1].ToLowerInvariant()
+                    $sig = $trimmed.TrimEnd('{').Trim()
+                    $vis = "public"
+                } elseif ($trimmed -match '(?i)^(function|filter)\s+([A-Za-z0-9_:\-]+)') {
+                    $kind = $matches[1].ToLowerInvariant()
+                    $sig = $trimmed.TrimEnd('{').Trim()
+                    $vis = "public"
+                }
+            }
+            'bash' {
+                if ($trimmed -match '^function\s+([A-Za-z_][A-Za-z0-9_-]*)') {
+                    $kind = "function"
+                    $sig = $trimmed.TrimEnd('{').Trim()
+                    $vis = "public"
+                } elseif ($trimmed -match '^([A-Za-z_][A-Za-z0-9_-]*)\s*\(\s*\)\s*\{?') {
+                    $kind = "function"
                     $sig = $trimmed.TrimEnd('{').Trim()
                     $vis = "public"
                 }

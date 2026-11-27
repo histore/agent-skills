@@ -282,11 +282,75 @@ elif [[ -f "${PROJECT_ROOT}/CMakeLists.txt" ]] || [[ -f "${PROJECT_ROOT}/CMakePr
     FORMAT_CHECK_CMD="clang-format --dry-run --Werror"
     FORMAT_FIX_CMD="clang-format -i"
   fi
+else
+  PS_SAMPLE=$(find "$PROJECT_ROOT" -maxdepth 4 -type f \
+    ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" ! -path "*/node_modules/*" ! -path "*/build/*" ! -path "*/target/*" ! -path "*/bin/*" ! -path "*/obj/*" \
+    \( -iname "*.ps1" -o -iname "*.psm1" -o -iname "*.psd1" \) 2>/dev/null | head -n 1 || true)
+  SH_SAMPLE=$(find "$PROJECT_ROOT" -maxdepth 4 -type f \
+    ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" ! -path "*/node_modules/*" ! -path "*/build/*" ! -path "*/target/*" ! -path "*/bin/*" ! -path "*/obj/*" \
+    \( -iname "*.sh" -o -iname "*.bash" \) 2>/dev/null | head -n 1 || true)
+  BAT_SAMPLE=$(find "$PROJECT_ROOT" -maxdepth 4 -type f \
+    ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" ! -path "*/node_modules/*" ! -path "*/build/*" ! -path "*/target/*" ! -path "*/bin/*" ! -path "*/obj/*" \
+    \( -iname "*.bat" -o -iname "*.cmd" \) 2>/dev/null | head -n 1 || true)
+  PY_SAMPLE=$(find "$PROJECT_ROOT" -maxdepth 4 -type f \
+    ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" ! -path "*/node_modules/*" ! -path "*/build/*" ! -path "*/target/*" ! -path "*/bin/*" ! -path "*/obj/*" \
+    -iname "*.py" 2>/dev/null | head -n 1 || true)
+
+  if [[ -n "$PS_SAMPLE" ]]; then
+    STACK="powershell"
+    LANG="powershell"
+    if command -v pwsh &>/dev/null; then
+      BUILD_CMD="pwsh -NoProfile -Command 'Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 -File | Where-Object { \$_.FullName -notmatch \"[\\\\/](\\.git|_agents|\\.agents|node_modules|build|target)[\\\\/]\" } | ForEach-Object { \$e = \$null; [void][System.Management.Automation.Language.Parser]::ParseFile(\$_.FullName, [ref]\$null, [ref]\$e); if (\$e.Count -gt 0) { exit 1 } }'"
+    fi
+    if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -type f ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" -iname "*.Tests.ps1" 2>/dev/null | head -n 1)" ]] && command -v pwsh &>/dev/null; then
+      if pwsh -NoProfile -Command "if (Get-Module -ListAvailable -Name Pester) { exit 0 } else { exit 1 }" 2>/dev/null; then
+        TEST_CMD="pwsh -NoProfile -Command 'Invoke-Pester -Output Minimal'"
+        FILTER_SYNTAX="pwsh -NoProfile -Command 'Invoke-Pester -Output Minimal -FullNameFilter *{filter}*'"
+      fi
+    fi
+    MANIFEST="*.ps1"
+  elif [[ -n "$SH_SAMPLE" ]]; then
+    STACK="shell"
+    LANG="bash"
+    BUILD_CMD='rc=0; while IFS= read -r -d "" f; do bash -n "$f" || rc=1; done < <(find . -maxdepth 4 -type f ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" \( -name "*.sh" -o -name "*.bash" \) -print0); exit $rc'
+    if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -type f ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" -name "*.bats" 2>/dev/null | head -n 1)" ]] && command -v bats &>/dev/null; then
+      TEST_CMD="bats ."
+      FILTER_SYNTAX="bats --filter {filter} ."
+    fi
+    if command -v shellcheck &>/dev/null; then
+      LINT_CMD='find . -maxdepth 4 -type f ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" \( -name "*.sh" -o -name "*.bash" \) -exec shellcheck -S error {} +'
+    fi
+    MANIFEST="*.sh"
+  elif [[ -n "$BAT_SAMPLE" ]]; then
+    STACK="batch"
+    LANG="batch"
+    MANIFEST="*.bat / *.cmd"
+  elif [[ -n "$PY_SAMPLE" ]]; then
+    STACK="python-script"
+    LANG="python"
+    if command -v python3 &>/dev/null; then
+      BUILD_CMD="python3 -m compileall -q ."
+    else
+      BUILD_CMD="python -m compileall -q ."
+    fi
+    if [[ -n "$(find "$PROJECT_ROOT" -maxdepth 4 -type f ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" \( -name "test_*.py" -o -name "*_test.py" \) 2>/dev/null | head -n 1)" ]]; then
+      TEST_CMD="pytest -q"
+      FILTER_SYNTAX="pytest -q -k {filter}"
+    fi
+    if command -v ruff &>/dev/null; then
+      LINT_CMD="ruff check -q"
+      FORMAT_CHECK_CMD="ruff format --check -q"
+      FORMAT_FIX_CMD="ruff format -q"
+    elif command -v flake8 &>/dev/null; then
+      LINT_CMD="flake8 -q"
+    fi
+    MANIFEST="*.py"
+  fi
 fi
 
 SUPPORT_LEVEL="full"
 SUPPORT_GAPS_JSON="[]"
-ARCH_LANGS="rust csharp typescript javascript python go kotlin java cpp"
+ARCH_LANGS="rust csharp typescript javascript python go kotlin java cpp powershell bash batch"
 GAPS=()
 
 if [[ "$STACK" == "unknown" ]]; then
@@ -304,6 +368,8 @@ if [[ "$STACK" == "unknown" ]]; then
     fi
     SUPPORT_LEVEL="unsupported"
   fi
+elif [[ "$STACK" == "powershell" || "$STACK" == "shell" || "$STACK" == "batch" || "$STACK" == "python-script" ]]; then
+  SUPPORT_LEVEL="full"
 else
   if [[ -z "$LINT_CMD" && "$STACK" != "dotnet" ]]; then
     GAPS+=("lint_cmd_missing")
@@ -326,11 +392,22 @@ if [[ ${#GAPS[@]} -gt 0 ]]; then
   SUPPORT_GAPS_JSON+="]"
 fi
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  printf '%s' "$s"
+}
+
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-  ESC_FMT_CHECK="${FORMAT_CHECK_CMD//\"/\\\"}"
-  ESC_FMT_FIX="${FORMAT_FIX_CMD//\"/\\\"}"
+  ESC_BUILD="$(json_escape "$BUILD_CMD")"
+  ESC_TEST="$(json_escape "$TEST_CMD")"
+  ESC_FILTER="$(json_escape "$FILTER_SYNTAX")"
+  ESC_LINT="$(json_escape "$LINT_CMD")"
+  ESC_FMT_CHECK="$(json_escape "$FORMAT_CHECK_CMD")"
+  ESC_FMT_FIX="$(json_escape "$FORMAT_FIX_CMD")"
   cat <<EOF
-{"stack":"$STACK","language":"$LANG","build_cmd":"$BUILD_CMD","test_cmd":"$TEST_CMD","test_filter_syntax":"$FILTER_SYNTAX","lint_cmd":"$LINT_CMD","format_check_cmd":"$ESC_FMT_CHECK","format_fix_cmd":"$ESC_FMT_FIX","manifest_file":"$MANIFEST","support_level":"$SUPPORT_LEVEL","support_gaps":$SUPPORT_GAPS_JSON}
+{"stack":"$STACK","language":"$LANG","build_cmd":"$ESC_BUILD","test_cmd":"$ESC_TEST","test_filter_syntax":"$ESC_FILTER","lint_cmd":"$ESC_LINT","format_check_cmd":"$ESC_FMT_CHECK","format_fix_cmd":"$ESC_FMT_FIX","manifest_file":"$MANIFEST","support_level":"$SUPPORT_LEVEL","support_gaps":$SUPPORT_GAPS_JSON}
 EOF
 else
   echo "============================================="

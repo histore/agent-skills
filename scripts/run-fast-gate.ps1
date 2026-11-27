@@ -92,9 +92,13 @@ function Invoke-GateStep {
     $stdoutFile = Join-Path ([System.IO.Path]::GetTempPath()) "gate_stdout_${PID}_$([guid]::NewGuid().ToString('N')).log"
     $stderrFile = Join-Path ([System.IO.Path]::GetTempPath()) "gate_stderr_${PID}_$([guid]::NewGuid().ToString('N')).log"
     try {
-        $proc = Start-Process -FilePath $psExe -ArgumentList "-NoProfile", "-Command", "Set-Location '$ProjectRoot'; $CommandLine" -NoNewWindow -PassThru -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
+        $escapedRoot = $ProjectRoot.Replace("'", "''")
+        $fullScript = "`$ProgressPreference = 'SilentlyContinue'; Set-Location -LiteralPath '$escapedRoot'; $CommandLine"
+        $encodedCmd = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($fullScript))
+        $proc = Start-Process -FilePath $psExe -ArgumentList "-NoProfile", "-OutputFormat", "Text", "-EncodedCommand", $encodedCmd -NoNewWindow -PassThru -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
+        $null = $proc.Handle
         $proc.WaitForExit()
-        $exitCode = $proc.ExitCode
+        $exitCode = if ($null -ne $proc.ExitCode) { $proc.ExitCode } else { 0 }
 
         $stdout = if (Test-Path $stdoutFile) { Get-Content $stdoutFile -Raw } else { "" }
         $stderr = if (Test-Path $stderrFile) { Get-Content $stderrFile -Raw } else { "" }
@@ -150,7 +154,7 @@ if ($stackInfo.stack -ne "unknown") {
                 } else {
                     $statusLines = $gitStatus -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
                     $hasExecutableCode = $false
-                    $codeExtRegex = '\.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|qml|qrc|ui|swift|rb|php|scala|dart|zig|sql)$'
+                    $codeExtRegex = '\.(rs|cs|fs|ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|kts|gradle|c|cpp|cc|cxx|h|hpp|hxx|qml|qrc|ui|swift|rb|php|scala|dart|zig|sql|ps1|psm1|psd1|sh|bash|bat|cmd)$'
                     $manifestRegex = '^(Cargo\.(toml|lock)|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|.*\.csproj|.*\.fsproj|.*\.sln|Directory\.Build\.(props|targets)|pyproject\.toml|requirements\.txt|Pipfile|go\.(mod|sum)|pom\.xml|(build|settings)\.gradle(\.kts)?|libs\.versions\.toml|AndroidManifest\.xml|CMakeLists\.txt|CMakePresets\.json|.*\.vcxproj|Makefile)$'
 
                     foreach ($line in $statusLines) {

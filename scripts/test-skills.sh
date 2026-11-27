@@ -1442,6 +1442,50 @@ else
 fi
 rm -rf "$TEMP_CLI_DIR"
 
+# 53. Validating Script Stacks (PowerShell, Bash, Batch/CMD, Standalone Python) & Cross-Cutting Data Syntax Guardrails
+echo -e "\n\033[33m53. Validating Script Stacks & Data Syntax Guardrails...\033[0m"
+TEMP_SCRIPT_DIR=$(mktemp -d)
+mkdir -p "$TEMP_SCRIPT_DIR/ps-proj" "$TEMP_SCRIPT_DIR/sh-proj" "$TEMP_SCRIPT_DIR/bat-proj" "$TEMP_SCRIPT_DIR/py-proj" "$TEMP_SCRIPT_DIR/data-proj"
+printf 'function Invoke-Deploy { Write-Output "ok" }\n' > "$TEMP_SCRIPT_DIR/ps-proj/deploy.ps1"
+printf '#!/usr/bin/env bash\nrun_task() { echo ok; }\n' > "$TEMP_SCRIPT_DIR/sh-proj/run.sh"
+printf '@echo off\r\necho ok\r\n' > "$TEMP_SCRIPT_DIR/bat-proj/build.cmd"
+printf 'def greet():\n    return "hi"\n' > "$TEMP_SCRIPT_DIR/py-proj/helper.py"
+
+PS_STACK_JSON=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$TEMP_SCRIPT_DIR/ps-proj" --json)
+SH_STACK_JSON=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$TEMP_SCRIPT_DIR/sh-proj" --json)
+BAT_STACK_JSON=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$TEMP_SCRIPT_DIR/bat-proj" --json)
+PY_STACK_JSON=$(bash "$REPO_ROOT/scripts/detect-tech-stack.sh" "$TEMP_SCRIPT_DIR/py-proj" --json)
+
+if echo "$PS_STACK_JSON" | grep -q '"stack":"powershell"' && echo "$PS_STACK_JSON" | grep -q '"support_level":"full"' && \
+   echo "$SH_STACK_JSON" | grep -q '"stack":"shell"' && echo "$SH_STACK_JSON" | grep -q '"support_level":"full"' && \
+   echo "$BAT_STACK_JSON" | grep -q '"stack":"batch"' && echo "$BAT_STACK_JSON" | grep -q '"support_level":"full"' && \
+   echo "$PY_STACK_JSON" | grep -q '"stack":"python-script"' && echo "$PY_STACK_JSON" | grep -q '"support_level":"full"'; then
+    assert_condition 0 "detect-tech-stack.sh detects PowerShell, Bash, Batch/CMD, and Standalone Python stacks with full support" "Script stack detection failed"
+else
+    assert_condition 1 "detect-tech-stack.sh detects PowerShell, Bash, Batch/CMD, and Standalone Python stacks with full support" "Script stack detection failed: ps=$PS_STACK_JSON sh=$SH_STACK_JSON bat=$BAT_STACK_JSON py=$PY_STACK_JSON"
+fi
+
+PS_OUTLINE=$(bash "$REPO_ROOT/scripts/get-code-outline.sh" --path "$TEMP_SCRIPT_DIR/ps-proj/deploy.ps1" --json)
+SH_OUTLINE=$(bash "$REPO_ROOT/scripts/get-code-outline.sh" --path "$TEMP_SCRIPT_DIR/sh-proj/run.sh" --json)
+if echo "$PS_OUTLINE" | grep -q 'Invoke-Deploy' && echo "$SH_OUTLINE" | grep -q 'run_task'; then
+    assert_condition 0 "get-code-outline.sh extracts PowerShell and Bash function signatures" "Missing PowerShell or Bash outline signatures"
+else
+    assert_condition 1 "get-code-outline.sh extracts PowerShell and Bash function signatures" "Missing PowerShell or Bash outline signatures: ps=$PS_OUTLINE sh=$SH_OUTLINE"
+fi
+
+printf '{"ok": true}\n' > "$TEMP_SCRIPT_DIR/data-proj/valid.json"
+printf '<root><item>ok</item></root>\n' > "$TEMP_SCRIPT_DIR/data-proj/valid.xml"
+VALID_DATA_SCAN=$(bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "$TEMP_SCRIPT_DIR/data-proj" --skip-line-endings --json || true)
+printf '{"ok": true,}\n' > "$TEMP_SCRIPT_DIR/data-proj/broken.json"
+printf '<root><unclosed></root>\n' > "$TEMP_SCRIPT_DIR/data-proj/broken.xml"
+BROKEN_DATA_SCAN=$(bash "$REPO_ROOT/scripts/scan-guardrails.sh" --path "$TEMP_SCRIPT_DIR/data-proj" --skip-line-endings --json || true)
+if echo "$VALID_DATA_SCAN" | grep -q '"status":"pass"' && echo "$BROKEN_DATA_SCAN" | grep -q '"status":"fail"' && echo "$BROKEN_DATA_SCAN" | grep -q '"Rule":"DataSyntax"'; then
+    assert_condition 0 "scan-guardrails.sh passes valid JSON/XML and flags broken JSON/XML via DataSyntax" "DataSyntax check failed"
+else
+    assert_condition 1 "scan-guardrails.sh passes valid JSON/XML and flags broken JSON/XML via DataSyntax" "DataSyntax check failed: valid=$VALID_DATA_SCAN broken=$BROKEN_DATA_SCAN"
+fi
+rm -rf "$TEMP_SCRIPT_DIR"
+
 # Summary
 echo -e "\n\033[36m=============================================\033[0m"
 echo -e "\033[36mTest Suite Summary\033[0m"

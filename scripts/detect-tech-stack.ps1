@@ -269,10 +269,78 @@ elseif ((Test-Path (Join-Path $ProjectRoot "CMakeLists.txt")) -or (Test-Path (Jo
         $detected.format_fix_cmd = "clang-format -i"
     }
 }
+# 9. Script Stacks (PowerShell, Bash/POSIX Shell, Windows Batch/CMD, Standalone Python)
+# Checked only after primary application manifests so app repos with helper scripts keep their primary stack.
+else {
+    $scriptCandidates = @(Get-ChildItem -Path $ProjectRoot -Recurse -Depth 3 -File -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.FullName -notmatch '[\\/](\.git|_agents|\.agents|node_modules|build|target|bin|obj)[\\/]' -and
+            $_.Extension -match '(?i)^\.(ps1|psm1|psd1|sh|bash|bat|cmd|py)$'
+        })
+    $psFiles = @($scriptCandidates | Where-Object { $_.Extension -match '(?i)^\.(ps1|psm1|psd1)$' })
+    $shFiles = @($scriptCandidates | Where-Object { $_.Extension -match '(?i)^\.(sh|bash)$' })
+    $batFiles = @($scriptCandidates | Where-Object { $_.Extension -match '(?i)^\.(bat|cmd)$' })
+    $pyFiles = @($scriptCandidates | Where-Object { $_.Extension -match '(?i)^\.py$' })
+
+    if ($psFiles.Count -gt 0) {
+        $detected.stack = "powershell"
+        $detected.language = "powershell"
+        $detected.build_cmd = 'Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 -File | Where-Object { $_.FullName -notmatch ''[\\/](\.git|_agents|\.agents|node_modules|build|target)[\\/]'' } | ForEach-Object { $e = $null; [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$e); if ($e.Count -gt 0) { $e | ForEach-Object { Write-Error ($_.Extent.File + '':'' + $_.Extent.StartLineNumber + '' '' + $_.Message) }; exit 1 } }'
+        $hasPesterTests = (@($psFiles | Where-Object { $_.Name -match '(?i)\.Tests\.ps1$' }).Count -gt 0)
+        if ($hasPesterTests -and ($null -ne (Get-Module -ListAvailable -Name Pester -ErrorAction SilentlyContinue))) {
+            $detected.test_cmd = "Invoke-Pester -Output Minimal"
+            $detected.test_filter_syntax = "Invoke-Pester -Output Minimal -FullNameFilter '*{filter}*'"
+        }
+        if ($null -ne (Get-Module -ListAvailable -Name PSScriptAnalyzer -ErrorAction SilentlyContinue)) {
+            $detected.lint_cmd = "Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error"
+        }
+        $psd1 = $psFiles | Where-Object { $_.Extension -ieq '.psd1' } | Select-Object -First 1
+        $psm1 = $psFiles | Where-Object { $_.Extension -ieq '.psm1' } | Select-Object -First 1
+        $detected.manifest_file = if ($psd1) { $psd1.Name } elseif ($psm1) { $psm1.Name } else { "*.ps1" }
+    } elseif ($shFiles.Count -gt 0) {
+        $detected.stack = "shell"
+        $detected.language = "bash"
+        if ($null -ne (Get-Command bash -ErrorAction SilentlyContinue)) {
+            $detected.build_cmd = 'bash -c ''rc=0; while IFS= read -r -d "" f; do bash -n "$f" || rc=1; done < <(find . -maxdepth 4 -type f ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" \( -name "*.sh" -o -name "*.bash" \) -print0); exit $rc'''
+        }
+        $hasBats = (@(Get-ChildItem -Path $ProjectRoot -Recurse -Depth 3 -Filter "*.bats" -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch '[\\/](\.git|_agents|\.agents)[\\/]' }).Count -gt 0)
+        if ($hasBats -and ($null -ne (Get-Command bats -ErrorAction SilentlyContinue))) {
+            $detected.test_cmd = "bats ."
+            $detected.test_filter_syntax = "bats --filter {filter} ."
+        }
+        if ($null -ne (Get-Command shellcheck -ErrorAction SilentlyContinue)) {
+            $detected.lint_cmd = 'bash -c ''find . -maxdepth 4 -type f ! -path "*/.git/*" ! -path "*/_agents/*" ! -path "*/.agents/*" \( -name "*.sh" -o -name "*.bash" \) -exec shellcheck -S error {} +'''
+        }
+        $detected.manifest_file = "*.sh"
+    } elseif ($batFiles.Count -gt 0) {
+        $detected.stack = "batch"
+        $detected.language = "batch"
+        $detected.manifest_file = "*.bat / *.cmd"
+    } elseif ($pyFiles.Count -gt 0) {
+        $detected.stack = "python-script"
+        $detected.language = "python"
+        $detected.build_cmd = "python -m compileall -q ."
+        $hasPyTests = (@($pyFiles | Where-Object { $_.Name -match '(?i)(^test_.*|_test)\.py$' }).Count -gt 0)
+        if ($hasPyTests) {
+            $detected.test_cmd = "pytest -q"
+            $detected.test_filter_syntax = "pytest -q -k {filter}"
+        }
+        $hasRuff = ($null -ne (Get-Command ruff -ErrorAction SilentlyContinue))
+        if ($hasRuff) {
+            $detected.lint_cmd = "ruff check -q"
+            $detected.format_check_cmd = "ruff format --check -q"
+            $detected.format_fix_cmd = "ruff format -q"
+        } elseif ($null -ne (Get-Command flake8 -ErrorAction SilentlyContinue)) {
+            $detected.lint_cmd = "flake8 -q"
+        }
+        $detected.manifest_file = "*.py"
+    }
+}
 
 # Compute deterministic support_level & support_gaps (FEAT-TOOL-004)
 $gaps = [System.Collections.Generic.List[string]]::new()
-$archSupportedLangs = @("rust", "csharp", "typescript", "javascript", "python", "go", "kotlin", "java", "cpp")
+$archSupportedLangs = @("rust", "csharp", "typescript", "javascript", "python", "go", "kotlin", "java", "cpp", "powershell", "bash", "batch")
+$scriptStacks = @("powershell", "shell", "batch", "python-script")
 if ($detected.stack -eq "unknown") {
     $codeSample = Get-ChildItem -Path $ProjectRoot -Recurse -Depth 3 -File -ErrorAction SilentlyContinue |
         Where-Object { $_.FullName -notmatch '[\\/](\.git|_agents|\.agents|node_modules|build|target)[\\/]' -and $_.Extension -match '^\.(dart|swift|php|rb|zig|scala|ex|exs|rs|cs|ts|js|py|go|kt|java|cpp|c|qml)$' } |
@@ -289,6 +357,8 @@ if ($detected.stack -eq "unknown") {
     } else {
         $detected.support_level = "full"
     }
+} elseif ($scriptStacks -contains $detected.stack) {
+    $detected.support_level = "full"
 } else {
     if ([string]::IsNullOrWhiteSpace($detected.lint_cmd) -and $detected.stack -ne "dotnet") {
         $gaps.Add("lint_cmd_missing")

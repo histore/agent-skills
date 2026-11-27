@@ -104,6 +104,10 @@ ext_lang = {
     ".hpp": "cpp",
     ".hxx": "cpp",
     ".qml": "qml",
+    ".ps1": "powershell",
+    ".psm1": "powershell",
+    ".sh": "bash",
+    ".bash": "bash",
 }
 ignored_dirs = {".git", "_agents", ".agents", "node_modules", "bin", "obj", "target", ".vs", ".pytest_cache"}
 
@@ -258,6 +262,30 @@ def parse_signatures(filepath):
                 m2 = re.match(r'^(signal|function)\s+([A-Za-z0-9_]+)\s*\(', trimmed)
                 if m2:
                     kind = m2.group(1)
+                    sig = trimmed.rstrip("{").strip()
+                    vis = "public"
+        elif lang == "powershell":
+            m = re.match(r'^(class|enum)\s+([A-Za-z0-9_]+)', trimmed, re.IGNORECASE)
+            if m:
+                kind = m.group(1).lower()
+                sig = trimmed.rstrip("{").strip()
+                vis = "public"
+            else:
+                m2 = re.match(r'^(function|filter)\s+([A-Za-z0-9_:-]+)', trimmed, re.IGNORECASE)
+                if m2:
+                    kind = m2.group(1).lower()
+                    sig = trimmed.rstrip("{").strip()
+                    vis = "public"
+        elif lang == "bash":
+            m = re.match(r'^function\s+([A-Za-z_][A-Za-z0-9_-]*)', trimmed)
+            if m:
+                kind = "function"
+                sig = trimmed.rstrip("{").strip()
+                vis = "public"
+            else:
+                m2 = re.match(r'^([A-Za-z_][A-Za-z0-9_-]*)\s*\(\s*\)\s*\{?', trimmed)
+                if m2:
+                    kind = "function"
                     sig = trimmed.rstrip("{").strip()
                     vis = "public"
 

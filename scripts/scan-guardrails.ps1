@@ -277,7 +277,7 @@ foreach ($filePath in $filesToScan) {
     # 2. Text extension check (only analyze text files for line endings and content rules)
     $ext = [System.IO.Path]::GetExtension($filePath).ToLowerInvariant()
     $leafName = [System.IO.Path]::GetFileName($filePath)
-    $textExtensions = @(".rs", ".cs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".java", ".kt", ".kts", ".gradle", ".c", ".cpp", ".h", ".hpp", ".json", ".md", ".yml", ".yaml", ".toml", ".ps1", ".sh", ".axaml", ".props", ".targets", ".xml", ".txt", ".csproj", ".sln", ".editorconfig", ".gitattributes", ".gitignore", ".manifest")
+    $textExtensions = @(".rs", ".cs", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".java", ".kt", ".kts", ".gradle", ".c", ".cpp", ".h", ".hpp", ".json", ".md", ".yml", ".yaml", ".toml", ".ps1", ".psm1", ".psd1", ".sh", ".bash", ".bat", ".cmd", ".axaml", ".props", ".targets", ".xml", ".txt", ".csproj", ".fsproj", ".vcxproj", ".config", ".sln", ".editorconfig", ".gitattributes", ".gitignore", ".manifest")
     if (-not (($textExtensions -contains $ext) -or ($leafName -match '^(LICENSE|NOTICE|AUTHORS|CODEOWNERS)$'))) {
         continue
     }
@@ -374,6 +374,67 @@ foreach ($filePath in $filesToScan) {
                     Line = 0
                     Message = "Potential secret detected ($($sp.Name))"
                 })
+            }
+        }
+
+        # 4c. Cross-Cutting Structured Data Syntax Check (JSON, XML, TOML, YAML)
+        $cleanContent = $content.TrimStart([char]0xFEFF)
+        if ($ext -eq ".json" -and $leafName -notmatch '(?i)^(tsconfig|jsconfig|devcontainer).*\.json$' -and $relUnix -notmatch '(^|/)\.vscode/') {
+            try {
+                [void]($cleanContent | ConvertFrom-Json -ErrorAction Stop)
+            } catch {
+                $violations.Add([PSCustomObject]@{
+                    Rule = "DataSyntax"
+                    File = $relPath
+                    Line = 0
+                    Message = "Invalid JSON syntax: $($_.Exception.Message)"
+                })
+            }
+        } elseif ($ext -in @(".xml", ".csproj", ".fsproj", ".props", ".targets", ".vcxproj", ".config", ".axaml")) {
+            try {
+                $xmlDoc = New-Object System.Xml.XmlDocument
+                $xmlDoc.LoadXml($cleanContent)
+            } catch {
+                $violations.Add([PSCustomObject]@{
+                    Rule = "DataSyntax"
+                    File = $relPath
+                    Line = 0
+                    Message = "Invalid XML syntax: $($_.Exception.Message)"
+                })
+            }
+        } elseif ($ext -eq ".toml") {
+            if ($null -eq $script:pyExeForData) {
+                $pyCmd = Get-Command python3 -ErrorAction SilentlyContinue
+                if (-not $pyCmd) { $pyCmd = Get-Command python -ErrorAction SilentlyContinue }
+                $script:pyExeForData = if ($pyCmd) { $pyCmd.Source } else { "" }
+            }
+            if (-not [string]::IsNullOrEmpty($script:pyExeForData)) {
+                $tomlErr = & $script:pyExeForData -c "import sys; import tomllib; tomllib.load(open(sys.argv[1], 'rb'))" $filePath 2>&1
+                if ($LASTEXITCODE -ne 0 -and ($tomlErr -notmatch 'No module named')) {
+                    $violations.Add([PSCustomObject]@{
+                        Rule = "DataSyntax"
+                        File = $relPath
+                        Line = 0
+                        Message = "Invalid TOML syntax: $(($tomlErr | Select-Object -Last 1) -replace '\r?\n', ' ')"
+                    })
+                }
+            }
+        } elseif ($ext -in @(".yml", ".yaml")) {
+            if ($null -eq $script:pyExeForData) {
+                $pyCmd = Get-Command python3 -ErrorAction SilentlyContinue
+                if (-not $pyCmd) { $pyCmd = Get-Command python -ErrorAction SilentlyContinue }
+                $script:pyExeForData = if ($pyCmd) { $pyCmd.Source } else { "" }
+            }
+            if (-not [string]::IsNullOrEmpty($script:pyExeForData)) {
+                $yamlErr = & $script:pyExeForData -c "import sys, yaml; list(yaml.safe_load_all(open(sys.argv[1], 'r', encoding='utf-8-sig')))" $filePath 2>&1
+                if ($LASTEXITCODE -ne 0 -and ($yamlErr -notmatch 'No module named')) {
+                    $violations.Add([PSCustomObject]@{
+                        Rule = "DataSyntax"
+                        File = $relPath
+                        Line = 0
+                        Message = "Invalid YAML syntax: $(($yamlErr | Select-Object -Last 1) -replace '\r?\n', ' ')"
+                    })
+                }
             }
         }
     } catch {
