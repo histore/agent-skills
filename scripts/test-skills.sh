@@ -1064,11 +1064,12 @@ else
 fi
 
 SUBAGENTS_RULE_FILE="$REPO_ROOT/rules/subagents.md"
+README_COST_FILE="$REPO_ROOT/README.md"
 THRESHOLD_MODE=$(jq -r '.cost_efficiency_policy.cost_guardrail.routine_task_thresholds.threshold_mode // ""' "$MODEL_TIERS_FILE")
-if [ -f "$SUBAGENTS_RULE_FILE" ] && grep -q 'routine_task_thresholds' "$SUBAGENTS_RULE_FILE" && ! grep -qE '\$4\.00/M|\$20\.00/M' "$SUBAGENTS_RULE_FILE" && [ "$THRESHOLD_MODE" = "dynamic" ]; then
-    assert_condition 0 "Cost-guardrail thresholds are managed dynamically in rules/model-tiers.json without hardcoded dollar prose in rules/subagents.md" "Static dollar thresholds found in rules/subagents.md or threshold_mode is not 'dynamic' in rules/model-tiers.json"
+if [ -f "$SUBAGENTS_RULE_FILE" ] && [ -f "$README_COST_FILE" ] && grep -q 'routine_task_thresholds' "$SUBAGENTS_RULE_FILE" && ! grep -qE '\$4\.00/M|\$20\.00/M' "$SUBAGENTS_RULE_FILE" && ! grep -qE '\$4\.00/M|\$20\.00/M' "$README_COST_FILE" && [ "$THRESHOLD_MODE" = "dynamic" ]; then
+    assert_condition 0 "Cost-guardrail thresholds are managed dynamically in rules/model-tiers.json without hardcoded dollar prose in rules/subagents.md or README.md" "Static dollar thresholds found in rules/subagents.md or README.md, or threshold_mode is not 'dynamic' in rules/model-tiers.json"
 else
-    assert_condition 1 "Cost-guardrail thresholds are managed dynamically in rules/model-tiers.json without hardcoded dollar prose in rules/subagents.md" "Static dollar thresholds found in rules/subagents.md or threshold_mode is not 'dynamic' in rules/model-tiers.json"
+    assert_condition 1 "Cost-guardrail thresholds are managed dynamically in rules/model-tiers.json without hardcoded dollar prose in rules/subagents.md or README.md" "Static dollar thresholds found in rules/subagents.md or README.md, or threshold_mode is not 'dynamic' in rules/model-tiers.json"
 fi
 
 # 47. Validate bash script parity, directory segment excludes, MIME/JSON checks, and eval coverage

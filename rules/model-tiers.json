@@ -177,7 +177,7 @@
   "platform_preferences": {
     "antigravity": {
       "customization_root": "_agents",
-      "native_capabilities": ["invoke_subagent", "run_workflow", "user_invoked_swarm", "pre_tool_use_hooks", "dual_model_orchestrators"],
+      "native_capabilities": ["invoke_subagent", "run_workflow", "user_invoked_swarm", "pre_tool_use_hooks", "dual_model_orchestrators", "plugins", "agy_cli"],
       "aggregate_rules_budget_tokens": 20000,
       "tier_1": ["gemini-4-neon-high", "gemini-4-neon-xhigh", "gemini-pro-orchestrator-neon", "gemini-4-carbon-high", "gemini-pro-orchestrator", "gemini-4-hydrogen-xhigh", "claude-opus-5-5-high"],
       "tier_1_exception": ["gemini-4-neon-xhigh", "claude-opus-5-5-high", "gemini-4-neon-high", "gemini-4-carbon-high"],
@@ -187,7 +187,7 @@
     },
     "copilot": {
       "customization_root": ".agents",
-      "native_capabilities": ["plan_mode", "autopilot_with_guardrails", "fleet_parallel_subagents", "pre_tool_use_hooks", "native_compact", "path_specific_instructions"],
+      "native_capabilities": ["plan_mode", "autopilot_with_guardrails", "fleet_parallel_subagents", "pre_tool_use_hooks", "native_compact", "path_specific_instructions", "cloud_delegation", "chronicle_cost_tips"],
       "auto_routing_behavior": "When Copilot model selection is set to 'Auto' or invoked via 'copilot --model', steer reasoning via native effort settings, /plan before execution, /compact for long threads, and concise output checkpoints.",
       "tier_1": ["gpt-6.2-astra", "claude-fable-5.2", "gemini-4-neon", "gemini-4-carbon", "gemini-4-hydrogen", "claude-opus-5-5-high", "gpt-6-astra"],
       "tier_1_exception": ["gpt-6.2-astra", "claude-fable-5.2", "gemini-4-neon", "claude-opus-5-5-high"],
